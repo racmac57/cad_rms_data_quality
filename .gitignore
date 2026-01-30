@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+dist/
+*.egg-info/
+
+# Data outputs (large files)
+consolidation/output/*.csv
+consolidation/output/*.xlsx
+consolidation/reports/*.html
+consolidation/reports/*.xlsx
+consolidation/reports/*.json
+consolidation/logs/*.log
+
+monthly_validation/reports/**/*.html
+monthly_validation/reports/**/*.xlsx
+monthly_validation/reports/**/*.json
+monthly_validation/logs/*.log
+
+# Test outputs
+.pytest_cache/
+.coverage
+htmlcov/
+tests/fixtures/*.csv
+tests/fixtures/*.xlsx
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.bak
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+~$*
+
+# Environment files (may contain sensitive paths)
+.env
+.env.local
+
+# Keep directory structure with .gitkeep files
+!**/.gitkeep
