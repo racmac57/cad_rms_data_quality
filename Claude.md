@@ -8,9 +8,53 @@ This file provides context and rules for any Claude instance working in this rep
 
 This repository contains a unified data quality system for CAD (Computer-Aided Dispatch) and RMS (Records Management System) exports. It consolidates best practices from multiple legacy projects and provides:
 
-1. **Historical Consolidation** (Component 1): Merge 2019-2026 CAD data into single validated dataset for ArcGIS Pro dashboards (~230K-240K records)
+1. **Historical Consolidation** (Component 1): Merge 2019-2025 CAD data into single validated dataset for ArcGIS Pro dashboards (714K records, ~543K unique cases)
 2. **Monthly Validation** (Component 2): Reusable validation scripts for ongoing CAD and RMS exports with detailed quality reporting
 3. **Single Source of Truth**: Unified system replacing fragmented legacy projects (RMS_Data_ETL, RMS_Data_Processing, RMS_CAD_Combined_ETL)
+
+---
+
+## Project Status & Implementation Progress
+
+### ✅ Phase 1: Configuration & Scaffolding (COMPLETE - 2026-01-30)
+
+**Configuration Files Created:**
+- `config/schemas.yaml` - Paths to 09_Reference/Standards with ${variable} expansion
+- `config/validation_rules.yaml` - Validation patterns, quality scoring weights, domain values
+- `config/consolidation_sources.yaml` - 2019-2026 CAD source file paths and configurations
+
+**Project Scaffolding:**
+- `requirements.txt` - All Python dependencies (pandas, pyyaml, usaddress, rapidfuzz, etc.)
+- `pyproject.toml` - Project metadata, entry points, build configuration
+- `.gitignore` - Exclusions for outputs, logs, Python artifacts
+- Directory structure created with all required folders
+
+**Documentation:**
+- `outputs/consolidation/EXTRACTION_REPORT.txt` - Complete guide for extracting Python modules
+- Updated CHANGELOG.md, README.md, NEXT_STEPS.md
+
+### 🚧 Phase 2: Python Module Extraction (IN PROGRESS)
+
+**Status:** Configuration layer complete. Python modules (~5000 lines) designed and ready in chat transcripts.
+
+**Files to Extract** (See EXTRACTION_REPORT.txt for details):
+1. `shared/utils/schema_loader.py` (~500 lines) - from chunk_00001.txt
+2. `shared/processors/field_normalizer.py` (~1200 lines) - from chunk_00003.txt
+3. `shared/validators/validation_engine.py` (~1100 lines) - from chunk_00006.txt
+4. `shared/validators/quality_scorer.py` (~1000 lines) - from chunks 00008/00009
+5. `consolidation/scripts/consolidate_cad.py` (~800 lines) - from chunk_00009.txt
+6. `run_consolidation.py` (~400 lines) - from chunk_00010.txt
+7. `Makefile` (~200 lines) - from chunk_00010.txt
+8. Updated `Claude.md` - from chunk_00011.txt
+
+**Extraction Source:** `docs/Claude-Data_cleaning_project_implementation_roadmap/`
+
+### 🔜 Phases 3-7 (After Module Extraction)
+- Phase 3: Run verification tests (imports, schema validation, dry-run)
+- Phase 4: Build ArcGIS preparation script
+- Phase 5: Build monthly validation scripts  
+- Phase 6: Create test suite
+- Phase 7: Write user documentation and archive legacy projects
 
 ---
 
@@ -21,7 +65,7 @@ This repository contains a unified data quality system for CAD (Computer-Aided D
 | `config/` | Configuration files (schemas, validation rules, source paths) | YAML/JSON configs |
 | `consolidation/` | Historical data consolidation scripts and outputs | `2019_2026_CAD_Consolidated.csv`, `2019_2026_CAD_ArcGIS_Ready.csv` |
 | `consolidation/scripts/` | Consolidation and ArcGIS preparation scripts | N/A (executes workflows) |
-| `consolidation/output/` | Consolidated datasets (230K+ records) | CSV files |
+| `consolidation/output/` | Consolidated datasets (715K records, 2019-2025) | CSV files |
 | `consolidation/reports/` | Consolidation validation reports | HTML, Excel, JSON |
 | `consolidation/logs/` | Consolidation processing logs | `*.log` |
 | `monthly_validation/` | Ongoing monthly validation workflows | N/A |
@@ -137,7 +181,9 @@ make validate-rms    # Validate monthly RMS export (requires INPUT=path)
 ## Data and Safety
 
 ### Data Locations
-- **CAD Source Files (2019-2026)**: `C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_CAD\full_year\`
+- **CAD Source Files (2012-2025)**: `C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_CAD\yearly\`
+- **CAD Monthly Files (2025 Q4)**: `C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_CAD\monthly\`
+- **Note**: Directory structure updated to v2.0.0 (2026-01-30) - using canonical yearly/ path
 - **Consolidated Outputs**: `consolidation/output/`
 - **Monthly Validation Reports**: `monthly_validation/reports/`
 - **Logs**: `consolidation/logs/`, `monthly_validation/logs/`
@@ -150,9 +196,12 @@ make validate-rms    # Validate monthly RMS export (requires INPUT=path)
 - Large CSV outputs are excluded via `.gitignore`
 
 ### Expected Data Volumes
-- **Historical Consolidation**: ~230,000-240,000 CAD records (2019-2026)
+- **Historical Consolidation**: 714,689 CAD records (2019-2025, 7 years)
+- **Full History**: 1,401,462 CAD records (2012-2025, 14 years)
+- **Unique Cases (2019-2025)**: ~543,000 after deduplication
 - **Monthly Exports**: ~2,500-3,000 records per month
 - **Quality Thresholds**: ≥95/100 for consolidated data, ≥80/100 for monthly exports
+- **Note**: Records include all CAD events (incidents + supplements + unit records), not just incident reports
 
 ---
 
@@ -323,6 +372,106 @@ make test
 
 ## When Working on This Project
 
+### Before Starting
+1. **Read EXTRACTION_REPORT.txt first** - Complete guide to Phase 2 (Python module extraction)
+2. **Review README.md** - Current project status and Phase 1 completion
+3. **Check CHANGELOG.md** - Latest changes (v1.0.1)
+4. **Review NEXT_STEPS.md** - Phase-by-phase roadmap
+
+### Phase 2: Extracting Python Modules from Chat Transcripts
+
+**IMPORTANT:** The Python modules (~5000 lines total) are fully designed and production-ready in the chat export files. They should be extracted exactly as designed to preserve formatting, structure, and logic.
+
+**Extraction Order** (Follow dependencies):
+1. **schema_loader.py** (no dependencies) - Extract from `docs/Claude-Data_cleaning_project_implementation_roadmap/chunk_00001.txt`
+2. **field_normalizer.py** (depends on schema_loader) - Extract from `chunk_00003.txt`  
+3. **validation_engine.py** (depends on schema_loader) - Extract from `chunk_00006.txt`
+4. **quality_scorer.py** (minimal dependencies) - Extract from `chunks 00008 & 00009.txt`
+5. **consolidate_cad.py** (depends on ALL above) - Extract from `chunk_00009.txt` (FINALIZED version, not stub)
+6. **run_consolidation.py** (depends on consolidate_cad) - Extract from `chunk_00010.txt`
+7. **Makefile** - Extract from `chunk_00010.txt`
+
+**Why Manual Extraction:**
+- Files are extremely large (~5000 lines combined)
+- Automated extraction risks token limits and truncation
+- Manual extraction ensures complete code preservation
+- Allows verification of each module before proceeding
+
+**After Extraction:**
+```powershell
+# Create __init__.py files
+New-Item -ItemType File shared/__init__.py, shared/utils/__init__.py, shared/processors/__init__.py, shared/validators/__init__.py, consolidation/__init__.py, consolidation/scripts/__init__.py
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Test imports
+python -c "from shared.utils.schema_loader import ConfigLoader"
+python -c "from shared.processors.field_normalizer import FieldNormalizer"
+
+# Validate schemas
+python -m shared.utils.schema_loader
+
+# Run dry-run
+python run_consolidation.py --dry-run --verbose
+```
+
+### During Development (After Phase 2 Complete)
+1. **Use existing engines** - Don't duplicate logic from shared/
+2. **Load schemas via schema_loader.py** - Never hardcode paths
+3. **Follow the 6-step pipeline order** - Load → Normalize → Validate → Score → Deduplicate → Export
+4. **Use config files for paths** - All paths in config/*.yaml
+5. **Preserve original values when normalizing** - Use _raw_* columns
+
+### Before Committing
+1. **Run make lint** - Fix any issues
+2. **Run make test** - All tests pass (when tests exist)
+3. **Run python run_consolidation.py --dry-run** - Pipeline completes
+4. **Update CHANGELOG.md** - Document significant changes
+5. **Never commit PII** - Review outputs before committing
+
+### Adding New Features
+1. Check if existing engine can be extended
+2. Add to shared/ if reusable across components
+3. Add CLI interface for standalone usage
+4. Add Makefile target if appropriate  
+5. Update documentation (README.md, Claude.md)
+
+---
+
+## Configuration Files Reference
+
+### config/schemas.yaml
+Points to authoritative schemas in 09_Reference/Standards. Uses ${variable} expansion.
+- `standards_root` - Base path to Standards directory
+- `schemas` - JSON schema files (canonical, cad, rms, transformation)
+- `mappings` - Field mapping files and call types
+- `config` - Runtime configuration (response_time_filters)
+
+### config/validation_rules.yaml
+Validation patterns and quality scoring configuration.
+- `case_number` - Format validation pattern
+- `required_fields` - By data source (cad/rms)
+- `address` - USPS validation, fuzzy matching, exclusions
+- `domain_validation` - Valid values and normalization patterns
+- `quality_scoring` - Weights and thresholds (0-100 scale)
+- `anomaly_detection` - Variance and null rate thresholds
+- `response_time_exclusions` - Filters for response time calculations
+
+### config/consolidation_sources.yaml
+Source file paths for 2019-2026 CAD consolidation.
+- `base_directory` - Root path to CAD exports
+- `source_files` - Array of yearly files with expected record counts
+- `output` - Consolidated and ArcGIS file names
+- `reports` - Report directory and file names
+- `logging` - Log configuration
+- `processing` - Dedup field, chunk size, preserve fields
+- `validation` - Quality thresholds and expected totals
+
+---
+
+## When Working on This Project (Original)
+
 1. **Read first** - Review `README.md`, `PLAN.md`, and `NEXT_STEPS.md` before making changes
 2. **Use existing patterns** - Follow established code organization in `shared/`
 3. **Reference Standards** - Load schemas from `09_Reference/Standards`, never duplicate
@@ -362,9 +511,10 @@ See `docs/MIGRATION_NOTES.md` for complete migration details.
 
 ## Version Information
 
-**Current Version:** 1.0.0 (Scaffolding Phase)  
+**Current Version:** 1.0.1 (Phase 1 Complete - Configuration Layer)  
 **Created:** 2026-01-29  
+**Last Updated:** 2026-01-30  
 **Author:** R. A. Carucci  
-**Status:** Ready for Phase 1 Implementation
+**Status:** Phase 1 Complete - Ready for Python Module Extraction
 
-**Next Phase:** Configuration & Schema Integration (see `NEXT_STEPS.md`)
+**Next Phase:** Phase 2 - Extract Python modules from chat transcripts (see EXTRACTION_REPORT.txt)

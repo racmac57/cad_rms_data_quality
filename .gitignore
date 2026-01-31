@@ -1,17 +1,85 @@
+# // 2026-01-30-10-36-00 EST
+# // cad_rms_data_quality/.gitignore
+# // Author: R. A. Carucci
+# // Purpose: Git ignore rules for CAD/RMS data quality project
+
+# =============================================================================
 # Python
+# =============================================================================
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# =============================================================================
+# Virtual Environments
+# =============================================================================
 env/
 venv/
 ENV/
-build/
-dist/
-*.egg-info/
+env.bak/
+venv.bak/
+.venv/
+.conda/
 
-# Data outputs (large files)
+# =============================================================================
+# IDE and Editors
+# =============================================================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+*~
+.project
+.pydevproject
+.spyderproject
+.spyproject
+*.sublime-workspace
+*.sublime-project
+
+# =============================================================================
+# Testing
+# =============================================================================
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+
+# =============================================================================
+# Type Checking
+# =============================================================================
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# =============================================================================
+# Data Outputs (Large Files)
+# =============================================================================
 consolidation/output/*.csv
 consolidation/output/*.xlsx
 consolidation/reports/*.html
@@ -19,40 +87,59 @@ consolidation/reports/*.xlsx
 consolidation/reports/*.json
 consolidation/logs/*.log
 
-monthly_validation/reports/**/*.html
-monthly_validation/reports/**/*.xlsx
-monthly_validation/reports/**/*.json
+monthly_validation/reports/*/
 monthly_validation/logs/*.log
 
-# Test outputs
-.pytest_cache/
-.coverage
-htmlcov/
-tests/fixtures/*.csv
-tests/fixtures/*.xlsx
+# =============================================================================
+# Logs
+# =============================================================================
+*.log
+logs/
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*.bak
-
-# OS
+# =============================================================================
+# OS Generated
+# =============================================================================
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 desktop.ini
 
-# Logs
-*.log
+# =============================================================================
+# Jupyter Notebooks
+# =============================================================================
+.ipynb_checkpoints/
+*.ipynb
 
-# Temporary files
-*.tmp
-~$*
-
-# Environment files (may contain sensitive paths)
+# =============================================================================
+# Secrets and Credentials
+# =============================================================================
 .env
 .env.local
+.env.*.local
+*.pem
+*.key
+secrets.yaml
+credentials.json
 
-# Keep directory structure with .gitkeep files
-!**/.gitkeep
+# =============================================================================
+# Temporary Files
+# =============================================================================
+*.tmp
+*.temp
+*.bak
+*.backup
+~$*
+
+# =============================================================================
+# Keep Directory Structure (override above ignores)
+# =============================================================================
+!consolidation/output/.gitkeep
+!consolidation/reports/.gitkeep
+!consolidation/logs/.gitkeep
+!monthly_validation/reports/.gitkeep
+!monthly_validation/logs/.gitkeep
+!tests/fixtures/.gitkeep

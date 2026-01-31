@@ -1,9 +1,10 @@
 # CAD/RMS Data Quality System
 
-**Version:** 1.0.0 (Initial Scaffolding)  
+**Version:** 1.0.1 (Phase 1 Configuration Complete)  
 **Created:** 2026-01-29  
+**Updated:** 2026-01-30  
 **Author:** R. A. Carucci  
-**Status:** 🚧 In Development - Scaffolding Complete
+**Status:** 🚧 In Development - Phase 1 Complete, Phase 2 Ready
 
 ---
 
@@ -13,7 +14,7 @@ Unified data quality system for CAD (Computer-Aided Dispatch) and RMS (Records M
 
 ### Purpose
 
-1. **Historical Consolidation** (Component 1): Merge 2019-2026 CAD data into single validated dataset for ArcGIS Pro dashboards
+1. **Historical Consolidation** (Component 1): Merge 2019-2025 CAD data (714K+ records) into single validated dataset for ArcGIS Pro dashboards
 2. **Monthly Validation** (Component 2): Provide reusable validation scripts for ongoing CAD and RMS exports
 3. **Single Source of Truth**: Replace fragmented legacy projects with unified, maintainable system
 
@@ -27,19 +28,19 @@ cad_rms_data_quality/
 ├── CHANGELOG.md                 # Version history
 ├── PLAN.md                      # Detailed implementation plan
 ├── NEXT_STEPS.md               # Roadmap for next session
-├── requirements.txt            # Python dependencies (TO DO)
-├── pyproject.toml              # Project configuration (TO DO)
-├── Makefile                    # Automation commands (TO DO)
-├── .gitignore                  # Git ignore rules (TO DO)
+├── requirements.txt            # Python dependencies ✅
+├── pyproject.toml              # Project configuration ✅
+├── Makefile                    # Automation commands (TO DO - in chunk_00010.txt)
+├── .gitignore                  # Git ignore rules ✅
 │
-├── config/                     # Configuration files
-│   ├── schemas.yaml            # Paths to 09_Reference/Standards schemas (TO DO)
-│   ├── validation_rules.yaml  # Validation configuration (TO DO)
-│   └── consolidation_sources.yaml  # 2019-2026 CAD file paths (TO DO)
+├── config/                     # Configuration files ✅
+│   ├── schemas.yaml            # Paths to 09_Reference/Standards schemas ✅
+│   ├── validation_rules.yaml  # Validation configuration ✅
+│   └── consolidation_sources.yaml  # 2019-2025 CAD file paths (actual: 714K records) ✅
 │
 ├── consolidation/              # Component 1: Historical data consolidation
 │   ├── scripts/
-│   │   ├── consolidate_cad.py         # Merge 2019-2026 CAD files (TO DO)
+│   │   ├── consolidate_cad.py         # Merge 2019-2025 CAD files (714K records) (TO DO)
 │   │   └── prepare_arcgis.py          # Create ArcGIS-ready output (TO DO)
 │   ├── output/                        # Consolidated datasets (empty)
 │   ├── reports/                       # Validation reports (empty)
@@ -126,19 +127,63 @@ cad_rms_data_quality/
 
 ## Data Sources for Consolidation
 
-### CAD Files (2019-2026)
-Base Directory: `C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_CAD\full_year\`
+### CAD Files (2012-2025)
+**Base Directory:** `C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_CAD\yearly\`  
+**Structure:** Canonical v2.0.0 (Updated: 2026-01-30)
 
-1. **2019**: `2019\raw\2019_ALL_CAD.xlsx`
-2. **2020**: `2020\raw\2020_ALL_CAD.xlsx`
-3. **2021**: `2021\raw\2021_ALL_CAD.xlsx`
-4. **2022**: `2022\raw\2022_CAD_ALL.xlsx`
-5. **2023**: `2023\raw\2023_CAD_ALL.xlsx`
-6. **2024**: `2024\raw\2024_CAD_ALL.xlsx`
-7. **2025**: `2025\raw\2025_Yearly_CAD.xlsx`
-8. **2026 (partial)**: `..\monthly_export\2026\2026_01_01_to_2026_01_28_CAD.xlsx`
+**Yearly Source Files:**
+1. **2012**: `yearly\2012\2012_CAD_ALL.xlsx` (~30,000 records)
+2. **2013**: `yearly\2013\2013_CAD_ALL.xlsx` (~32,000 records)
+3. **2014**: `yearly\2014\2014_CAD_ALL.xlsx` (~35,000 records)
+4. **2015**: `yearly\2015\2015_CAD_ALL.xlsx` (~35,000 records)
+5. **2016**: `yearly\2016\2016_CAD_ALL.xlsx` (~35,000 records)
+6. **2017**: `yearly\2017\2017_CAD_ALL.xlsx` (~38,000 records)
+7. **2018**: `yearly\2018\2018_CAD_ALL.xlsx` (~35,000 records)
+8. **2019**: `yearly\2019\2019_CAD_ALL.xlsx` (~33,000 records)
+9. **2020**: `yearly\2020\2020_CAD_ALL.xlsx` (~32,000 records)
+10. **2021**: `yearly\2021\2021_CAD_ALL.xlsx` (~33,000 records)
+11. **2022**: `yearly\2022\2022_CAD_ALL.xlsx` (~38,000 records)
+12. **2023**: `yearly\2023\2023_CAD_ALL.xlsx` (~40,000 records)
+13. **2024**: `yearly\2024\2024_CAD_ALL.xlsx` (~40,000 records)
+14. **2025**: `yearly\2025\2025_CAD_ALL.xlsx` (~42,000 records)
 
-**Expected Output:** ~230,000-240,000 records consolidated
+**Monthly Source Files (2025 Q4):**
+- `monthly\2025\2025_10_CAD.xlsx`
+- `monthly\2025\2025_11_CAD.xlsx`
+- `monthly\2025\2025_12_CAD.xlsx`
+
+**Actual Records (Verified 2026-01-30):** 714,689 records (2019-2025, 7 years)  
+**Unique Cases:** ~540,000 estimated after deduplication  
+**Full History:** 1,401,462 total records (2012-2025, 14 years)
+
+**Note:** Configuration updated to canonical structure (2026-01-30).  
+**Important:** Actual records are ~3.3x higher than initial estimates due to inclusion of supplemental reports, unit records, and status updates (not just incidents).
+
+### CAD Data Coverage by Year
+
+| Year | Total Records | Unique Cases | Coverage |
+|------|---------------|--------------|----------|
+| 2012 | 85,234 | ~65,000 | Historical |
+| 2013 | 92,643 | ~70,000 | Historical |
+| 2014 | 103,840 | ~79,000 | Historical |
+| 2015 | 98,962 | ~75,000 | Historical |
+| 2016 | 98,795 | ~75,000 | Historical |
+| 2017 | 108,543 | ~83,000 | Historical |
+| 2018 | 98,756 | ~75,000 | Historical |
+| **2019** | **91,217** | **~69,000** | **Consolidation Target** |
+| **2020** | **89,400** | **~68,000** | **Consolidation Target** |
+| **2021** | **91,477** | **~70,000** | **Consolidation Target** |
+| **2022** | **105,038** | **~80,000** | **Consolidation Target** |
+| **2023** | **113,179** | **~86,000** | **Consolidation Target** |
+| **2024** | **110,313** | **~84,000** | **Consolidation Target** |
+| **2025** | **114,065** | **~87,000** | **Consolidation Target** |
+| | | | |
+| **2019-2025 Total** | **714,689** | **~543,000** | **Primary Target** |
+| **2012-2025 Total** | **1,401,462** | **~1,071,000** | **Full History** |
+
+**Data Source Files:**
+- `yearly/2012/2012_CAD_ALL.xlsx` through `yearly/2025/2025_CAD_ALL.xlsx`
+- `monthly/2025/2025_10_CAD.xlsx`, `2025_11_CAD.xlsx`, `2025_12_CAD.xlsx`
 
 ---
 
@@ -171,43 +216,65 @@ Base Directory: `C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_CA
 
 ## Development Status
 
-### ✅ Completed (2026-01-29)
+### ✅ Phase 1: Configuration Complete (2026-01-30)
 - [x] Project directory structure created
-- [x] README.md (this file)
-- [x] CHANGELOG.md
-- [x] PLAN.md (complete implementation plan)
-- [x] NEXT_STEPS.md (roadmap for continuation)
+- [x] README.md, CHANGELOG.md, PLAN.md, NEXT_STEPS.md, Claude.md
+- [x] **config/schemas.yaml** - Paths to 09_Reference/Standards
+- [x] **config/validation_rules.yaml** - Validation patterns and quality scoring
+- [x] **config/consolidation_sources.yaml** - 2019-2025 CAD source files (actual: 714K records)  
+- [x] **requirements.txt** - Python dependencies (pandas, pyyaml, usaddress, etc.)
+- [x] **pyproject.toml** - Project metadata and build configuration
+- [x] **.gitignore** - Git exclusion rules
 
-### 🚧 Next Phase (See NEXT_STEPS.md)
-- [ ] Create configuration files (schemas.yaml, validation_rules.yaml)
-- [ ] Implement schema_loader utility
-- [ ] Refactor validation framework from CAD_Data_Cleaning_Engine
-- [ ] Extract normalization logic (Advanced Rules v3.2)
-- [ ] Build consolidation scripts
+### 🚧 Phase 2: Python Module Extraction (Next - See EXTRACTION_REPORT.txt)
+- [ ] Extract schema_loader.py (~500 lines) from chunk_00001.txt
+- [ ] Extract field_normalizer.py (~1200 lines) from chunk_00003.txt
+- [ ] Extract validation_engine.py (~1100 lines) from chunk_00006.txt
+- [ ] Extract quality_scorer.py (~1000 lines) from chunks 00008/00009
+- [ ] Extract consolidate_cad.py (~800 lines) from chunk_00009.txt
+- [ ] Extract run_consolidation.py (~400 lines) from chunk_00010.txt
+- [ ] Extract Makefile (~200 lines) from chunk_00010.txt
+- [ ] Update Claude.md from chunk_00011.txt
+
+### 🔜 Phases 3-7 (After Module Extraction)
+- [ ] Run verification tests (imports, schema validation, dry-run)
+- [ ] Build ArcGIS preparation script
 - [ ] Build monthly validation scripts
 - [ ] Create test suite
-- [ ] Write documentation
+- [ ] Write user documentation
 - [ ] Archive legacy projects
 
 ---
 
-## Quick Start (TO DO - Not Yet Implemented)
+## Quick Start (Phase 2 - After Python Module Extraction)
 
 ### Installation
-```bash
+```powershell
 cd "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality"
 pip install -r requirements.txt
 ```
 
+### Verify Configuration
+```powershell
+# Test schema paths (after extracting schema_loader.py)
+python -m shared.utils.schema_loader
+```
+
 ### Run Historical Consolidation
-```bash
-python consolidation/scripts/consolidate_cad.py
+```powershell
+# Dry run first
+python run_consolidation.py --dry-run --verbose
+
+# Full run
+python run_consolidation.py --quality-threshold 95
 ```
 
 ### Run Monthly Validation
-```bash
+```powershell
 python monthly_validation/scripts/validate_cad.py --input "path/to/monthly_export.xlsx"
 ```
+
+**Note:** Python module extraction must be completed first (see EXTRACTION_REPORT.txt)
 
 ---
 

@@ -1,0 +1,33 @@
+# // 2026-01-30-10-30-00 EST
+# // cad_rms_data_quality/config/schemas.yaml
+# // Author: R. A. Carucci
+# // Purpose: Define paths to authoritative schemas and mappings in 09_Reference/Standards
+
+# Base path to Standards directory (all other paths derive from this)
+standards_root: "C:/Users/carucci_r/OneDrive - City of Hackensack/09_Reference/Standards"
+
+# JSON schema files for field validation
+schemas:
+  canonical: "${standards_root}/unified_data_dictionary/schemas/canonical_schema.json"
+  cad: "${standards_root}/unified_data_dictionary/schemas/cad_fields_schema_latest.json"
+  rms: "${standards_root}/unified_data_dictionary/schemas/rms_fields_schema_latest.json"
+  transformation: "${standards_root}/unified_data_dictionary/schemas/transformation_spec.json"
+
+# Field mapping files for cross-system validation
+mappings:
+  cad_to_rms: "${standards_root}/CAD_RMS/DataDictionary/current/schema/cad_to_rms_field_map.json"
+  rms_to_cad: "${standards_root}/CAD_RMS/DataDictionary/current/schema/rms_to_cad_field_map.json"
+  field_rules: "${standards_root}/mappings/field_mappings/mapping_rules.md"
+  call_types_csv: "${standards_root}/mappings/call_types_*.csv"
+  multi_column_strategy: "${standards_root}/CAD_RMS/DataDictionary/current/schema/multi_column_matching_strategy.md"
+
+# Runtime configuration files
+config:
+  response_time_filters: "${standards_root}/config/response_time_filters.json"
+
+# Metadata
+metadata:
+  standards_version: "v2.3.0"
+  last_updated: "2026-01-17"
+  call_type_count: 649
+  esri_categories: 11

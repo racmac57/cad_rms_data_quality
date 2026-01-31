@@ -1,0 +1,110 @@
+# // 2026-01-30-20-35-00 EST
+# // cad_rms_data_quality/config/rms_sources.yaml
+# // Author: R. A. Carucci
+# // Purpose: Define source files and paths for 2018-2025 RMS data validation
+
+# Base directories
+base_directory: "C:/Users/carucci_r/OneDrive - City of Hackensack/05_EXPORTS/_RMS/yearly"
+monthly_directory: "C:/Users/carucci_r/OneDrive - City of Hackensack/05_EXPORTS/_RMS/monthly"
+
+# Source files (2018-2025 historical data)
+source_files:
+  - year: 2018
+    path: "${base_directory}/2018/2018_ALL_RMS.xlsx"
+    expected_records: 21700
+    notes: "Historical data (pre-standardization)"
+  
+  - year: 2019
+    path: "${base_directory}/2019/2019_ALL_RMS.xlsx"
+    expected_records: 23900
+  
+  - year: 2020
+    path: "${base_directory}/2020/2020_ALL_RMS.xlsx"
+    expected_records: 18800
+  
+  - year: 2021
+    path: "${base_directory}/2021/2021_ALL_RMS.xlsx"
+    expected_records: 19100
+  
+  - year: 2022
+    path: "${base_directory}/2022/2022_ALL_RMS.xlsx"
+    expected_records: 22300
+  
+  - year: 2023
+    path: "${base_directory}/2023/2023_ALL_RMS.xlsx"
+    expected_records: 23300
+  
+  - year: 2024
+    path: "${base_directory}/2024/2024_ALL_RMS.xlsx"
+    expected_records: 25900
+  
+  - year: 2025
+    path: "${base_directory}/2025/2025_ALL_RMS.xlsx"
+    expected_records: 19700
+    notes: "Partial year export (Jan-Oct 2025)"
+
+# Monthly source files (2025 Q4)
+monthly_files:
+  - month: "2025-10"
+    path: "${monthly_directory}/2025/2025_10_RMS.xlsx"
+    expected_records: 2316
+  
+  - month: "2025-11"
+    path: "${monthly_directory}/2025/2025_11_RMS.xlsx"
+    expected_records: 0
+    notes: "CORRUPTED FILE - Skip or re-export from source"
+  
+  - month: "2025-12"
+    path: "${monthly_directory}/2025/2025_12_RMS.xlsx"
+    expected_records: 2220
+
+# Output configuration
+output:
+  base_directory: "consolidation/output"
+  consolidated_filename: "2018_2025_RMS_Consolidated.csv"
+  report_directory: "consolidation/reports"
+  report_prefix: "rms_validation_"
+  log_directory: "consolidation/logs"
+
+# CSV export paths (raw format, not ESRI)
+csv_exports:
+  yearly_directory: "C:/Users/carucci_r/OneDrive - City of Hackensack/05_EXPORTS/_RMS/csv/yearly"
+  monthly_directory: "C:/Users/carucci_r/OneDrive - City of Hackensack/05_EXPORTS/_RMS/csv/monthly"
+
+# Logging configuration
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file_pattern: "rms_validation_{timestamp}.log"
+
+# Processing options
+processing:
+  dedup_field: "CaseNumber"  # Primary key for RMS
+  chunk_size: 50000
+  preserve_text_fields:
+    - "CaseNumber"
+    - "ReportNumber"
+    - "SupplementNumber"
+    - "AgencyCase"
+  datetime_fields:
+    - "IncidentDate"
+    - "IncidentTime"
+    - "FirstUnitArrivalDate"
+    - "FirstUnitArrivalTime"
+    - "ReportDate"
+    - "ReportTime"
+
+# Validation thresholds for RMS data
+validation:
+  min_quality_score: 90  # Slightly lower than CAD (90 vs 95)
+  max_duplicate_rate: 0.02  # 2% max (RMS has more legitimate supplements)
+  expected_total_records_min: 170000
+  expected_total_records_max: 180000
+
+# Metadata
+metadata:
+  standards_version: "v2.3.0"
+  last_updated: "2026-01-30"
+  total_years: 8
+  canonical_source: "05_EXPORTS/_RMS/yearly"
+  schema_reference: "09_Reference/Standards/unified_data_dictionary/schemas/rms_fields_schema_latest.json"

@@ -1,0 +1,115 @@
+# // 2026-01-30-10-31-00 EST
+# // cad_rms_data_quality/config/validation_rules.yaml
+# // Author: R. A. Carucci
+# // Purpose: Define validation rules for CAD/RMS field validation and quality scoring
+
+# Case number validation
+case_number:
+  pattern: '^\\d{2}-\\d{6}([A-Z])?$'
+  required: true
+  preserve_as_text: true
+  examples:
+    valid:
+      - "25-000001"
+      - "25-000001A"
+      - "24-123456"
+    invalid:
+      - "2025-000001"
+      - "25000001"
+      - "25-00001"
+
+# Required fields by data source
+required_fields:
+  cad:
+    - ReportNumberNew
+    - Incident
+    - TimeOfCall
+    - FullAddress2
+    - PDZone
+    - Disposition
+    - HowReported
+  rms:
+    - CaseNumber
+    - IncidentDate
+    - IncidentTime
+    - Location
+    - OffenseCode
+
+# Address validation settings
+address:
+  required_fields:
+    - FullAddress2
+  usps_validation: true
+  reverse_geocoding: true
+  fuzzy_match_threshold: 0.90
+  exclude_addresses:
+    - "225 State Street"  # Police HQ
+    - "225 STATE ST"
+  validation_layers:
+    - usps_standardization
+    - reverse_geocoding
+    - fuzzy_matching
+
+# Domain value validation
+domain_validation:
+  HowReported:
+    valid_values:
+      - "9-1-1"
+      - "Phone"
+      - "Walk-In"
+      - "Self-Initiated"
+      - "Radio"
+      - "Online"
+      - "Referral"
+      - "Alarm"
+      - "Other"
+    normalize_patterns:
+      "R": "Radio"
+      "P": "Phone"
+      "W": "Walk-In"
+      "S": "Self-Initiated"
+      "911": "9-1-1"
+  Disposition:
+    required: true
+    allow_concatenated: true
+    split_pattern: "(?=[A-Z][a-z])"
+
+# Quality scoring configuration (0-100 scale)
+quality_scoring:
+  thresholds:
+    high: 95
+    medium: 80
+    low: 60
+    critical: 40
+  weights:
+    required_fields: 30
+    valid_formats: 25
+    address_quality: 20
+    domain_compliance: 15
+    consistency_checks: 10
+  penalties:
+    missing_required_field: -5
+    invalid_format: -3
+    invalid_domain_value: -2
+    duplicate_record: -1
+
+# Anomaly detection thresholds
+anomaly_detection:
+  record_count_variance: 0.20  # Flag if >20% deviation from historical average
+  null_rate_threshold: 0.05   # Flag if >5% nulls in required field
+  low_count_day_threshold: 50 # Flag days with fewer than 50 records
+
+# Response time calculation exclusions
+response_time_exclusions:
+  how_reported:
+    - "Self-Initiated"
+  categories:
+    - "Regulatory and Ordinance"
+    - "Administrative and Support"
+    - "Investigations and Follow-Ups"
+    - "Community Engagement"
+  specific_incidents:
+    - "TAPS"
+    - "Patrol Check"
+    - "Traffic Detail"
+    - "Building Check"

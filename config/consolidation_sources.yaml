@@ -1,0 +1,72 @@
+# Canonical CAD Data Sources
+# Updated: 2026-01-30 20:15:00 EST
+# NOTE: Updated to use new canonical directory structure (yearly/ instead of full_year/)
+# Per 05_EXPORTS\_CAD directory restructure v2.0.0 (2026-01-30)
+
+sources:
+  yearly:
+    # 2012-2018: Historical data (pre-standardization)
+    # Note: Expected counts not specified for historical years
+    - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\yearly\\2012\\2012_CAD_ALL.xlsx'
+      year: 2012
+      expected_records: null  # Historical - verify actual
+      
+    - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\yearly\\2013\\2013_CAD_ALL.xlsx'
+      year: 2013
+      expected_records: null  # Historical - verify actual
+      
+    - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\yearly\\2014\\2014_CAD_ALL.xlsx'
+      year: 2014
+      expected_records: null  # Historical - verify actual
+      
+    - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\yearly\\2015\\2015_CAD_ALL.xlsx'
+      year: 2015
+      expected_records: null  # Historical - verify actual
+      
+    - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\yearly\\2016\\2016_CAD_ALL.xlsx'
+      year: 2016
+      expected_records: null  # Historical - verify actual
+      
+    - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\yearly\\2017\\2017_CAD_ALL.xlsx'
+      year: 2017
+      expected_records: null  # Historical - verify actual
+      
+    - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\yearly\\2018\\2018_CAD_ALL.xlsx'
+      year: 2018
+      expected_records: null  # Historical - verify actual
+    
+    # 2019-2025: Consolidated yearly exports (canonical source for quality project)
+    # Expected counts from Claude chat (Pipeline Workflow section)
+    - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\yearly\\2019\\2019_CAD_ALL.xlsx'
+      year: 2019
+      expected_records: 26000  # Per Claude chat consolidation target
+      
+    - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\yearly\\2020\\2020_CAD_ALL.xlsx'
+      year: 2020
+      expected_records: 28000
+      
+    - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\yearly\\2021\\2021_CAD_ALL.xlsx'
+      year: 2021
+      expected_records: 30000
+      
+    - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\yearly\\2022\\2022_CAD_ALL.xlsx'
+      year: 2022
+      expected_records: 31000
+      
+    - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\yearly\\2023\\2023_CAD_ALL.xlsx'
+      year: 2023
+      expected_records: 32000
+      
+    - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\yearly\\2024\\2024_CAD_ALL.xlsx'
+      year: 2024
+      expected_records: 33000
+      
+    - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\yearly\\2025\\2025_CAD_ALL.xlsx'
+      year: 2025
+      expected_records: 34000
+  
+  monthly:
+    # 2025 Q4: Monthly exports
+    - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\monthly\\2025\\2025_10_CAD.xlsx'
+    - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\monthly\\2025\\2025_11_CAD.xlsx'
+    - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\monthly\\2025\\2025_12_CAD.xlsx'
