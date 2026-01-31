@@ -1,0 +1,11 @@
+================================================================================
+CAD DATA CONSOLIDATION SUMMARY
+================================================================================
+Generated: 2026-01-31 00:41:06
+
+Input Files: 8
+Total Records: 716,420
+Date Range: 2019-01-01 00:04:21 to 2026-01-16 00:28:48
+Output File: C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine\data\01_raw\2019_to_2026_01_30_CAD.csv
+File Size: 208.1 MB
+Unique Cases: 553,624

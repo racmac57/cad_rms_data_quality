@@ -1,0 +1,568 @@
+# Documentation files context review
+_Exported on 1/29/2026 at 21:49:28 EST from Cursor (2.4.23)_
+
+---
+
+**User**
+
+@README.md @CHANGELOG.md @Claude.md @SUMMARY.md review for context
+
+---
+
+**Cursor**
+
+I have completed a review of the project context through `README.md`, `CHANGELOG.md`, `Claude.md`, and `SUMMARY.md`. ### Project Context Summary
+
+This repository manages an end-to-end data pipeline for analyzing **Domestic Violence (DV)** data from the Hackensack Police Department (CAD/RMS) spanning January 2023 to October 2025. #### Core Architecture
+1. **ETL Pipeline (`etl_scripts/` & `etl.py`):** Orchestrates the conversion of raw Excel exports into normalized, backfilled, and verified CSV datasets (`dv_final.csv`). 2. **Python Enrichment Pipeline:** Replaces complex Power BI "M" code with a testable Python suite (`dv_time_enrichment.py`). It adds 14+ fields for advanced temporal analysis (e.g., `TimeOfDay`, `HourOfDay`) and demographic banding. 3. **ArcGIS Pro Integration:** A self-contained module for GIS mapping, featuring statistically validated **hot spot analysis (Getis-Ord Gi*)** and the automated creation of **intervention zone polygons**. 4. **Professional Reporting:** Automated generation of executive summaries and tactical briefing reports in HTML and PDF formats, with consistent visualization styling (SCRPA-style). #### Current State (v1.5.6)
+*   **Recent Enhancements:** Integrated apartment-level data (`AptNo`) into the gold-standard `dv.csv`, enabling targeted intervention strategies. *   **Tactical Reporting:** The `reports/top_10_dv.html` briefing now includes automatic sorting, trend indicators (increasing/decreasing), and high-incident highlighting (3+ incidents). *   **Data Integrity:** Hot spot analysis now explicitly excludes administrative locations (like Police HQ) to ensure statistical accuracy for community intervention. *   **Testing:** A robust QA suite with 60+ unit tests ensures logic consistency across the enrichment and transformation pipelines. #### Key Entry Points
+*   **ETL CLI:** `python etl.py [export|transform|map|verify|profile]`
+*   **Analysis:** `python scripts/run_dv_analysis.py`
+*   **Enrichment:** `make enrich` or `python scripts/run_and_backup_enrichment.py`
+*   **GIS Export:** `python arcgis_exports/dv_incidents_arcgis_ready/export_dv_for_arcgis.py`
+
+I have updated the task list and am ready to assist with any further development or analysis tasks. ---
+
+**User**
+
+This project was initially made Choo. clean up and correct. Standardize. and fix missing information that's found in the CAD. and RMS. exports from our CAD and RMS provider. I would like to... Locate the version of the cleanest CAD data There was most recently produced. Can you locate it for me? ---
+
+**Cursor**
+
+Based on my review of the repository, I have located several versions of CAD data. The "cleanest" and "most recently produced" version depends on whether you are looking for the **raw export** or the **fully integrated analytical dataset**. ### 1. Most Recent Integrated Analytical Dataset (Cleanest)
+The most recently produced file that integrates CAD data with RMS data, apartment numbers, and coordinates is:
+*   **Path:** `reports/dv.csv`
+*   **Last Modified:** December 9, 2025
+*   **Context:** This is the "gold standard" final report. It contains 175 columns, including standardized CAD fields (`CAD_Date`, `CAD_Time`, `CAD_Address`, `CAD_Notes`) and the recently fixed `AptNo` field. ### 2. Newest Raw CAD Excel Export
+If you are looking for the most recent raw export from the CAD provider that hasn't necessarily been through the full enrichment pipeline yet:
+*   **Path:** `2025_11_13_21_12_00_CAD_Data.xlsx` (in the root directory)
+*   **Last Modified:** November 13, 2025
+*   **Note:** There is also a variant named `2025_11_13_21_12_00_CAD_Data-PD_BCI_01.xlsx`. These are newer than the files found in the `raw_data/xlsx/` folder (which are dated November 11). ### 3. Processed CAD Source (used in ETL)
+The version used as the primary source for the ETL backfill process:
+*   **Path:** `_2023_2025_10_31_dv_cad.csv` (in the root directory)
+*   **Last Modified:** November 11, 2025
+*   **Size:** 36 MB (contains processed records for the 2023–2025 period). ### Summary Table
+
+| File | Type | Date | Status |
+| :--- | :--- | :--- | :--- |
+| `reports/dv.csv` | CSV (Integrated) | 2025-12-09 | **Cleanest** (Merged CAD/RMS + AptNo) |
+| `2025_11_13_21_12_00_CAD_Data.xlsx` | Excel (Raw) | 2025-11-13 | **Newest Raw Export** |
+| `_2023_2025_10_31_dv_cad.csv` | CSV (Processed) | 2025-11-11 | Standard ETL Source |
+
+**Would you like me to use the November 13th Excel file to refresh the `reports/dv.csv` or perform any specific standardization on it? **
+
+
+
+---
+
+**User**
+
+review the work of the last AI in this chatlog, then read @CHANGELOG.md @Claude.md @README.md @SUMMARY.md , tell me when you are done
+
+---
+
+**Cursor**
+
+I'll review the previous AI's work and read the documentation files you specified. ## Review Complete
+
+I've finished reviewing the previous AI's work and reading all four documentation files. Here's what I found:
+
+### Previous AI's Work Summary
+
+The previous AI successfully:
+
+1. **Located the cleanest CAD data** for you - identifying three key versions:
+   - **`reports/dv.csv`** (Dec 9, 2025) - The "gold standard" integrated dataset with 175 columns, including CAD fields merged with RMS data and apartment numbers
+   - **`2025_11_13_21_12_00_CAD_Data.xlsx`** (Nov 13, 2025) - Newest raw CAD export from the provider
+   - **`_2023_2025_10_31_dv_cad.csv`** (Nov 11, 2025) - Processed CAD source used in ETL pipeline
+
+2. **Correctly identified** that `reports/dv.csv` is the most recently produced and cleanest version because it has been through the full ETL pipeline with RMS/CAD backfilling, quality flags, apartment number enrichment, and standardization. ### Documentation Review Findings
+
+**Project State (as of v1.5.6 - Dec 9, 2025):**
+- Comprehensive DV data analysis system for Hackensack PD
+- Complete ETL pipeline from raw CAD/RMS exports to analytical datasets
+- 1,000 DV cases in final `dv.csv` (from 70,993 raw records, 1,249 DV-flagged)
+- Date range: 2023-01-01 to 2025-03-05 (note: raw data goes to 2025-10-31, but final dataset is filtered)
+- Recently added apartment-level intelligence (`AptNo` field) with 56.1% match rate
+
+**Key Components:**
+- ETL scripts for data transformation and backfilling
+- Python enrichment pipeline (14+ fields added)
+- ArcGIS Pro hot spot analysis (227 intervention zones)
+- Power BI integration with DAX fixes
+- HTML executive reporting with apartment-level breakdowns
+
+### Ready for Your Next Instructions
+
+I'm now familiar with the project context and ready to help you with:
+- Standardizing and fixing missing information from CAD/RMS exports
+- Running the ETL pipeline on newer data
+- Any other tasks you need
+
+What would you like me to do next? ---
+
+**User**
+
+Using the logic, that is found and how to combine the CAD and RMS data to give a More robust and complete data set for CAD information. you Review the below. RMS exports, CAD exports. and Data dictionaries. As I want to... get A copy of the. most cleanest version of the CAD data for 2019 through January 28, 20 26. I also want to... Create a... script That will... Take the standards. of both the RMS and CAD data. you and be able to export Monthly exports of either CAD or RMS, run the script against the exported data and get a full report of which data is incomplete, incorrect. missing information, you incorrect locations, missing street numbers, Invalid street names. Invalid casings, etc. C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_RMS\full_year\2019\raw\2019_ALL_RMS.xlsx
+C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_RMS\full_year\2020\raw\2020_ALL_RMS.xlsx
+C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_RMS\full_year\2021\raw\2021_ALL_RMS.xlsx
+C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_RMS\full_year\2022\raw\2022_ALL_RMS.xlsx
+C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_RMS\full_year\2023\raw\2023_ALL_RMS.xlsx
+C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_RMS\full_year\2024\raw\2024_ALL_RMS.xlsx
+C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_RMS\full_year\2025\raw\2025_Yearly_RMS.xlsx
+
+---
+
+**Cursor**
+
+I'll help you create a comprehensive CAD data quality validation system. Let me first explore the available data and existing validation logic to create a detailed plan. Perfect! Now I have a comprehensive understanding of your data landscape. Let me ask a few clarifying questions to ensure I create exactly what you need:
+
+---
+
+**User**
+
+Ultimately, what I would like to do is get a complete data list. that I could use to upload to an ArcGIS Pro project I have. on a server. you I want to use this data As the. Updated data for the dashboards that an ArcGIS Pro model is creating. - Once implemented, I want to switch the input to the model back. to a predefined data export that is done nightly on the server. So I assume a single file For. 2019 to 2026 would be best. Ultimately, this will have to be updated to backfill any days that might be missing. between now and when I do the transfer of information. ---
+
+**Cursor**
+
+Perfect! Now I understand your complete goal. Let me create a comprehensive plan for consolidating 2019-2026 CAD data, validating it, and preparing it for your ArcGIS Pro dashboards. ---
+
+**User**
+
+Just to be clear, this is basically two separate projects. One is to create a complete and clean standardized. you and verified data set. for an ArcGIS Pro. dashboard project Okay. The second aspect of this would be to create Two scripts to start off with, one for the CAD data export, the second for the RMS data being exported. What I would like to do is export monthly data, have these scripts run, checking the exports and providing a detailed report on what data is incorrect, invalid. or is missing. That way I could pass this report off to another office and have them update the CAD or RMS information appropriately. So that way when the dashboard you receives this updated information, daily, the data set being put into the dashboards is the cleanest most standardized and normalized product that we could pass to it. you could you do advise me you If I should create a new folder, you and Possibly... you the 02_etl_scripts you directory. for this project. - Provide a project name. or if it should be two different projects you Advise me of that. ---
+
+**Cursor**
+
+Excellent clarification! You're right - these are two distinct but related objectives. Let me provide recommendations on project structure:
+
+## Recommendation: Single New Project with Two Components
+
+### Project Structure Recommendation
+
+**Create a NEW project folder alongside `dv_doj`:**
+
+```
+02_ETL_Scripts/
+├── dv_doj/                           # Existing DV-specific project
+└── cad_rms_data_quality/            # NEW project (recommended name)
+    ├── consolidation/                # Component 1: Historical consolidation
+    │   ├── scripts/
+    │   │   ├── consolidate_cad_2019_2026.py
+    │   │   └── validate_consolidated_cad.py
+    │   ├── config/
+    │   │   └── validation_rules.yaml
+    │   └── output/
+    │       ├── 2019_2026_CAD_Consolidated.csv
+    │       └── 2019_2026_CAD_ArcGIS_Ready.csv
+    │
+    └── monthly_validation/           # Component 2: Ongoing validation
+        ├── scripts/
+        │   ├── validate_cad_export.py     # CAD monthly validator
+        │   ├── validate_rms_export.py     # RMS monthly validator
+        │   └── validation_engine.py       # Shared validation logic
+        ├── config/
+        │   ├── cad_validation_rules.yaml
+        │   └── rms_validation_rules.yaml
+        ├── reports/
+        │   ├── YYYY_MM_CAD_validation.html
+        │   ├── YYYY_MM_RMS_validation.html
+        │   └── archive/
+        └── logs/
+```
+
+### Why Single Project? **Shared components:**
+- Same validation rules for addresses, case numbers, dates
+- Similar reporting infrastructure
+- Can reuse validation engine between CAD and RMS
+- Consistent quality standards across both systems
+
+**Clear separation:**
+- `consolidation/` - One-time historical data prep (for ArcGIS dashboard)
+- `monthly_validation/` - Ongoing quality checks (for operational workflow)
+
+### Alternative Project Names
+
+1. **`cad_rms_data_quality`** ⭐ (Recommended)
+   - Clear purpose: data quality focus
+   - Covers both CAD and RMS
+   - Professional naming
+
+2. **`data_quality_validation`**
+   - More generic
+   - Could expand to other data sources later
+
+3. **`hackensack_pd_etl`**
+   - Broader scope
+   - Could include future data sources
+
+### If You Want Two Separate Projects
+
+**Option B: Two Projects**
+
+```
+02_ETL_Scripts/
+├── dv_doj/                          # Existing DV project
+├── cad_consolidation_arcgis/       # Project 1: Historical consolidation
+│   └── [Consolidation scripts only]
+└── monthly_data_validation/         # Project 2: Ongoing validation
+    └── [CAD + RMS monthly validators]
+```
+
+**Pros:** Clear separation of one-time vs. ongoing work  
+**Cons:** Duplicate validation logic, harder to maintain
+
+---
+
+## My Strong Recommendation
+
+**Go with the single project approach** (`cad_rms_data_quality`) because:
+
+1. ✅ **Reusability**: Validation logic is shared - write once, use everywhere
+2. ✅ **Maintainability**: Update validation rules in one place
+3. ✅ **Consistency**: Both CAD and RMS use same quality standards
+4. ✅ **Scalability**: Easy to add new data sources or validation rules
+5. ✅ **Clear structure**: Folders separate one-time vs. ongoing work
+
+The consolidation and monthly validation are **complementary workflows** - the consolidation proves your validation logic works at scale, and the monthly validation keeps future data clean. **Should I proceed with creating the `cad_rms_data_quality` project structure? **
+
+---
+
+**User**
+
+this will be the root C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts provide a directory where this New Project with Two Components will be saved
+
+---
+
+**Cursor**
+
+Perfect! Here's the complete directory structure for your new project:
+
+## New Project Directory
+
+```
+C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\
+├── README.md
+├── requirements.txt
+├── pyproject.toml
+├── .gitignore
+├── Makefile
+│
+├── consolidation\                                    # Component 1: Historical Data Consolidation
+│   ├── scripts\
+│   │   ├── __init__.py
+│   │   ├── consolidate_cad_2019_2026.py            # Main consolidation script
+│   │   ├── validate_consolidated_cad.py            # Post-consolidation validation
+│   │   └── export_for_arcgis.py                    # Generate ArcGIS-ready format
+│   ├── config\
+│   │   ├── cad_schema.yaml                         # CAD field definitions
+│   │   └── validation_rules.yaml                   # Consolidation validation rules
+│   ├── output\
+│   │   ├── 2019_2026_CAD_Consolidated.csv          # Main consolidated dataset
+│   │   ├── 2019_2026_CAD_ArcGIS_Ready.csv         # ArcGIS-optimized version
+│   │   └── consolidation_report.html               # Consolidation summary
+│   └── logs\
+│       └── consolidation_YYYYMMDD_HHMMSS.log
+│
+├── monthly_validation\                              # Component 2: Ongoing Monthly Validation
+│   ├── scripts\
+│   │   ├── __init__.py
+│   │   ├── validate_cad_export.py                  # CAD monthly validator
+│   │   ├── validate_rms_export.py                  # RMS monthly validator
+│   │   ├── validation_engine.py                    # Shared validation logic
+│   │   └── generate_validation_report.py           # Report generator
+│   ├── config\
+│   │   ├── cad_validation_rules.yaml               # CAD validation config
+│   │   ├── rms_validation_rules.yaml               # RMS validation config
+│   │   └── valid_streets.csv                       # Reference: valid Hackensack streets
+│   ├── reports\
+│   │   ├── YYYY_MM_CAD_validation.html             # Monthly CAD reports
+│   │   ├── YYYY_MM_RMS_validation.html             # Monthly RMS reports
+│   │   ├── YYYY_MM_CAD_validation.xlsx             # Detailed error sheets
+│   │   ├── YYYY_MM_RMS_validation.xlsx             # Detailed error sheets
+│   │   └── archive\                                # Historical reports
+│   └── logs\
+│       └── validation_YYYYMMDD_HHMMSS.log
+│
+├── shared\                                          # Shared utilities
+│   ├── __init__.py
+│   ├── address_validator.py                        # Address validation logic
+│   ├── case_number_validator.py                    # Case/report number validation
+│   ├── date_time_validator.py                      # Date/time validation
+│   ├── report_generator.py                         # HTML/Excel report generation
+│   └── utils.py                                     # Common helpers
+│
+├── tests\
+│   ├── test_cad_validation.py
+│   ├── test_rms_validation.py
+│   ├── test_consolidation.py
+│   └── fixtures\
+│       ├── sample_cad.csv
+│       └── sample_rms.csv
+│
+└── docs\
+    ├── CAD_CONSOLIDATION_GUIDE.md
+    ├── CAD_VALIDATION_RULES.md
+    ├── RMS_VALIDATION_RULES.md
+    ├── MONTHLY_VALIDATION_WORKFLOW.md
+    └── ARCGIS_INTEGRATION_GUIDE.md
+```
+
+## Full Paths for Key Directories
+
+- **Project root**: `C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\`
+- **Consolidation output**: `C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\consolidation\output\`
+- **Monthly reports**: `C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\monthly_validation\reports\`
+
+## Why This Structure? 1. **Component 1 (consolidation)**: Self-contained for one-time historical data prep
+2. **Component 2 (monthly_validation)**: Separate workflows for CAD vs RMS, but shared validation engine
+3. **shared/**: Reusable validation logic across both components
+4. **Clear separation**: Easy to understand which scripts are for which purpose
+
+**Ready to proceed? I'll create the project structure and implement all scripts. **
+
+---
+
+**User**
+
+C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine
+C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\RMS_CAD_Combined_ETL
+C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\RMS_Data_ETL
+C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\RMS_Data_Processing
+It should be noted that the data dictionaries, the mapping schema, etc. as well as the information obtained from the dv_doj directory you are newer more advanced. to steamline and reduce clutter and confussion review the directories above and provide a plan if any of the scripts or logic will be used in the lastest version we are planning. Then recommend if we should archive the above directories and have a single source of truth
+
+---
+
+**Cursor**
+
+Excellent point! Let me review those existing projects to see what's worth keeping and provide a consolidation recommendation. Excellent! I now have a complete picture. Let me provide you with a comprehensive analysis and recommendation. Now let me create a comprehensive recommendation document for you:
+
+## Analysis Complete: Legacy Projects Review
+
+Based on my analysis of the 4 existing projects, here's my comprehensive recommendation:
+
+---
+
+## Executive Summary
+
+### Legacy Projects Status
+
+| Project | Status | Last Modified | Value | Recommendation |
+|---------|--------|---------------|-------|----------------|
+| **CAD_Data_Cleaning_Engine** | ✅ Active | Dec 2025 | **HIGH** | **Migrate key components** |
+| **RMS_Data_ETL** | ⚠️ Inactive | July 2025 | Medium | Extract specific methods |
+| **RMS_Data_Processing** | ⚠️ Inactive | July 2025 | Medium | Extract specific methods |
+| **RMS_CAD_Combined_ETL** | ❌ Abandoned | Oct 2025 | None | **Archive/Delete** |
+
+---
+
+## Recommended Action: Create Single Source of Truth
+
+### New Project Structure
+
+**Project Name**: `cad_rms_data_quality`  
+**Location**: `C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\`
+
+```
+cad_rms_data_quality/
+├── README.md
+├── requirements.txt
+├── pyproject.toml
+├── .gitignore
+├── Makefile
+│
+├── consolidation/                    # Component 1: Historical consolidation
+│   ├── scripts/
+│   │   ├── consolidate_cad_2019_2026.py
+│   │   └── consolidate_rms_2019_2026.py (optional)
+│   ├── output/
+│   │   └── 2019_2026_CAD_ArcGIS_Ready.csv
+│   └── logs/
+│
+├── monthly_validation/               # Component 2: Ongoing validation
+│   ├── scripts/
+│   │   ├── validate_cad_monthly.py
+│   │   └── validate_rms_monthly.py
+│   ├── reports/
+│   └── logs/
+│
+├── shared/                           # Migrated best practices
+│   ├── validators/                   # From CAD_Data_Cleaning_Engine
+│   │   ├── validation_engine.py     # Core validation framework
+│   │   ├── address_validator.py     # USPS + reverse geocoding (from RMS_Data_ETL)
+│   │   ├── case_number_validator.py
+│   │   └── quality_scorer.py        # 0-100 quality scoring
+│   ├── processors/
+│   │   ├── field_normalizer.py      # Advanced normalization v3.2
+│   │   ├── datetime_fixer.py        # Time artifact fixes (from RMS_Data_Processing)
+│   │   └── address_standardizer.py  # USPS standardization
+│   ├── report_generators/
+│   │   ├── html_generator.py        # From dv_doj top_10_dv.html pattern
+│   │   ├── excel_generator.py
+│   │   └── json_generator.py
+│   └── utils/
+│       ├── hash_utils.py            # File integrity (from CAD_Data_Cleaning_Engine)
+│       └── audit_trail.py           # Change tracking
+│
+├── config/
+│   ├── cad_schema.yaml              # From CAD_Data_Cleaning_Engine
+│   ├── rms_schema.yaml              # From RMS_Data_ETL
+│   ├── validation_rules.yaml        # Combined from all sources
+│   ├── normalization_rules.yaml     # Advanced rules v3.2
+│   └── valid_streets.csv            # Hackensack street reference
+│
+├── tests/
+│   ├── test_validation_engine.py
+│   ├── test_consolidation.py
+│   └── fixtures/
+│
+└── docs/
+    ├── ARCHITECTURE.md
+    ├── MIGRATION_NOTES.md           # What was taken from each legacy project
+    ├── VALIDATION_RULES.md
+    └── MONTHLY_WORKFLOW.md
+```
+
+---
+
+## Migration Plan: What to Bring Forward
+
+### From CAD_Data_Cleaning_Engine (HIGH VALUE)
+
+**Must Migrate:**
+1. ✅ **Validation Framework** (`validators/validation_harness.py`, `validators/validate_full_pipeline.py`)
+   - Pre-run environment checks
+   - Post-run quality validation
+   - Quality scoring system (0-100)
+   
+2. ✅ **Advanced Normalization Rules v3.2** (from `enhanced_esri_output_generator.py`)
+   - Concatenated value handling ("DispersedComplete" → "Dispersed")
+   - Pattern-based normalization (How Reported: "R" → "Radio")
+   - Default assignment for 100% domain compliance
+   
+3. ✅ **Parallel Validation** (`validate_cad_export_parallel.py`)
+   - Vectorized operations (26.7x faster)
+   - Bulk error logging
+   
+4. ✅ **RMS Backfill Logic** (`unified_rms_backfill.py`)
+   - Quality-scored record selection
+   - Intelligent deduplication
+   - Index alignment fixes
+   
+5. ✅ **Configuration System** (`config/` directory)
+   - Schema definitions (JSON)
+   - Field mappings
+   - Merge policies
+   
+6. ✅ **Audit Trail** (from `cad_data_processor.py`)
+   - Change tracking
+   - File hash verification
+   - Processing statistics
+
+### From RMS_Data_ETL (MEDIUM VALUE)
+
+**Should Migrate:**
+1. ✅ **Address Standardization** (`rms_core_cleaner.py`)
+   - `usaddress` library integration
+   - USPS pattern validation
+   - Reverse geocoding validation
+   - Fuzzy matching (90% threshold)
+   
+2. ✅ **Geocoding Quality Checks**
+   - Multi-layer validation
+   - Score tracking
+   - Match type classification
+
+### From RMS_Data_Processing (MEDIUM VALUE)
+
+**Should Migrate:**
+1. ✅ **Time Artifact Fixes** (`enhanced_rms_processor_v3_clean.py`)
+   - Handles "1" values in time fields
+   - Datetime mixing resolution
+   
+2. ✅ **Address Validation Flags**
+   - "Check FullAddress" flagging system
+   - More comprehensive than dv_doj
+
+### From RMS_CAD_Combined_ETL (NO VALUE)
+
+**Do Not Migrate:**
+- ❌ Empty placeholder project
+- ❌ No working code
+
+---
+
+## Archive Recommendation
+
+### YES - Archive These Projects
+
+Create an archive directory and move legacy projects:
+
+```
+C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\
+├── cad_rms_data_quality/        # NEW - Single source of truth
+├── dv_doj/                      # KEEP - Active DV analysis project
+├── _ARCHIVED_2026_01_30/        # NEW - Archive folder
+│   ├── CAD_Data_Cleaning_Engine/
+│   ├── RMS_Data_ETL/
+│   ├── RMS_Data_Processing/
+│   └── RMS_CAD_Combined_ETL/
+```
+
+### Why Archive? 1. **Reduce confusion**: Clear which project is current
+2. **Preserve history**: Keep for reference without clutter
+3. **Single source of truth**: All active logic in one place
+4. **Easier maintenance**: Update one project, not four
+5. **Better documentation**: Consolidated knowledge base
+
+---
+
+## Implementation Strategy
+
+### Phase 1: Create New Project with Migrated Logic
+1. Create `cad_rms_data_quality` folder structure
+2. Migrate validation framework from CAD_Data_Cleaning_Engine
+3. Migrate address standardization from RMS_Data_ETL
+4. Migrate time artifact fixes from RMS_Data_Processing
+5. Integrate with dv_doj patterns (similar structure, testing approach)
+
+### Phase 2: Build Component 1 (Historical Consolidation)
+1. Create consolidation scripts using migrated logic
+2. Process 2019-2026 CAD data
+3. Generate ArcGIS-ready dataset
+4. Validate and generate quality reports
+
+### Phase 3: Build Component 2 (Monthly Validation)
+1. Create reusable validation scripts for CAD
+2. Create reusable validation scripts for RMS
+3. Generate monthly validation reports
+4. Test with recent monthly exports
+
+### Phase 4: Archive Legacy Projects
+1. Document what was migrated in `docs/MIGRATION_NOTES.md`
+2. Create archive folder with timestamp
+3. Move 4 legacy projects to archive
+4. Update any external references/documentation
+
+---
+
+## Final Recommendation
+
+### ✅ YES - Create Single Source of Truth
+
+**New Project**: `cad_rms_data_quality`
+
+**Benefits:**
+- Combines best practices from 4 legacy projects
+- Leverages newest patterns from dv_doj (2025-12-09)
+- Eliminates duplicate/conflicting validation logic
+- Clear structure for historical vs. ongoing work
+- Maintainable long-term solution
+
+**Archive Strategy:**
+- Move 4 legacy projects to `_ARCHIVED_2026_01_30/`
+- Document migration in new project's README
+- Keep archive for 6-12 months, then delete if not needed
+
+**Timeline:**
+1. Create new project: ~1 hour
+2.

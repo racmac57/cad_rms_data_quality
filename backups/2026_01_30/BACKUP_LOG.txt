@@ -1,0 +1,27 @@
+================================================================================
+BACKUP LOG - 2026-01-30 Consolidation Update
+================================================================================
+
+Date: 2026-01-30
+Purpose: Backup before updating consolidation to include 01/30/2026 data
+
+FILES BACKED UP:
+- consolidate_cad_2019_2026.py → consolidate_cad_2019_2026_backup_20260130.py
+- 2019_to_2026_01_29_CAD.csv → BACKUP_2019_to_2026_01_29_CAD_20260130.csv
+- CAD_ESRI_POLISHED_20260130_233739.xlsx → BACKUP_CAD_ESRI_POLISHED_20260130_233739.xlsx
+
+CHANGES BEING MADE:
+1. Update monthly file from 2026_01_29 to 2026_01_30
+2. Update date range filter to 2026-01-30
+3. Create call_type_normalizer.py utility
+
+NEXT RUN AFTER THIS:
+- Will include data through 2026-01-31 (full January)
+- User will backfill in ArcGIS Pro today
+- Tomorrow's update will be automatic
+
+NOTES:
+- January has 31 days (need to update to 01/31 tomorrow)
+- RMS data is ready: 2026_01_01_to_2026_01_30_RMS_Export.xlsx
+- ESRI schema conversion handled by enhanced_esri_output_generator.py
+================================================================================

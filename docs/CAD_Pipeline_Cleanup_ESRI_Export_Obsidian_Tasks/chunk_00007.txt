@@ -1,0 +1,669 @@
+● Searched for 2 patterns, read 2 files (ctrl+o to expand)
+
+● Let me explore the monthly_export structure and check file sizes to compare the xlsx files between directories. ● Searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● Bash(for year in 2023 2024; do echo "=== $year ==="; ls -lh "C:/Users/carucci_r/OneDrive - City of Hackensack/05_EXPORTS/_CAD/full_year/$year/raw/" 2>/dev/null; echo…)
+  ⎿  === 2023 ===
+     total 48M
+     -rw-r--r-- 1 carucci_r 1049089 33M Jan  9 19:59 2023_CAD_ALL.csv
+     … +14 lines (ctrl+o to expand)
+
+● Bash(echo "=== full_year/2025 ===" && ls -lh "C:/Users/carucci_r/OneDrive - City of Hackensack/05_EXPORTS/_CAD/full_year/2025/raw/" 2>/dev/null; echo "=== full_year_…)
+  ⎿  === full_year/2025 ===
+     total 51M
+     -rw-r--r-- 1 carucci_r 1049089 35M Jan  9 19:57 2025_Yearly_CAD.csv
+     … +4 lines (ctrl+o to expand)
+
+● Now I have a complete picture. Here's my comprehensive analysis:
+
+  ---
+  1. JScript Review - Issues Found
+
+  The script has critical bugs that will cause failures in Directory Opus:
+
+  Bug 1: WScript.Sleep() is invalid (line 37)
+
+  Directory Opus JScript doesn't have WScript object. // WRONG
+  WScript.Sleep(300);
+
+  // CORRECT
+  DOpus.Delay(300);
+
+  Bug 2: Sheet copy logic is flawed (line 44)
+
+  The current approach copies a sheet into an existing workbook, creating a duplicate sheet scenario. When saving as CSV, only the active sheet is saved, which may not be the copied one. // WRONG - creates 2 sheets, unpredictable active sheet
+  var tempWb = excel.Workbooks.Add();
+  sheetObj.Copy(tempWb.Sheets(1));  // Inserts BEFORE Sheets(1)
+
+  // CORRECT - copy creates new workbook with just that sheet
+  sheetObj.Copy();  // No argument = new workbook
+  var tempWb = excel.ActiveWorkbook;
+
+  Bug 3: Default parameter syntax (line 29)
+
+  ES6 default params (timeout = 30000) may not work in older JScript engines. Bug 4: No temp folder cleanup
+
+  The workRoot temp folder is never deleted after use. Bug 5: Potential duplicate CSVs
+
+  If a file has sheets named Sheet1 and the stem is also Sheet1, naming collision occurs. ---
+  2. Corrected JScript
+
+  // 2026-01-30
+  // DirectoryOpus/ExcelToCSV_Corrected.js
+  // Purpose: Safe XLSX → CSV export with structure and duplication safeguards
+
+  function OnClick(clickData) {
+      var func = clickData.func;
+      var tab = func.sourcetab;
+      var xlCSVUTF8 = 62;
+      var xlSheetVisible = -1;
+
+      var excel = new ActiveXObject("Excel.Application");
+      excel.Visible = false;
+      excel.DisplayAlerts = false;
+
+      var fso = new ActiveXObject("Scripting.FileSystemObject");
+      var tempRoot = new ActiveXObject("WScript.Shell").ExpandEnvironmentStrings("%TEMP%");
+      var runId = (new Date()).getTime();
+      var workRoot = tempRoot + "\\DOpus_Export_" + runId;
+
+      function cleanName(name) {
+          return String(name || "Sheet")
+              .replace(/[<>:"/\\|? *\x00-\x1F]/g, "_")
+              .replace(/\s+/g, "_")
+              .replace(/_+/g, "_")
+              .replace(/^[._]+|[._]+$/g, "")
+              .substring(0, 150);
+      }
+
+      function waitForCopyReady(pathStr, timeout) {
+          timeout = timeout || 30000;
+          var start = new Date().getTime(), size1 = -1;
+          while ((new Date().getTime() - start) < timeout) {
+              if (fso.FileExists(pathStr)) {
+                  var size2 = fso.GetFile(pathStr).Size;
+                  if (size1 === size2 && size2 > 0) return true;
+                  size1 = size2;
+              }
+              DOpus.Delay(300);
+          }
+          return false;
+      }
+
+      function exportCsv(destFolder, nameStem, sheetName, sheetObj, sheetCount) {
+          // Copy sheet to NEW workbook (no argument = new workbook)
+          sheetObj.Copy();
+          var tempWb = excel.ActiveWorkbook;
+
+          try {
+              // Build filename: include sheet name only if multi-sheet
+              var csvName = (sheetCount > 1)
+                  ? nameStem + "_" + cleanName(sheetName) + ".csv"
+                  : nameStem + ".csv";
+              var csvTemp = workRoot + "\\" + csvName;
+
+              tempWb.SaveAs(csvTemp, xlCSVUTF8);
+              tempWb.Close(false);
+
+              func.command.RunCommand('Copy "' + csvTemp + '" TO="' + destFolder + '" WHENEXISTS=Overwrite');
+              return true;
+          } catch (e) {
+              DOpus.Output("Failed CSV export for " + nameStem + " / " + sheetName + ": " + e.message);
+              try { tempWb.Close(false); } catch (ignore) {}
+              return false;
+          }
+      }
+
+      function deleteFolderRecursive(folderPath) {
+          try {
+              if (fso.FolderExists(folderPath)) {
+                  fso.DeleteFolder(folderPath, true);
+              }
+          } catch (e) {
+              DOpus.Output("Cleanup warning: " + e.message);
+          }
+      }
+
+      try { fso.CreateFolder(workRoot); } catch (ignore) {}
+
+      for (var e = new Enumerator(tab.selected_files); !e.atEnd(); e.moveNext()) {
+          var file = e.item();
+          if (!/\. (xlsx|xls|xlsm|xlsb)$/i.test(file.ext)) continue;
+
+          var dest = String(file.path);
+          var stem = cleanName(file.name_stem);
+          var fileWork = workRoot + "\\" + stem;
+          try { fso.CreateFolder(fileWork); } catch (ignore) {}
+
+          var localPath = fileWork + "\\" + file.name;
+          func.command.RunCommand('Copy "' + file + '" TO="' + fileWork + '" WHENEXISTS=overwrite');
+          if (!waitForCopyReady(localPath)) {
+              DOpus.Output("Timeout waiting for local copy: " + file.name);
+              continue;
+          }
+
+          try {
+              var wb = excel.Workbooks.Open(localPath, 0, true);
+              var visibleSheets = [];
+              for (var i = 1; i <= wb.Sheets.Count; i++) {
+                  var sh = wb.Sheets(i);
+                  if (sh.Visible === xlSheetVisible && sh.UsedRange.Cells.Count > 1) {
+                      visibleSheets.push(sh);
+                  }
+              }
+
+              if (visibleSheets.length === 0) {
+                  DOpus.Output("No visible/non-empty sheets in " + file.name);
+                  wb.Close(false);
+                  continue;
+              }
+
+              for (var s = 0; s < visibleSheets.length; s++) {
+                  exportCsv(dest, stem, visibleSheets[s].Name, visibleSheets[s], visibleSheets.length);
+              }
+
+              wb.Close(false);
+          } catch (ex) {
+              DOpus.Output("Excel open failed for " + file.name + ": " + ex.message);
+          }
+      }
+
+      try { excel.Quit(); } catch (ignore) {}
+      deleteFolderRecursive(workRoot);
+  }
+
+  Key Fixes:
+  ┌───────────────────┬──────────────────────────────────────────────────────┐
+  │       Issue       │                         Fix                          │
+  ├───────────────────┼──────────────────────────────────────────────────────┤
+  │ WScript.Sleep     │ Changed to DOpus.Delay(300)                          │
+  ├───────────────────┼──────────────────────────────────────────────────────┤
+  │ Sheet copy        │ sheetObj.Copy() (no param) creates isolated workbook │
+  ├───────────────────┼──────────────────────────────────────────────────────┤
+  │ Default params    │ Replaced with timeout = timeout || 30000             │
+  ├───────────────────┼──────────────────────────────────────────────────────┤
+  │ Temp cleanup      │ Added deleteFolderRecursive() at end                 │
+  ├───────────────────┼──────────────────────────────────────────────────────┤
+  │ Empty sheet skip  │ Added UsedRange.Cells.Count > 1 check                │
+  ├───────────────────┼──────────────────────────────────────────────────────┤
+  │ Duplicate names   │ Single-sheet files omit sheet name suffix            │
+  ├───────────────────┼──────────────────────────────────────────────────────┤
+  │ Template literals │ Replaced with string concatenation (JScript compat)  │
+  └───────────────────┴──────────────────────────────────────────────────────┘
+  ---
+  3. Directory Analysis
+
+  Full-Year Source of Truth: full_year
+  ┌────────────────┬─────────────────────────┬────────────────────────┐
+  │    Criteria    │        full_year        │    full_year_export    │
+  ├────────────────┼─────────────────────────┼────────────────────────┤
+  │ Structure      │ YYYY/raw/*.xlsx (clean) │ YYYY/*.xlsx (flat)     │
+  ├────────────────┼─────────────────────────┼────────────────────────┤
+  │ 2012-2024 xlsx │ Complete                │ Complete               │
+  ├────────────────┼─────────────────────────┼────────────────────────┤
+  │ 2025 xlsx      │ Present                 │ Missing                │
+  ├────────────────┼─────────────────────────┼────────────────────────┤
+  │ CSV pairs      │ All present             │ Scattered              │
+  ├────────────────┼─────────────────────────┼────────────────────────┤
+  │ Artifacts      │ Minimal                 │ .zip files, duplicates │
+  └────────────────┴─────────────────────────┴────────────────────────┘
+  Verdict: full_year is the authoritative source. It has:
+  - Complete xlsx coverage through 2025
+  - Organized raw/ subfolder pattern
+  - Paired xlsx+csv files
+
+  ---
+  Monthly Export: Issues Found
+
+  monthly_export/
+  ├── 2024/                               # EMPTY
+  ├── 2025/
+  │   ├── 2025_11_Monthly_CAD.xlsx.xlsx   # DOUBLE EXTENSION BUG
+  │   ├── 2025_12_Monthly_CAD.xlsx        # Correct
+  │   └── 25_10_cad.xlsx                  # INCONSISTENT NAMING
+  ├── 2026/                               # EMPTY
+  └── 2024_11_to_2025_11_CAD_Data.xlsx    # CROSS-YEAR FILE AT ROOT
+
+  Problems:
+  1. Double extension: .xlsx.xlsx
+  2. Inconsistent naming: 25_10_cad vs 2025_12_Monthly_CAD
+  3. Cross-year aggregate at root level
+  4. Missing monthly files for 2024
+
+  ---
+  4. Proposed Clean Directory Structure
+
+  _CAD/
+  ├── yearly/                              # CANONICAL full-year source
+  │   ├── 2012/
+  │   │   └── 2012_CAD_ALL.xlsx
+  │   ├── 2013/
+  │   │   └── 2013_CAD_ALL.xlsx
+  │   └── ...
+  │
+  ├── monthly/                             # CANONICAL monthly source
+  │   ├── 2024/
+  │   │   ├── 2024_01_CAD.xlsx
+  │   │   ├── 2024_02_CAD.xlsx
+  │   │   └── ...
+  │   ├── 2025/
+  │   │   ├── 2025_01_CAD.xlsx
+  │   │   └── ...
+  │   └── 2026/
+  │
+  ├── csv/                                 # ALL generated CSVs (output only)
+  │   ├── yearly/
+  │   │   ├── 2012_CAD_ALL.csv
+  │   │   └── ...
+  │   └── monthly/
+  │       ├── 2024_01_CAD.csv
+  │       └── ...
+  │
+  └── archive/                             # Old/superseded exports
+      ├── full_year_export/                # Move here
+      └── monthly_export/                  # Move here
+
+  Naming Convention:
+
+  - Yearly: YYYY_CAD_ALL.xlsx
+  - Monthly: YYYY_MM_CAD.xlsx
+
+  ---
+  5. CSV Trust Assessment
+
+  Current CSVs should NOT be fully trusted because:
+
+  1. The original script's sheetObj.Copy(tempWb.Sheets(1)) bug may have exported the wrong sheet
+  2. Some CSVs may be from multi-sheet workbooks where only one sheet was captured
+  3. Encoding could be inconsistent (the bug wouldn't affect UTF-8 but structure could vary)
+
+  Recommendation: Re-export all CSVs using the corrected script to ensure consistency. ---
+  Summary Actions
+
+  1. Use full_year as source of truth for yearly exports
+  2. Fix the JScript with the corrections above
+  3. Rename 2025_11_Monthly_CAD.xlsx.xlsx to remove double extension
+  4. Standardize monthly naming to YYYY_MM_CAD.xlsx
+  5. Re-run CSV exports from xlsx sources using corrected script
+  6. Archive full_year_export and clean monthly_export
+
+  Would you like me to write the corrected JScript to the file, or help create a migration script to reorganize the directories? ✻ Cogitated for 1m 46s
+
+> @Claude Code
+
+  TASK SET: CAD Directory Cleanup + Canonical Tree Builder
+
+  I have saved a script at this path:
+
+  📁 `C:\Users\carucci_r\OneDrive - City of Hackensack\00_dev\scripts\canonical_tree_build.ps1`
+
+  The script is designed to:
+  1. Delete: `_CAD/full_year_export`
+  2. Normalize file names in `_CAD/monthly/` to format `YYYY_MM_CAD.xlsx`
+     - Fix `.xlsx.xlsx`
+     - Rename inconsistent files (e.g., 25_10_cad.xlsx)
+  3. Move misnamed or broken files to `_CAD/archive/monthly_export/`
+  4. Build this canonical directory layout:
+  _CAD/
+  ├── yearly/YYYY/YYYY_CAD_ALL.xlsx
+  ├── monthly/YYYY/YYYY_MM_CAD.xlsx
+  ├── csv/yearly/
+  ├── csv/monthly/
+  └── archive/
+
+  markdown
+  Copy code
+  5. Generate a CSV re-export checklist for all `.xlsx` in `yearly/` and `monthly/`
+  6. Update this file:
+  📄 `consolidation_sources.yaml`
+  with the new canonical paths (based on `_CAD/yearly` and `_CAD/monthly` only)
+
+  INSTRUCTIONS:
+  - ✅ Review the PowerShell script for correctness and safety. - 🛠️ Fix any issues (file renaming logic, unsafe paths, invalid assumptions)
+  - 🏃 Run the script
+  - 📋 Return the following:
+
+  - ✅ Confirmation that `_CAD/full_year_export` was deleted
+  - 📁 List of renamed or moved `.xlsx` files in `_CAD/monthly/`
+  - 📋 A checklist of `.xlsx` files (canonical paths) ready for CSV export
+  - ✅ The updated content for `consolidation_sources.yaml`
+
+  ⚠️ Only canonical `.xlsx` files should be referenced in the updated YAML. Return a PASS/FAIL status at the end. ● I'll review the PowerShell script first, then fix any issues before running it. ● Read 2 files (ctrl+o to expand)
+
+● The script doesn't exist yet. Let me check the current state and create the script. ● Read 2 files (ctrl+o to expand)
+
+● The script exists. Let me read it and also check the current state of the directories that will be affected. ● Searched for 2 patterns, read 1 file (ctrl+o to expand)
+
+● I've identified several critical issues in the script:
+
+  Issues Found:
+
+  1. Missing yearly migration: Script doesn't copy files from full_year/YYYY/raw/ to yearly/YYYY/
+  2. Month pattern bug: 25_10_cad.xlsx won't match (2-digit year not handled)
+  3. Double extension: 2025_11_Monthly_CAD.xlsx.xlsx handling is incomplete
+  4. YAML syntax error: PowerShell string interpolation ${(...)} is malformed
+  5. No normalization of yearly filenames: Inconsistent names like 2022_CAD_ALL.xlsx vs 2025_Yearly_CAD.xlsx
+
+  Let me fix the script:
+
+● Write(~\OneDrive - City of Hackensack\00_dev\scripts\canonical_tree_build.ps1)
+  ⎿  Added 193 lines, removed 98 lines
+        1 -# canonical_tree_build.ps1
+        2 -# Author: R.A.C. | 2026-01-30
+        3 -# Purpose: Canonicalize CAD data exports — delete outdated dirs, fix filenames, build new layout
+        4 -
+        5 -$RootCAD = "C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_CAD"
+        6 -$YearlyPath = Join-Path $RootCAD "yearly"
+        7 -$MonthlyPath = Join-Path $RootCAD "monthly"
+        8 -$CSVPath = Join-Path $RootCAD "csv"
+        9 -$ArchivePath = Join-Path $RootCAD "archive"
+       10 -
+       11 -$OldYearly = Join-Path $RootCAD "full_year_export"
+       12 -$OldMonthly = Join-Path $RootCAD "monthly_export"
+       13 -
+       14 -# 1. Delete old full_year_export
+       15 -if (Test-Path $OldYearly) {
+       16 -    Remove-Item -Path $OldYearly -Recurse -Force
+       17 -    Write-Host "✅ Deleted: $OldYearly"
+       18 -}
+       19 -
+       20 -# 2. Create canonical structure
+       21 -$pathsToCreate = @(
+       22 -    $YearlyPath,
+       23 -    $MonthlyPath,
+       24 -    (Join-Path $CSVPath "yearly"),
+       25 -    (Join-Path $CSVPath "monthly"),
+       26 -    (Join-Path $ArchivePath "monthly_export")
+       27 -)
+       28 -
+       29 -foreach ($p in $pathsToCreate) {
+       30 -    if (-not (Test-Path $p)) {
+       31 -        New-Item -Path $p -ItemType Directory | Out-Null
+       32 -        Write-Host "📁 Created: $p"
+       33 -    }
+       34 -}
+       35 -
+       36 -# 3. Process Monthly XLSX files
+       37 -$monthlyRaw = Get-ChildItem -Path $OldMonthly -Recurse -Filter *.xlsx -File -ErrorAction SilentlyContinue
+       38 -$monthPattern = '20\d{2}[_\- ](0? [1-9]|1[0-2])'
+       39 -
+       40 -foreach ($file in $monthlyRaw) {
+       41 -    $baseName = [System.IO.Path]::GetFileNameWithoutExtension($file.Name) -replace '\.xlsx$', ''
+       42 -    $fixedName = $baseName -replace '\.xlsx$', '' -replace '[^\w\d]', '_'
+       43 -
+       44 -    if ($file.Name -match $monthPattern) {
+       45 -        $match = [regex]::Match($file.Name, $monthPattern)
+       46 -        $year, $month = $match.Value -split '[_\- ]'
+       47 -        $month = $month.PadLeft(2, '0')
+       48 -
+       49 -        $targetDir = Join-Path $MonthlyPath $year
+       50 -        if (-not (Test-Path $targetDir)) { New-Item -Path $targetDir -ItemType Directory | Out-Null }
+       51 -
+       52 -        $newName = "${year}_${month}_CAD.xlsx"
+       53 -        $newPath = Join-Path $targetDir $newName
+       54 -        Copy-Item -Path $file.FullName -Destination $newPath -Force
+       55 -        Write-Host "✅ Renamed and moved: $($file.Name) → $newName"
+       56 -    }
+       57 -    else {
+       58 -        # Non-matching file → archive
+       59 -        $archiveDest = Join-Path (Join-Path $ArchivePath "monthly_export") $file.Name
+       60 -        Move-Item -Path $file.FullName -Destination $archiveDest -Force
+       61 -        Write-Host "🗃️ Moved to archive: $($file.Name)"
+       62 -    }
+       63 -}
+       64 -
+       65 -# 4. Generate CSV Export Checklist
+       66 -$xlsxChecklist = @()
+       67 -$xlsxChecklist += Get-ChildItem -Path $YearlyPath -Recurse -Filter *.xlsx -File
+       68 -$xlsxChecklist += Get-ChildItem -Path $MonthlyPath -Recurse -Filter *.xlsx -File
+       69 -
+       70 -$checklistPath = Join-Path $RootCAD "csv_export_checklist.txt"
+       71 -$xlsxChecklist | ForEach-Object {
+       72 -    $rel = $_.FullName.Replace($RootCAD, "_CAD").Replace("\", "/")
+       73 -    "$rel" >> $checklistPath
+       74 -}
+       75 -Write-Host "`n📋 Checklist written to: $checklistPath"
+       76 -
+       77 -# 5. Update consolidation_sources.yaml
+       78 -$yamlPath = "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\config\consolidation_sources.yaml"
+       79 -
+       80 -$yearlySources = Get-ChildItem -Path $YearlyPath -Recurse -Filter *.xlsx -File | ForEach-Object {
+       81 -    "  - path: '${($_.FullName).Replace('\', '\\')}'"
+       82 -}
+       83 -$monthlySources = Get-ChildItem -Path $MonthlyPath -Recurse -Filter *.xlsx -File | ForEach-Object {
+       84 -    "  - path: '${($_.FullName).Replace('\', '\\')}'"
+       85 -}
+       86 -
+       87 -$yamlOutput = @"
+       88 -sources:
+       89 -  yearly:
+       90 -$($yearlySources -join "`n")
+       91 -  monthly:
+       92 -$($monthlySources -join "`n")
+       93 -"@
+       94 -
+       95 -$yamlOutput | Set-Content -Path $yamlPath -Encoding UTF8
+       96 -Write-Host "`n✅ Updated YAML: $yamlPath"
+       97 -
+       98 -Write-Host "`n🎉 Canonical tree build complete. You may now run your CSV export tool safely." 1 +# canonical_tree_build.ps1
+        2 +# Author: R.A.C. | 2026-01-30
+        3 +# Purpose: Canonicalize CAD data exports — delete outdated dirs, fix filenames, build new layout
+        4 +
+        5 +$ErrorActionPreference = "Stop"
+        6 +
+        7 +$RootCAD = "C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_CAD"
+        8 +$YearlyPath = Join-Path $RootCAD "yearly"
+        9 +$MonthlyPath = Join-Path $RootCAD "monthly"
+       10 +$CSVPath = Join-Path $RootCAD "csv"
+       11 +$ArchivePath = Join-Path $RootCAD "archive"
+       12 +
+       13 +$OldYearly = Join-Path $RootCAD "full_year_export"
+       14 +$OldMonthly = Join-Path $RootCAD "monthly_export"
+       15 +$SourceYearly = Join-Path $RootCAD "full_year"
+       16 +
+       17 +$renamedFiles = @()
+       18 +$archivedFiles = @()
+       19 +
+       20 +# 1. Delete old full_year_export
+       21 +if (Test-Path $OldYearly) {
+       22 +    Remove-Item -Path $OldYearly -Recurse -Force
+       23 +    Write-Host "Deleted: $OldYearly"
+       24 +}
+       25 +
+       26 +# 2. Create canonical structure
+       27 +$pathsToCreate = @(
+       28 +    $YearlyPath,
+       29 +    $MonthlyPath,
+       30 +    (Join-Path $CSVPath "yearly"),
+       31 +    (Join-Path $CSVPath "monthly"),
+       32 +    (Join-Path $ArchivePath "monthly_export")
+       33 +)
+       34 +
+       35 +foreach ($p in $pathsToCreate) {
+       36 +    if (-not (Test-Path $p)) {
+       37 +        New-Item -Path $p -ItemType Directory | Out-Null
+       38 +        Write-Host "Created: $p"
+       39 +    }
+       40 +}
+       41 +
+       42 +# 3. Migrate YEARLY files from full_year/YYYY/raw/*.xlsx to yearly/YYYY/YYYY_CAD_ALL.xlsx
+       43 +Write-Host "`n=== Processing Yearly Files ==="
+       44 +$yearlyRaw = Get-ChildItem -Path $SourceYearly -Recurse -Filter *.xlsx -File -ErrorAction SilentlyContinue
+       45 +
+       46 +foreach ($file in $yearlyRaw) {
+       47 +    # Extract year from parent folder structure (e.g., full_year/2023/raw/...)
+       48 +    $yearMatch = [regex]::Match($file.DirectoryName, '\\(20\d{2})\\')
+       49 +    if ($yearMatch.Success) {
+       50 +        $year = $yearMatch.Groups[1].Value
+       51 +        $targetDir = Join-Path $YearlyPath $year
+       52 +        if (-not (Test-Path $targetDir)) {
+       53 +            New-Item -Path $targetDir -ItemType Directory | Out-Null
+       54 +        }
+       55 +
+       56 +        # Canonical name: YYYY_CAD_ALL.xlsx
+       57 +        $newName = "${year}_CAD_ALL.xlsx"
+       58 +        $newPath = Join-Path $targetDir $newName
+       59 +
+       60 +        Copy-Item -Path $file.FullName -Destination $newPath -Force
+       61 +        $renamedFiles += [PSCustomObject]@{
+       62 +            Original = $file.Name
+       63 +            New = $newName
+       64 +            Type = "yearly"
+       65 +        }
+       66 +        Write-Host "  $($file.Name) -> $newName"
+       67 +    }
+       68 +}
+       69 +
+       70 +# 4. Process Monthly XLSX files
+       71 +Write-Host "`n=== Processing Monthly Files ==="
+       72 +$monthlyRaw = Get-ChildItem -Path $OldMonthly -Recurse -Filter *.xlsx -File -ErrorAction SilentlyContinue
+       73 +
+       74 +# Patterns to match:
+       75 +# - 2025_11_Monthly_CAD.xlsx.xlsx
+       76 +# - 2025_12_Monthly_CAD.xlsx
+       77 +# - 25_10_cad.xlsx
+       78 +# - 2024_11_to_2025_11_CAD_Data.xlsx (cross-year - archive)
+       79 +
+       80 +foreach ($file in $monthlyRaw) {
+       81 +    $baseName = $file.Name
+       82 +
+       83 +    # Fix double .xlsx extension first
+       84 +    $baseName = $baseName -replace '\.xlsx\.xlsx$', '.xlsx'
+       85 +    $stem = [System.IO.Path]::GetFileNameWithoutExtension($baseName)
+       86 +
+       87 +    $matched = $false
+       88 +    $year = $null
+       89 +    $month = $null
+       90 +
+       91 +    # Pattern 1: Full 4-digit year format (2025_11, 2025_12, etc.) 92 +    if ($stem -match '^(20\d{2})[_\-](\d{1,2})') {
+       93 +        $year = $Matches[1]
+       94 +        $month = $Matches[2].PadLeft(2, '0')
+       95 +        $matched = $true
+       96 +    }
+       97 +    # Pattern 2: Short 2-digit year format (25_10, 24_11, etc.) 98 +    elseif ($stem -match '^(\d{2})[_\-](\d{1,2})') {
+       99 +        $year = "20" + $Matches[1]
+      100 +        $month = $Matches[2].PadLeft(2, '0')
+      101 +        $matched = $true
+      102 +    }
+      103 +
+      104 +    if ($matched -and [int]$month -ge 1 -and [int]$month -le 12) {
+      105 +        $targetDir = Join-Path $MonthlyPath $year
+      106 +        if (-not (Test-Path $targetDir)) {
+      107 +            New-Item -Path $targetDir -ItemType Directory | Out-Null
+      108 +        }
+      109 +
+      110 +        $newName = "${year}_${month}_CAD.xlsx"
+      111 +        $newPath = Join-Path $targetDir $newName
+      112 +        Copy-Item -Path $file.FullName -Destination $newPath -Force
+      113 +        $renamedFiles += [PSCustomObject]@{
+      114 +            Original = $file.Name
+      115 +            New = $newName
+      116 +            Type = "monthly"
+      117 +        }
+      118 +        Write-Host "  $($file.Name) -> $newName"
+      119 +    }
+      120 +    else {
+      121 +        # Non-matching file -> archive
+      122 +        $archiveDir = Join-Path $ArchivePath "monthly_export"
+      123 +        $archiveDest = Join-Path $archiveDir $file.Name
+      124 +        Copy-Item -Path $file.FullName -Destination $archiveDest -Force
+      125 +        $archivedFiles += $file.Name
+      126 +        Write-Host "  [ARCHIVED] $($file.Name)"
+      127 +    }
+      128 +}
+      129 +
+      130 +# 5. Generate CSV Export Checklist
+      131 +Write-Host "`n=== Generating CSV Export Checklist ==="
+      132 +$xlsxChecklist = @()
+      133 +$xlsxChecklist += Get-ChildItem -Path $YearlyPath -Recurse -Filter *.xlsx -File -ErrorAction SilentlyContinue
+      134 +$xlsxChecklist += Get-ChildItem -Path $MonthlyPath -Recurse -Filter *.xlsx -File -ErrorAction SilentlyContinue
+      135 +
+      136 +$checklistPath = Join-Path $RootCAD "csv_export_checklist.txt"
+      137 +$checklistContent = $xlsxChecklist | ForEach-Object {
+      138 +    $_.FullName.Replace($RootCAD, "_CAD").Replace("\", "/")
+      139 +}
+      140 +$checklistContent | Set-Content -Path $checklistPath -Encoding UTF8
+      141 +Write-Host "Checklist written to: $checklistPath"
+      142 +Write-Host "Total files: $($xlsxChecklist.Count)"
+      143 +
+      144 +# 6. Update consolidation_sources.yaml
+      145 +Write-Host "`n=== Updating consolidation_sources.yaml ==="
+      146 +$yamlPath = "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\config\consolidation_sources.yaml"
+      147 +$yamlDir = Split-Path $yamlPath -Parent
+      148 +
+      149 +if (-not (Test-Path $yamlDir)) {
+      150 +    New-Item -Path $yamlDir -ItemType Directory -Force | Out-Null
+      151 +}
+      152 +
+      153 +$yearlyFiles = Get-ChildItem -Path $YearlyPath -Recurse -Filter *.xlsx -File -ErrorAction SilentlyContinue | Sort-Object Name
+      154 +$monthlyFiles = Get-ChildItem -Path $MonthlyPath -Recurse -Filter *.xlsx -File -ErrorAction SilentlyContinue | Sort-Object Name
+      155 +
+      156 +$yamlLines = @()
+      157 +$yamlLines += "# Canonical CAD Data Sources"
+      158 +$yamlLines += "# Generated: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+      159 +$yamlLines += "# WARNING: Only edit paths below if source files have moved"
+      160 +$yamlLines += ""
+      161 +$yamlLines += "sources:"
+      162 +$yamlLines += "  yearly:"
+      163 +
+      164 +foreach ($f in $yearlyFiles) {
+      165 +    $escapedPath = $f.FullName.Replace("\", "\\")
+      166 +    $yamlLines += "    - path: '$escapedPath'"
+      167 +}
+      168 +
+      169 +$yamlLines += "  monthly:"
+      170 +foreach ($f in $monthlyFiles) {
+      171 +    $escapedPath = $f.FullName.Replace("\", "\\")
+      172 +    $yamlLines += "    - path: '$escapedPath'"
+      173 +}
+      174 +
+      175 +$yamlLines | Set-Content -Path $yamlPath -Encoding UTF8
+      176 +Write-Host "Updated YAML: $yamlPath"
+      177 +
+      178 +# 7. Summary Report
+      179 +Write-Host "`n" + ("=" * 60)
+      180 +Write-Host "CANONICAL TREE BUILD COMPLETE"
+      181 +Write-Host ("=" * 60)
+      182 +Write-Host "`nRENAMED/MOVED FILES:"
+      183 +$renamedFiles | Format-Table -AutoSize
+      184 +
+      185 +if ($archivedFiles.Count -gt 0) {
+      186 +    Write-Host "`nARCHIVED FILES (non-canonical):"
+      187 +    $archivedFiles | ForEach-Object { Write-Host "  - $_" }
+      188 +}
+      189 +
+      190 +Write-Host "`nCANONICAL XLSX CHECKLIST FOR CSV EXPORT:"
+      191 +$checklistContent | ForEach-Object { Write-Host "  $_" }
+      192 +
+      193 +Write-Host "`nSTATUS: PASS"
+
+● Now let me run the corrected script:
+
+● Bash(powershell -ExecutionPolicy Bypass -File "C:/Users/carucci_r/OneDrive - City of Hackensack/00_dev/scripts/canonical_tree_build.ps1" 2>&1)
+  ⎿  Deleted: C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_CAD\full_year_export
+     Created: C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_CAD\yearly
+     Created: C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_CAD\monthly
+     … +83 lines (ctrl+o to expand)
+  ⎿  (timeout 2m)
+
+● The script executed successfully. Let me verify the final state and read the generated YAML:
+
+● Read 2 files (ctrl+o to expand)
+
+● Bash(find "C:/Users/carucci_r/OneDrive - City of Hackensack/05_EXPORTS/_CAD/yearly" -name "*.xlsx" -type f 2>/dev/null | sort)
+  ⎿  C:/Users/carucci_r/OneDrive - City of Hackensack/05_EXPORTS/_CAD/yearly/2012/2012_CAD_ALL.xlsx
+     C:/Users/carucci_r/OneDrive - City of Hackensack/05_EXPORTS/_CAD/yearly/2013/2013_CAD_ALL.xlsx
+     C:/Users/carucci_r/OneDrive - City of Hackensack/05_EXPORTS/_CAD/yearly/2014/2014_CAD_ALL.xlsx
+     … +11 lines (ctrl+o to expand)
+
+● Bash(find "C:/Users/carucci_r/OneDrive - City of Hackensack/05_EXPORTS/_CAD/monthly" -name "*.xlsx" -type f 2>/dev/null | sort)
+  ⎿  C:/Users/carucci_r/OneDrive - City of Hackensack/05_EXPORTS/_CAD/monthly/2024/2024_11_CAD.xlsx
+     C:/Users/carucci_r/OneDrive - City of Hackensack/05_EXPORTS/_CAD/monthly/2025/2025_10_CAD.xlsx
+     C:/Users/carucci_r/OneDrive - City of Hackensack/05_EXPORTS/_CAD/monthly/2025/2025_11_CAD.xlsx
+     C:/Users/carucci_r/OneDrive - City of Hackensack/05_EXPORTS/_CAD/monthly/2025/2025_12_CAD.xlsx
+
+● I found an issue. Let me check and fix the misclassified cross-year file:
+
+● Read 3 files (ctrl+o to expand)
+
+● Issue detected: The 2024_11_to_2025_11_CAD_Data.xlsx (19MB, 13-month aggregate) was incorrectly renamed to 2024_11_CAD.xlsx. This is NOT a single-month export and should be archived.

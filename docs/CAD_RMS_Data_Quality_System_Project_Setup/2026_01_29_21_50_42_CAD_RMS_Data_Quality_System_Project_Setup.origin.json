@@ -1,0 +1,40 @@
+{
+  "tags": [
+    "ai",
+    "code",
+    "data",
+    "docs",
+    "excel",
+    "it-ops",
+    "json",
+    "legal",
+    "markdown",
+    "police",
+    "python",
+    "sql"
+  ],
+  "metadata_enrichment": {
+    "metadata": {
+      "project_name": "02_data",
+      "source_type": "documentation",
+      "language": "en",
+      "department": "admin",
+      "key_terms": [
+        "project",
+        "hackensack",
+        "validation",
+        "data",
+        "users",
+        "carucci_r"
+      ],
+      "enrichment_version": "1.0.0"
+    },
+    "summaries": {
+      "file_summary": "# Documentation files context review\n_Exported on 1/29/2026 at 21:49:28 EST from Cursor (2.4.23)_\n\n---\n\n**User**\n\n@README.md @CHANGELOG.md @Claude.md @SUMMARY.md review for context\n\n---\n\n**Cursor**\n\nI have completed a review of the proje...",
+      "first_line": "# Documentation files context review"
+    },
+    "enrichment_version": "1.0.0"
+  },
+  "last_processed_at": "2026-01-29T21:50:42.715526",
+  "department": "admin"
+}

@@ -1,0 +1,43 @@
+{
+  "tags": [
+    "ai",
+    "code",
+    "conversation",
+    "data",
+    "dataset",
+    "docs",
+    "excel",
+    "it-ops",
+    "json",
+    "legal",
+    "markdown",
+    "police",
+    "powershell",
+    "python",
+    "sql"
+  ],
+  "metadata_enrichment": {
+    "metadata": {
+      "project_name": "02_data",
+      "source_type": "data",
+      "language": "en",
+      "department": "admin",
+      "key_terms": [
+        "xlsx",
+        "files",
+        "self",
+        "yaml",
+        "str",
+        "csv"
+      ],
+      "enrichment_version": "1.0.0"
+    },
+    "summaries": {
+      "file_summary": "{\n  \"metadata\": {\n    \"title\": \"Improve my prompt\",\n    \"user\": {\n      \"name\": \"Anonymous\",\n      \"email\": \"gmfzqprc7z@privaterelay.appleid.com\"\n    },\n    \"dates\": {\n      \"created\": \"1/30/2026 13:37:24\",\n      \"updated\": \"1/30/2026 19...",
+      "first_line": "{"
+    },
+    "enrichment_version": "1.0.0"
+  },
+  "last_processed_at": "2026-01-30T21:45:54.639539",
+  "department": "admin"
+}

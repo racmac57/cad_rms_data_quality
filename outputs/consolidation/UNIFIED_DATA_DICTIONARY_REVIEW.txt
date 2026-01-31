@@ -1,0 +1,478 @@
+=============================================================================
+UNIFIED DATA DICTIONARY - RMS-TO-CAD MAPPING REVIEW
+=============================================================================
+Date: 2026-01-30 23:45:00 EST
+Reviewed: 09_Reference\Standards\unified_data_dictionary
+Purpose: Understand RMS backfill mapping for CAD consolidation
+
+=============================================================================
+PROJECT OVERVIEW
+=============================================================================
+
+**Unified Data Dictionary v0.2.3**
+Location: C:\Users\carucci_r\OneDrive - City of Hackensack\09_Reference\Standards\unified_data_dictionary
+
+**Purpose**: Centralized schema management and field mapping for CAD/RMS/DV systems
+- Single source of truth for data schemas
+- Bidirectional CAD ↔ RMS mapping
+- Transformation rules and validation logic
+- ETL integration framework
+
+=============================================================================
+KEY MAPPING FILES IDENTIFIED
+=============================================================================
+
+### 1. Mapping Rules (Master Documentation)
+**File**: `mappings/mapping_rules.md`
+**Content**: Comprehensive ETL mapping strategy
+
+**7 Mapping Types Defined**:
+1. **DIRECT_MAP**: 1:1 field correspondence (e.g., RMS.CaseNumber → CAD.ReportNumberNew)
+2. **CONDITIONAL_FILL**: Fill only if target is NULL/invalid
+3. **ADDRESS_BACKFILL**: Specialized address enrichment with validation
+4. **INCIDENT_BACKFILL**: Multi-level fallback (IncidentType1/2/3 → Incident)
+5. **TEXT_APPEND**: Concatenate narratives with delimiter
+6. **VOCABULARY_MAP**: Cross-system controlled vocabulary translation
+7. **DATETIME_EXTRACT**: Split datetime into date/time components
+
+### 2. Merge Policy (JSON Configuration)
+**File**: `mappings/cad_rms_merge_policy_latest.json`
+
+**Join Strategy**:
+- **Type**: LEFT JOIN (CAD drives, RMS enriches)
+- **Keys**: CAD.ReportNumberNew ↔ RMS.CaseNumber
+- **Format**: `YY-NNNNNN` (e.g., `24-123456`)
+
+**Deduplication Policy**:
+```json
+{
+  "policy": "keep_best",
+  "sort_priority": [
+    {"field": "Report Date", "direction": "desc"},
+    {"field": "Report Time", "direction": "desc"}
+  ],
+  "tie_breaker": "first"
+}
+```
+
+**Overwrite Rules**:
+- Default: Update when CAD is NULL or blank
+- Accept: When RMS is NOT NULL or blank
+
+**Audit Fields Generated**:
+- `merge_run_id`, `merge_timestamp`
+- `merge_join_key`, `merge_match_flag`
+- `merge_rms_row_count_for_key`
+- Source tracking: `Incident_source`, `FullAddress2_source`, `PDZone_source`, `Officer_source`
+
+### 3. Field Mapping Files
+**CAD → RMS**: `mappings/cad_to_rms_field_map_latest.json`
+**RMS → CAD**: `mappings/rms_to_cad_field_map_latest.json`
+**CSV Mappings**: `mappings/cad_to_rms_mapping.csv`, `mappings/rms_to_cad_mapping.csv`
+
+### 4. Schema Files
+**Canonical Schema**: `schemas/canonical_schema.json` (Single source of truth)
+**CAD Schema**: `schemas/cad_fields_schema_latest.json`
+**RMS Schema**: `schemas/rms_fields_schema_latest.json`
+**Transformation Spec**: `schemas/transformation_spec.json`
+
+=============================================================================
+CRITICAL MAPPING RULES FOR CAD CONSOLIDATION
+=============================================================================
+
+## PRIMARY JOIN (ReportNumberNew ↔ CaseNumber)
+
+**Join Logic**:
+```python
+# LEFT JOIN: CAD drives merge
+merged = cad_df.merge(
+    rms_df,
+    left_on='ReportNumberNew',
+    right_on='CaseNumber',
+    how='left',
+    suffixes=('', '_rms')
+)
+
+# Orphaned records handling:
+# - CAD without RMS: VALID (not all CAD calls generate RMS reports)
+# - RMS without CAD: DATA QUALITY ISSUE (investigate sync failures)
+```
+
+**Validation**:
+```python
+# Pre-merge checks
+assert cad_df['ReportNumberNew'].notna().all()
+assert cad_df['ReportNumberNew'].str.match(r'^\d{2}-\d{6}$').all()
+
+# Post-merge checks
+merge_rate = merged['CaseNumber'].notna().sum() / len(merged)
+assert merge_rate > 0.70, f"Low merge rate: {merge_rate:.1%}"
+```
+
+## FIELD PRECEDENCE RULES
+
+### 1. Address Backfill (MOST IMPORTANT)
+**Precedence Hierarchy**:
+1. ✅ CAD.FullAddress2 (if present and valid)
+2. ✅ Rule-based corrections (parks, landmarks)
+3. ✅ RMS.Location (backfill only if CAD invalid)
+4. ✅ Manual corrections
+
+**Implementation**:
+```python
+def backfill_address(cad_address, rms_location):
+    """Apply address backfill with validation"""
+    if pd.isna(cad_address) or is_invalid(cad_address):
+        if pd.notna(rms_location):
+            return rms_location, 'RMS'
+    return cad_address, 'CAD'
+
+# Apply
+merged['FullAddress2'], merged['FullAddress2_source'] = zip(*merged.apply(
+    lambda row: backfill_address(row['FullAddress2'], row['Location_rms']),
+    axis=1
+))
+```
+
+**Edge Cases**:
+- Parks/landmarks: Use rule-based corrections first
+- Intersections: Validate both street names exist
+- Apartment numbers: Preserve unit information
+- Out-of-jurisdiction: Flag but preserve
+
+### 2. Incident Backfill (Multi-Level)
+**Precedence Hierarchy**:
+1. ✅ CAD.Incident (primary)
+2. ✅ RMS.IncidentType1 (first fallback)
+3. ✅ RMS.IncidentType2 (second fallback)
+4. ✅ RMS.IncidentType3 (third fallback)
+
+**Implementation**:
+```python
+def backfill_incident(cad_incident, rms_type1, rms_type2, rms_type3):
+    """Multi-level incident backfill"""
+    if pd.notna(cad_incident):
+        return cad_incident, 'CAD'
+    
+    # Fallback cascade
+    for level, value in enumerate([rms_type1, rms_type2, rms_type3], 1):
+        if pd.notna(value):
+            return value, f'RMS_Type{level}'
+    
+    return None, 'MISSING'
+
+# Apply with vocabulary mapping
+merged['Incident'], merged['Incident_source'] = zip(*merged.apply(
+    lambda row: backfill_incident(
+        row['Incident'],
+        row['IncidentType1_rms'],
+        row['IncidentType2_rms'],
+        row['IncidentType3_rms']
+    ),
+    axis=1
+))
+
+# THEN apply CallType_Categories.csv mapping
+merged['Incident'] = merged['Incident'].map(call_type_vocab)
+```
+
+### 3. PDZone Backfill (CRITICAL FOR DASHBOARDS)
+**Implementation**:
+```python
+def backfill_pdzone(cad_zone, rms_zone):
+    """Backfill police district zone"""
+    if pd.isna(cad_zone) or cad_zone == '':
+        if pd.notna(rms_zone) and rms_zone != '':
+            return rms_zone, 'RMS'
+    return cad_zone, 'CAD'
+
+merged['PDZone'], merged['PDZone_source'] = zip(*merged.apply(
+    lambda row: backfill_pdzone(row['PDZone'], row['Zone_rms']),
+    axis=1
+))
+
+# Calculate ZoneCalc (integer representation)
+zone_map = {'Zone 1': 1, 'Zone 2': 2, 'Zone 3': 3, 'Zone 4': 4}
+merged['ZoneCalc'] = merged['PDZone'].map(zone_map)
+```
+
+**Expected Coverage**: ~28.5% (per CAD_Data_Cleaning_Engine results)
+
+### 4. Officer Backfill
+**Implementation**:
+```python
+def backfill_officer(cad_officer, rms_officer):
+    """Backfill and standardize officer names"""
+    # Parse CAD (may be comma-separated list)
+    if pd.notna(cad_officer):
+        officers = cad_officer.split(',')
+        primary = officers[0].strip()
+        return primary, 'CAD'
+    
+    # Fallback to RMS
+    if pd.notna(rms_officer):
+        return rms_officer, 'RMS'
+    
+    return None, 'MISSING'
+
+merged['Officer'], merged['Officer_source'] = zip(*merged.apply(
+    lambda row: backfill_officer(row['Officer'], row['OfficerName_rms']),
+    axis=1
+))
+```
+
+### 5. Disposition Standardization
+**Vocabulary Mapping** (CAD ↔ RMS):
+
+| CAD Value | RMS Value | Canonical |
+|-----------|-----------|-----------|
+| Complete | Report Filed | Complete |
+| See Report | Report Required | See Report |
+| Arrest Made | Arrest | Arrest Made |
+| GOA | Gone on Arrival | G.O.A. |
+| UTL | Unable to Locate | Unable to Locate |
+| Unfounded | Unfounded | Unfounded |
+
+**Implementation**:
+```python
+# Load vocabulary mapping
+disposition_map = pd.read_csv('mappings/disposition_vocabulary.csv')
+
+# Standardize both CAD and RMS before merge
+cad_df['Disposition'] = cad_df['Disposition'].map(disposition_map['canonical'])
+rms_df['Disposition'] = rms_df['Disposition'].map(disposition_map['canonical'])
+
+# Then apply conditional fill
+merged['Disposition'] = merged['Disposition'].fillna(merged['Disposition_rms'])
+```
+
+=============================================================================
+ETL PIPELINE ORDER (CRITICAL)
+=============================================================================
+
+**MUST Execute in This Order**:
+
+1. **INGEST**: Load CAD and RMS exports
+2. **NORMALIZE**: Standardize field names and types
+3. **VALIDATE PRE-MERGE**: Run validation checks
+4. **MERGE**: Join on case number (LEFT JOIN)
+5. **BACKFILL**: Apply conditional fills (address, incident, PDZone, officer)
+6. **STANDARDIZE**: Apply vocabulary mappings (disposition, how_reported)
+7. **DERIVE**: Calculate derived fields (ZoneCalc, Hour_Calc)
+8. **VALIDATE POST-MERGE**: Final quality checks
+9. **EXPORT**: Write to output formats (XLSX, CSV)
+
+=============================================================================
+EDGE CASES & SPECIAL HANDLING
+=============================================================================
+
+### 1. Excel Date Artifacts (9-1-1 → 1901-09-01)
+**Detection**:
+```python
+date_patterns = [r'.*1901.*', r'.*44197.*', r'.*sep.*1.*1901.*']
+for pattern in date_patterns:
+    df.loc[df['HowReported'].str.contains(pattern, na=False, case=False), 'HowReported'] = '9-1-1'
+```
+
+### 2. Multi-Officer Cases
+**CAD Format**: "Officer1, Officer2, Officer3" (comma-separated)
+**RMS Format**: "Officer1" (single primary)
+
+**Logic**: Extract first officer from CAD list
+
+### 3. Geocoding Conflicts
+**When**: CAD and RMS have different lat/long for same address
+
+**Resolution**:
+```python
+def resolve_geocoding(cad_lat, cad_lon, rms_lat, rms_lon):
+    """Resolve coordinate conflicts"""
+    if pd.notna(cad_lat) and pd.notna(rms_lat):
+        distance = haversine(cad_lat, cad_lon, rms_lat, rms_lon)
+        if distance > 100:  # meters
+            return (cad_lat, cad_lon, 'CONFLICT_FLAG')
+    
+    # Use CAD if available
+    if pd.notna(cad_lat):
+        return (cad_lat, cad_lon, 'CAD')
+    
+    # Fallback to RMS
+    return (rms_lat, rms_lon, 'RMS')
+```
+
+### 4. Time Sequence Validation
+**Check**: `TimeOfCall <= TimeDispatched <= TimeOut <= TimeIn`
+
+**Action**: Flag violations but don't auto-correct (may indicate valid delays)
+
+### 5. Orphaned Records
+- **CAD without RMS**: ✅ VALID (not all CAD calls generate RMS reports)
+- **RMS without CAD**: ⚠️ DATA QUALITY ISSUE (requires investigation)
+
+=============================================================================
+SCRIPTS AVAILABLE IN UNIFIED_DATA_DICTIONARY
+=============================================================================
+
+### Python Source Code (`src/`)
+1. **`cli.py`**: Command-line interface (udd command)
+2. **`extract_from_repos.py`**: Schema extraction from source repos
+3. **`build_dictionary.py`**: Dictionary building and flattening
+4. **`generate_excel_output.py`**: Excel output generation
+5. **`standardize_cads.py`**: CAD standardization utilities
+
+### PowerShell Scripts (`scripts/`)
+1. **`cleanup_duplicates.ps1`**: Clean up redundant output files
+2. **`quick_process_chatlog.bat`**: Process chat log exports
+3. **`Sync_UDD_Processors_local_run.ps1`**: Sync processors
+
+### Usage Examples
+```bash
+# Extract schemas from repo
+python src/cli.py extract --source "C:/Path/To/Repo" --system cad
+
+# Build unified dictionary
+python src/cli.py build
+
+# Generate Excel output
+python src/cli.py excel --output "MyDictionary.xlsx"
+
+# Validate mappings
+python src/cli.py validate
+```
+
+=============================================================================
+INTEGRATION WITH CAD_DATA_CLEANING_ENGINE
+=============================================================================
+
+**CAD_Data_Cleaning_Engine Already Uses These Standards** ✅
+
+**Evidence**:
+1. Uses same field schemas (`cad_fields_schema_latest.json`)
+2. Uses same mapping files (`cad_to_rms_field_map_latest.json`)
+3. Uses same merge policy (`cad_rms_merge_policy_latest.json`)
+4. References `09_Reference/Standards` schemas
+
+**Current RMS Backfill Implementation**:
+- File: `CAD_Data_Cleaning_Engine/scripts/unified_rms_backfill.py`
+- Uses quality scoring for deduplication
+- Applies multi-column matching strategy
+- Result: 28.5% PDZone coverage achieved
+
+**Scripts Use Standards**:
+```python
+# From CAD_Data_Cleaning_Engine
+STANDARDS_ROOT = Path(r"C:\Users\carucci_r\OneDrive - City of Hackensack\09_Reference\Standards")
+
+# Load schemas
+cad_schema = json.load(open(STANDARDS_ROOT / "unified_data_dictionary/schemas/cad_fields_schema_latest.json"))
+rms_schema = json.load(open(STANDARDS_ROOT / "unified_data_dictionary/schemas/rms_fields_schema_latest.json"))
+merge_policy = json.load(open(STANDARDS_ROOT / "unified_data_dictionary/mappings/cad_rms_merge_policy_latest.json"))
+```
+
+=============================================================================
+VALIDATION RULES (FROM MAPPING_RULES.MD)
+=============================================================================
+
+### Pre-Merge Validation
+```python
+def validate_pre_merge(cad_df, rms_df):
+    """Run before merge operation"""
+    # Check for duplicate case numbers
+    assert cad_df['ReportNumberNew'].is_unique
+    assert rms_df['CaseNumber'].is_unique
+    
+    # Validate case number format
+    assert cad_df['ReportNumberNew'].str.match(r'^\d{2}-\d{6}$').all()
+    
+    # Check required fields
+    assert cad_df['TimeOfCall'].notna().all()
+    assert cad_df['Incident'].notna().sum() > 0.95 * len(cad_df)
+```
+
+### Post-Merge Validation
+```python
+def validate_post_merge(merged_df):
+    """Run after merge operation"""
+    # Check merge success rate
+    merge_rate = merged_df['CaseNumber'].notna().sum() / len(merged_df)
+    assert merge_rate > 0.70, f"Low merge rate: {merge_rate:.1%}"
+    
+    # Validate backfill applications
+    backfilled = merged_df['Address_Backfilled'].sum()
+    log_info(f"Applied address backfill to {backfilled} records")
+    
+    # Check for data quality improvements
+    assert merged_df['Data_Quality_Score'].mean() >= cad_df['Data_Quality_Score'].mean()
+```
+
+=============================================================================
+PERFORMANCE OPTIMIZATION (FROM MAPPING_RULES.MD)
+=============================================================================
+
+### Batch Size Recommendations
+- **Small** (<10K): Single batch
+- **Medium** (10K-100K): 10K record chunks
+- **Large** (>100K): 5K record chunks with multiprocessing
+
+### Indexing Strategy
+```python
+# Create indexes on join keys before merge
+cad_df = cad_df.set_index('ReportNumberNew')
+rms_df = rms_df.set_index('CaseNumber')
+```
+
+### Memory Optimization
+```python
+# Use categorical dtypes for controlled vocabularies
+for col in ['HowReported', 'Disposition', 'ResponseType']:
+    df[col] = df[col].astype('category')
+```
+
+=============================================================================
+RECOMMENDATION FOR CAD CONSOLIDATION
+=============================================================================
+
+**CONFIRMED**: CAD_Data_Cleaning_Engine already implements all UDD standards ✅
+
+**Action**: Use existing CAD_Data_Cleaning_Engine pipeline (Option A)
+- Already uses 09_Reference/Standards schemas
+- Already implements mapping_rules.md logic
+- Already uses cad_rms_merge_policy_latest.json
+- Battle-tested on 710K records
+- Quality score: 99-100/100
+
+**No extraction needed** - Standards are already integrated!
+
+=============================================================================
+SUMMARY
+=============================================================================
+
+The Unified Data Dictionary provides:
+
+1. ✅ **Complete mapping rules** (7 mapping types)
+2. ✅ **Merge policy** (LEFT JOIN, deduplication, audit fields)
+3. ✅ **Field precedence** (CAD → RMS backfill hierarchy)
+4. ✅ **Validation rules** (pre/post-merge checks)
+5. ✅ **Edge case handling** (Excel artifacts, multi-officer, geocoding)
+6. ✅ **Performance optimization** (batching, indexing, memory)
+7. ✅ **ETL pipeline order** (9-step process)
+
+**CAD_Data_Cleaning_Engine already uses these standards**, so we can proceed
+with Option A (use existing proven pipeline) without needing to extract or
+rebuild the mapping logic.
+
+=============================================================================
+NEXT STEPS
+=============================================================================
+
+1. ✅ Review complete - Standards understood
+2. ⏳ Create consolidation script (2019-2026-01-29)
+3. ⏳ Run CAD_Data_Cleaning_Engine pipeline
+4. ⏳ Validate output (expect 99-100/100 quality)
+5. ⏳ Copy to cad_rms_data_quality/outputs/
+
+**Ready to proceed with Option A execution!**
+
+=============================================================================
+END OF REVIEW
+=============================================================================

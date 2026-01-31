@@ -1,0 +1,110 @@
+{
+  "source_file": "CAD_RMS_Data_Quality_System_Project_Setup.md",
+  "source_path": "C:\\_chunker\\02_data\\CAD_RMS_Data_Quality_System_Project_Setup.md",
+  "manifest_path": "C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\KB_Shared\\04_output\\CAD_RMS_Data_Quality_System_Project_Setup\\2026_01_29_21_50_42_CAD_RMS_Data_Quality_System_Project_Setup.origin.json",
+  "created_at": "2026_01_29_21_50_42",
+  "tags": [
+    "ai",
+    "code",
+    "data",
+    "docs",
+    "excel",
+    "it-ops",
+    "json",
+    "legal",
+    "markdown",
+    "police",
+    "python",
+    "sql"
+  ],
+  "metadata": {
+    "project_name": "02_data",
+    "source_type": "documentation",
+    "language": "en",
+    "department": "admin",
+    "key_terms": [
+      "project",
+      "hackensack",
+      "validation",
+      "data",
+      "users",
+      "carucci_r"
+    ],
+    "enrichment_version": "1.0.0"
+  },
+  "summaries": {
+    "file_summary": "# Documentation files context review\n_Exported on 1/29/2026 at 21:49:28 EST from Cursor (2.4.23)_\n\n---\n\n**User**\n\n@README.md @CHANGELOG.md @Claude.md @SUMMARY.md review for context\n\n---\n\n**Cursor**\n\nI have completed a review of the proje...",
+    "first_line": "# Documentation files context review"
+  },
+  "chunks": [
+    {
+      "chunk_id": "2026-01-29T21:50:42+00:00_CAD_RMS_Data_Quality_System_Project_Setup_chunk1",
+      "chunk_index": 1,
+      "file": "chunk_00000.txt",
+      "tags": [
+        "ai",
+        "code",
+        "data",
+        "docs",
+        "excel",
+        "it-ops",
+        "json",
+        "legal",
+        "markdown",
+        "police",
+        "project",
+        "python",
+        "sql",
+        "validation"
+      ],
+      "key_terms": [
+        "data",
+        "cad",
+        "validation",
+        "project",
+        "you",
+        "rms"
+      ],
+      "summary": "# Documentation files context review\n_Exported on 1/29/2026 at 21:49:28 EST from Cursor (2.4.23)_\n\n---\n\n**User**\n\n@README.md @CHANGELOG.md @Claude.md @SUMMARY.md review for context\n\n---\n\n**Cursor**\n\nI have completed a review of the proje...",
+      "char_length": 26598,
+      "byte_length": 28395
+    },
+    {
+      "chunk_id": "2026-01-29T21:50:42+00:00_CAD_RMS_Data_Quality_System_Project_Setup_chunk2",
+      "chunk_index": 2,
+      "file": "chunk_00001.txt",
+      "tags": [
+        "ai",
+        "carucci_r",
+        "city",
+        "code",
+        "data",
+        "docs",
+        "excel",
+        "hackensack",
+        "it-ops",
+        "json",
+        "legal",
+        "markdown",
+        "onedrive",
+        "police",
+        "python",
+        "sql",
+        "standards",
+        "users"
+      ],
+      "key_terms": [
+        "standards",
+        "users",
+        "carucci_r",
+        "onedrive",
+        "city",
+        "hackensack"
+      ],
+      "summary": "Migrate logic: ~2-3 hours\n3.",
+      "char_length": 22339,
+      "byte_length": 23297
+    }
+  ],
+  "enrichment_version": "1.0.0"
+}
