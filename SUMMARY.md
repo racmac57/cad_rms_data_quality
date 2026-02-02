@@ -1,8 +1,8 @@
 # Project Summary - CAD/RMS Data Quality System
 
-**Version:** 1.2.3
+**Version:** 1.2.4
 **Last Updated:** 2026-02-02
-**Status:** Expansion Plan Milestone 4 Complete - Speed Optimizations Done
+**Status:** Expansion Plan Milestone 5 Complete - Monthly Processing Done
 
 ---
 
@@ -111,8 +111,8 @@ See [CHANGELOG.md](CHANGELOG.md#111---2026-01-31) for complete details.
 | 2. Reports Reorganization | consolidation/reports/YYYY_MM_DD_* structure | ✅ Complete |
 | 3. Server Copy + ArcPy | Update PowerShell to use manifest, add arcpy script | ✅ Complete |
 | 4. Speed Optimizations | Parallel loading, chunked reads, incremental mode | ✅ Complete |
-| 5. Monthly Processing | validate_cad.py, validate_rms.py, action items export | 🔜 Next |
-| 6. Legacy Archive | Move legacy projects to _Archive | 🔜 Pending |
+| 5. Monthly Processing | validate_cad.py, validate_rms.py, action items export | ✅ Complete |
+| 6. Legacy Archive | Move legacy projects to _Archive | 🔜 Next |
 
 ### Milestone 1 Complete (2026-02-01)
 - ✅ Created `13_PROCESSED_DATA/ESRI_Polished/` directory structure
@@ -133,10 +133,22 @@ See [CHANGELOG.md](CHANGELOG.md#111---2026-01-31) for complete details.
 - ✅ Created `docs/arcgis/import_cad_polished_to_geodatabase.py` arcpy script
 - ✅ Created `docs/arcgis/README.md` with workflow guide
 
-### Milestone 4: Speed Optimizations (Next)
-- Add parallel Excel loading with `ThreadPoolExecutor`
-- Add chunked reading for large files (>50MB)
-- Implement baseline + incremental append mode
+### Milestone 4 Complete (2026-02-02)
+- ✅ Added parallel Excel loading with `ThreadPoolExecutor`
+- ✅ Added chunked reading for large files (>50MB)
+- ✅ Implemented baseline + incremental append mode
+- ✅ Memory optimization with dtype downcasting (66-68% reduction)
+
+### Milestone 5 Complete (2026-02-02)
+- ✅ Created `monthly_validation/scripts/validate_cad.py` - Full CAD validation CLI
+- ✅ Created `monthly_validation/scripts/validate_rms.py` - Full RMS validation CLI
+- ✅ Quality scoring (0-100) with category breakdown
+- ✅ Action items export (Excel with P1/P2/P3 priority sheets)
+- ✅ HTML validation summary report with visual quality indicators
+- ✅ JSON metrics for trend analysis
+- ✅ Auto-generated report directories (YYYY_MM_DD_cad/, YYYY_MM_DD_rms/)
+- ✅ Added `monthly_processing` section to config
+- ✅ Created proper Python package structure (shared/__init__.py, etc.)
 
 ---
 
@@ -168,4 +180,4 @@ See [CHANGELOG.md](CHANGELOG.md#111---2026-01-31) for complete details.
 
 ---
 
-Last updated: 2026-02-01
+Last updated: 2026-02-02

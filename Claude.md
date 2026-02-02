@@ -34,16 +34,33 @@ This repository contains a unified data quality system for CAD (Computer-Aided D
 - Created `docs/arcgis/import_cad_polished_to_geodatabase.py` - arcpy ExcelToTable script
 - Created `docs/arcgis/README.md` - Workflow guide with order of operations
 
-### 🚧 Expansion Plan Milestones 4-6 (In Progress)
+### ✅ Expansion Plan Milestone 4: Speed Optimizations (2026-02-02)
+- Added parallel Excel loading with `ThreadPoolExecutor` (8 workers)
+- Added chunked reading for files >50MB using openpyxl read_only mode
+- Implemented baseline + incremental append mode
+- Memory optimization: dtype downcasting (66-68% reduction)
+- Added `--full` and `--dry-run` CLI flags
+
+### ✅ Expansion Plan Milestone 5: Monthly Processing (2026-02-02)
+- Created `monthly_validation/scripts/validate_cad.py` - Full CAD validation CLI
+- Created `monthly_validation/scripts/validate_rms.py` - Full RMS validation CLI
+- Quality scoring (0-100) with category breakdown
+- Action items export (Excel with P1/P2/P3 priority sheets)
+- HTML validation summary report with visual quality indicators
+- JSON metrics for trend analysis
+- Auto-generated report directories (YYYY_MM_DD_cad/, YYYY_MM_DD_rms/)
+- Added `monthly_processing` section to config (v2.1.0)
+
+### 🔜 Expansion Plan Milestone 6 (Pending)
 
 | Milestone | Description | Status |
 |-----------|-------------|--------|
 | 1. Paths & Baseline | 13_PROCESSED_DATA, baseline file, config sections | ✅ Complete |
 | 2. Reports Reorganization | consolidation/reports/YYYY_MM_DD_* structure | ✅ Complete |
 | 3. Server Copy + ArcPy | Update PowerShell to use manifest, add arcpy script | ✅ Complete |
-| 4. Speed Optimizations | Parallel loading, chunked reads, incremental mode | 🔜 Next |
-| 5. Monthly Processing | validate_cad.py, validate_rms.py, action items | 🔜 Pending |
-| 6. Legacy Archive | Move legacy projects to _Archive | 🔜 Pending |
+| 4. Speed Optimizations | Parallel loading, chunked reads, incremental mode | ✅ Complete |
+| 5. Monthly Processing | validate_cad.py, validate_rms.py, action items | ✅ Complete |
+| 6. Legacy Archive | Move legacy projects to _Archive | 🔜 Next |
 
 **Plan Reference:** `docs/Plan_Review_Package_For_Claude/CAD_RMS_Data_Quality_Expansion_Plan_ENHANCED.md`
 
@@ -582,15 +599,17 @@ See `docs/MIGRATION_NOTES.md` for complete migration details.
 
 ## Version Information
 
-**Current Version:** 1.2.2 (Expansion Plan - Milestone 3 Complete)
+**Current Version:** 1.2.4 (Expansion Plan - Milestone 5 Complete)
 **Created:** 2026-01-29
-**Last Updated:** 2026-02-01
+**Last Updated:** 2026-02-02
 **Author:** R. A. Carucci
-**Status:** Server Copy + ArcPy Complete - 724,794 Records in Production
+**Status:** Monthly Processing Complete - validate_cad.py + validate_rms.py
 
 **Current Phase:** Expansion Plan Implementation (6 Milestones)
 - ✅ Milestone 1: Paths & Baseline (Complete)
 - ✅ Milestone 2: Reports Reorganization (Complete)
 - ✅ Milestone 3: Server Copy + ArcPy (Complete)
-- 🔜 Milestone 4: Speed Optimizations (Next)
+- ✅ Milestone 4: Speed Optimizations (Complete)
+- ✅ Milestone 5: Monthly Processing (Complete)
+- 🔜 Milestone 6: Legacy Archive (Next)
 - See `docs/Plan_Review_Package_For_Claude/CAD_RMS_Data_Quality_Expansion_Plan_ENHANCED.md`

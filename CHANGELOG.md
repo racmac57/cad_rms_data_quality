@@ -10,8 +10,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### In Progress
-- Monthly validation framework (Phase 2)
-- Comprehensive validator implementation
+- Milestone 6: Legacy archive (move legacy projects to _Archive)
+
+---
+
+## [1.2.4] - 2026-02-02
+
+### Added - Expansion Plan Implementation (Milestone 5: Monthly Processing)
+
+#### Monthly Validation Scripts
+- Added `monthly_validation/scripts/validate_cad.py` - CAD export validation CLI
+- Added `monthly_validation/scripts/validate_rms.py` - RMS export validation CLI
+- Both scripts support:
+  - Quality scoring (0-100) with category breakdown
+  - Action items export (Excel with priority sheets: Critical/Warnings/Info)
+  - HTML validation summary report with visual quality indicators
+  - JSON metrics for trend analysis
+  - Auto-generated report directories (YYYY_MM_DD_cad/, YYYY_MM_DD_rms/)
+
+#### Validation Checks (CAD)
+- Case number format validation (YY-NNNNNN pattern)
+- Required fields: ReportNumberNew, Incident, TimeOfCall, FullAddress2, PDZone, Disposition, HowReported
+- Domain value validation (HowReported valid values)
+- Call type format validation using call_type_normalizer
+
+#### Validation Checks (RMS)
+- Case number format validation (YY-NNNNNN pattern)
+- Required fields: CaseNumber, IncidentDate, IncidentTime, Location, OffenseCode
+- Date validation (future dates, suspiciously old dates)
+- Time validation (including known "1" artifact detection)
+- Offense code validation
+
+#### Configuration Updates
+- Added `monthly_processing` section to `config/consolidation_sources.yaml`
+- Includes CAD/RMS source directories, file patterns, output paths, naming conventions
+- Configurable validation settings (parallel validation, min quality score, record range)
+- Action items configuration (priority labels, export format)
+- Config version updated to 2.1.0
+
+#### Directory Structure
+- Created `monthly_validation/processed/` directory
+- Created `monthly_validation/__init__.py` for package structure
+- Created `monthly_validation/scripts/__init__.py`
+- Initialized `monthly_validation/reports/latest.json`
+
+#### Package Structure Improvements
+- Created `shared/__init__.py`, `shared/utils/__init__.py`
+- Created `shared/validators/__init__.py`, `shared/processors/__init__.py`
+- Created `shared/reporting/__init__.py`
+- Proper Python package structure for imports
 
 ---
 
