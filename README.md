@@ -57,7 +57,7 @@ cad_rms_data_quality/
 │   ├── templates/
 │   │   └── validation_report_template.html  # Report template (TO DO)
 │   ├── processed/                     # Processed monthly outputs ✅
-│   ├── reports/                       # Monthly reports (YYYY_MM_DD_cad/, YYYY_MM_DD_rms/) ✅
+│   ├── reports/                       # Monthly reports (YYYY_MM_cad/, YYYY_MM_rms/) ✅
 │   └── logs/                          # Validation logs
 │
 ├── shared/                     # Shared utilities (refactored from legacy projects)
@@ -221,6 +221,18 @@ cad_rms_data_quality/
 
 ---
 
+## What changed in v1.2.6
+
+- **Incremental 2026 run**: Config uses 2026_01/02 CAD and RMS monthly paths; copy script updates 13_PROCESSED_DATA and manifest.
+- **ReportNumberNew and CaseNumber fix**: CAD and RMS validators force case-number column to string and normalize Excel artifacts; quality scores improved.
+- **SCRPA-style quality reports**: Shared report builder; context-aware text (CAD or RMS only); data-driven "In this run" causes; report folders YYYY_MM_cad/rms.
+- **RMS export alignment**: Required fields and mappings use Case Number, FullAddress, Zone (not Location, PDZone, OffenseCode); Standards updated.
+- **QUALITY_REPORTS_REFERENCE.md**: Field names CAD vs RMS; score categories and consistency checks explained.
+
+See [CHANGELOG.md](CHANGELOG.md#126---2026-02-02) for full details.
+
+---
+
 ## What changed in v1.2.5
 
 - **Expansion Plan complete**: All 6 milestones done (paths and baseline, reports, server copy and ArcPy, speed optimizations, monthly processing, legacy archive).
@@ -308,10 +320,10 @@ For incremental runs (baseline + new monthly only), see **INCREMENTAL_RUN_GUIDE.
 ### Run Monthly Validation
 ```powershell
 # CAD monthly export
-python monthly_validation/scripts/validate_cad.py --input "path/to/monthly_export.xlsx" --output "monthly_validation/reports/YYYY_MM_DD_cad"
+python monthly_validation/scripts/validate_cad.py --input "path/to/monthly_export.xlsx" --output "monthly_validation/reports/YYYY_MM_cad"
 
 # RMS monthly export
-python monthly_validation/scripts/validate_rms.py --input "path/to/monthly_export.xlsx" --output "monthly_validation/reports/YYYY_MM_DD_rms"
+python monthly_validation/scripts/validate_rms.py --input "path/to/monthly_export.xlsx" --output "monthly_validation/reports/YYYY_MM_rms"
 ```
 
 See `outputs/consolidation/CAD_CONSOLIDATION_EXECUTION_GUIDE.txt` and `INCREMENTAL_RUN_GUIDE.md` for detailed instructions.

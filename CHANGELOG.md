@@ -9,13 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Completed
-- All 6 Expansion Plan milestones complete
-- Incremental 2026 run (baseline + Jan/Feb CAD), copy script, ReportNumberNew validation fix (v1.2.6)
+- (No changes yet.)
 
 ---
 
 ## [1.2.6] - 2026-02-02
+
+[Compare v1.2.5...v1.2.6](https://github.com/racmac57/cad_rms_data_quality/compare/v1.2.5...v1.2.6)
 
 ### Added - Incremental 2026 Run & Validation Fixes
 
@@ -43,6 +43,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **After load**: Column is coerced with `.astype(str)` then normalized so every value is consistent before validation.
 - **Pattern fallback**: If the case-number pattern from `validation_rules.yaml` does not match `26-000001`, the script falls back to raw regex `r'^\d{2}-\d{6}([A-Z])?$'`.
 - **Result**: Valid case numbers (e.g. `26-000001`) no longer appear as invalid; quality score for January CAD export improved from 68.13 to 93.13/100.
+
+#### Quality reports and docs (SCRPA-style, context-aware)
+- **Shared report builder** (`shared/utils/report_builder.py`): SCRPA-style HTML with HPD Navy theme; quality score as percentage; score categories below max show "Common causes" with data-driven "In this run" text or report-type-only fallback (CAD or RMS, no cross-reference).
+- **Context-aware reports**: CAD report shows only CAD field names (ReportNumberNew, FullAddress2, PDZone, HowReported). RMS report shows only RMS (Case Number, FullAddress, Zone). Consistency checks explained in plain language (e.g. incident date after report date).
+- **RMS export alignment**: Required fields and column mappings use RMS export headers: Case Number, FullAddress, Zone (not Location, PDZone, OffenseCode). CaseNumber normalized like ReportNumberNew (dtype string, Excel artifact fix). Standards/unified_data_dictionary updated (FullAddress, Zone; rms_field_map_latest notes).
+- **Report output folders**: Prefix YYYY_MM from month being reported on (e.g. 2026_01_cad, 2026_01_rms).
+- **QUALITY_REPORTS_REFERENCE.md**: Field names CAD vs RMS table; score categories and what they mean; consistency checks explained.
 
 ---
 

@@ -90,10 +90,12 @@ See [CHANGELOG.md](CHANGELOG.md#111---2026-01-31) for complete details.
 
 ## What changed in v1.2.6
 
-- **Incremental 2026 run**: Config uses 2026_01/02 CAD and RMS monthly paths; incremental mode loads only 2026 monthly files; January records already in baseline are excluded; February from 2026-02-01 onward appended.
-- **Copy script**: `scripts/copy_polished_to_processed_and_update_manifest.py` copies latest polished Excel to 13_PROCESSED_DATA and updates manifest.json for server copy and ArcGIS workflow.
-- **ReportNumberNew validation fix**: CAD monthly validator forces case-number column to string and normalizes Excel artifacts (e.g. 26000001.0 → 26-000001); pattern fallback when YAML regex does not match; valid values like 26-000001 no longer flagged (quality score for Jan CAD improved 68 → 93).
-- **INCREMENTAL_RUN_GUIDE.md**: Step-by-step for consolidation → cleaning engine → copy script; January quality reports; config summary.
+- **Incremental 2026 run**: Config uses 2026_01/02 CAD and RMS monthly paths; copy script updates 13_PROCESSED_DATA and manifest.
+- **ReportNumberNew and CaseNumber fix**: CAD and RMS validators force case-number column to string and normalize Excel artifacts; quality scores improved.
+- **SCRPA-style quality reports**: Shared report builder; context-aware text (CAD or RMS only); data-driven "In this run" causes; report folders YYYY_MM_cad/rms.
+- **RMS export alignment**: Required fields and mappings use Case Number, FullAddress, Zone; Standards/unified_data_dictionary updated.
+- **QUALITY_REPORTS_REFERENCE.md**: Field names CAD vs RMS; score categories and consistency checks explained.
+- **INCREMENTAL_RUN_GUIDE.md**: Step-by-step for consolidation, cleaning engine, copy script.
 
 See [CHANGELOG.md](CHANGELOG.md#126---2026-02-02) for full details.
 
