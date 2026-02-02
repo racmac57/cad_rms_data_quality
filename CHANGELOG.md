@@ -12,7 +12,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### In Progress
 - Monthly validation framework (Phase 2)
 - Comprehensive validator implementation
-- Speed optimizations (Milestone 4)
+
+---
+
+## [1.2.3] - 2026-02-02
+
+### Added - Expansion Plan Implementation (Milestone 4: Speed Optimizations)
+
+#### Parallel Excel Loading
+- Added `load_files_parallel()` using `ThreadPoolExecutor`
+- Configurable via `performance.parallel_loading.max_workers` (default: 8)
+- Files load concurrently, ~2x faster than sequential loading
+- Full consolidation: 8 files in 128.9s (parallel) vs ~300s (sequential)
+
+#### Chunked Reading for Large Files
+- Added `load_excel_chunked()` using openpyxl read_only mode
+- Automatically enabled for files >50MB (configurable threshold)
+- Reduces memory pressure for large workbooks
+
+#### Memory Optimization
+- Added `optimize_dtypes()` function for automatic type optimization
+- Converts low-cardinality strings (<5% unique) to categorical
+- Downcasts numeric types (int64->int32, float64->float32)
+- Memory reduction: 66-68% (770 MB -> 260 MB for full dataset)
+
+#### Baseline + Incremental Mode
+- Added `run_incremental_consolidation()` for fast updates
+- Loads baseline polished file (724,794 records) once
+- Appends only new monthly data instead of re-reading 7 years
+- Incremental load: ~170s vs Full load: ~250s
+- Configurable via `baseline.enabled` and `incremental.enabled`
+
+#### CLI Enhancements
+- Added `--full` flag to force full consolidation
+- Added `--dry-run` flag to preview mode selection without execution
+
+#### Code Quality
+- Refactored consolidation into separate functions for testability
+- Added comprehensive logging with timing metrics
+- Handles ESRI polished baseline files (different column names)
 
 ---
 
@@ -381,7 +419,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 | 1.2.0 | 2026-02-01 | ✅ Complete | Expansion Plan Milestone 1 (Paths & Baseline) |
 | 1.2.1 | 2026-02-01 | ✅ Complete | Expansion Plan Milestone 2 (Reports Reorganization) |
 | 1.2.2 | 2026-02-01 | ✅ Complete | Expansion Plan Milestone 3 (Server Copy + ArcPy) |
-| Next | TBD | 🚧 Planned | Expansion Plan Milestone 4 (Speed Optimizations) |
+| 1.2.3 | 2026-02-02 | ✅ Complete | Expansion Plan Milestone 4 (Speed Optimizations) |
+| Next | TBD | 🚧 Planned | Expansion Plan Milestone 5 (Monthly Processing) |
 
 ---
 
