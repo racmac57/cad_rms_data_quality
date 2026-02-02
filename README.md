@@ -218,6 +218,16 @@ cad_rms_data_quality/
 
 ---
 
+## What changed in v1.2.5
+
+- **Expansion Plan complete**: All 6 milestones done (paths and baseline, reports, server copy and ArcPy, speed optimizations, monthly processing, legacy archive).
+- **Legacy projects archived**: Five projects moved to `02_ETL_Scripts/_Archive/` with README; cad_rms_data_quality is the single active project.
+- **Version sync**: pyproject.toml version aligned to 1.2.5.
+
+See [CHANGELOG.md](CHANGELOG.md#125---2026-02-02) for full details.
+
+---
+
 ## What Changed in v1.1.0
 
 ### Consolidation Implementation Complete

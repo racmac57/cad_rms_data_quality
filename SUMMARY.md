@@ -86,6 +86,16 @@ See [CHANGELOG.md](CHANGELOG.md#111---2026-01-31) for complete details.
 
 ---
 
+## What changed in v1.2.5
+
+- Expansion Plan complete: all 6 milestones (paths and baseline, reports, server copy and ArcPy, speed optimizations, monthly processing, legacy archive).
+- Legacy projects archived to `02_ETL_Scripts/_Archive/` with README; cad_rms_data_quality is the single active project.
+- Version sync: pyproject.toml version set to 1.2.5.
+
+See [CHANGELOG.md](CHANGELOG.md#125---2026-02-02) for full details.
+
+---
+
 ## Key Metrics (v1.1.1)
 
 | Metric | Value |
