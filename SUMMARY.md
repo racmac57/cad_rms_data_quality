@@ -1,8 +1,8 @@
 # Project Summary - CAD/RMS Data Quality System
 
-**Version:** 1.1.1  
-**Last Updated:** 2026-01-31  
-**Status:** Complete January consolidation ready for ArcGIS Pro import
+**Version:** 1.2.5
+**Last Updated:** 2026-02-02
+**Status:** Expansion Plan Complete - All 6 Milestones Done
 
 ---
 
@@ -18,6 +18,8 @@ Enterprise data quality system for CAD (Computer-Aided Dispatch) and RMS (Record
 - **Advanced Normalization**: v3.2 with domain compliance (858 to 557 incident variants)
 - **Quality Scoring**: 99.9% field completeness, 100% domain compliance
 - **Standards-Driven**: References unified data dictionary (649 call types, 11 ESRI categories)
+- **Baseline + Incremental Mode**: Load baseline once, append new monthly data only (NEW in v1.2.0)
+- **Manifest Tracking**: `13_PROCESSED_DATA/manifest.json` tracks latest polished file (NEW in v1.2.0)
 
 ---
 
@@ -84,6 +86,16 @@ See [CHANGELOG.md](CHANGELOG.md#111---2026-01-31) for complete details.
 
 ---
 
+## What changed in v1.2.5
+
+- Expansion Plan complete: all 6 milestones (paths and baseline, reports, server copy and ArcPy, speed optimizations, monthly processing, legacy archive).
+- Legacy projects archived to `02_ETL_Scripts/_Archive/` with README; cad_rms_data_quality is the single active project.
+- Version sync: pyproject.toml version set to 1.2.5.
+
+See [CHANGELOG.md](CHANGELOG.md#125---2026-02-02) for full details.
+
+---
+
 ## Key Metrics (v1.1.1)
 
 | Metric | Value |
@@ -101,20 +113,61 @@ See [CHANGELOG.md](CHANGELOG.md#111---2026-01-31) for complete details.
 
 ## Next Steps
 
-### Immediate (Today)
-- **Import to ArcGIS Pro**: `CAD_ESRI_POLISHED_20260131_014644.xlsx`
-- **Location**: `CAD_Data_Cleaning_Engine\data\03_final\`
-- **Ready for dashboard backfill**: 7 years + complete January 2026
+### Expansion Plan Progress (6 Milestones)
 
-### Tomorrow (February 1, 2026)
-- Switch ArcGIS Pro dashboard source to normal automated monthly export
-- System ready for automated February updates
+| Milestone | Description | Status |
+|-----------|-------------|--------|
+| 1. Paths & Baseline | Create 13_PROCESSED_DATA, baseline file, config sections | ✅ Complete |
+| 2. Reports Reorganization | consolidation/reports/YYYY_MM_DD_* structure | ✅ Complete |
+| 3. Server Copy + ArcPy | Update PowerShell to use manifest, add arcpy script | ✅ Complete |
+| 4. Speed Optimizations | Parallel loading, chunked reads, incremental mode | ✅ Complete |
+| 5. Monthly Processing | validate_cad.py, validate_rms.py, action items export | ✅ Complete |
+| 6. Legacy Archive | Move legacy projects to _Archive | ✅ Complete |
 
-### Phase 2 (February 2026)
-- Implement monthly validation framework (Priority 1: Address components, response time validation)
-- Create comprehensive quality report generator
-- Fix validator bugs (column name mapping issues)
-- Test with February 2026 monthly exports
+### Milestone 1 Complete (2026-02-01)
+- ✅ Created `13_PROCESSED_DATA/ESRI_Polished/` directory structure
+- ✅ Copied baseline file (724,794 records)
+- ✅ Created `manifest.json` for latest file tracking
+- ✅ Added baseline, incremental, performance, processed_data sections to config
+
+### Milestone 2 Complete (2026-02-01)
+- ✅ Updated `consolidate_cad_2019_2026.py` with `get_report_directory()` and `update_latest_pointer()`
+- ✅ Reports now written to `consolidation/reports/YYYY_MM_DD_consolidation/`
+- ✅ Added `consolidation_metrics.json` output for machine-readable stats
+- ✅ Migrated 26 files from `outputs/consolidation/` to `consolidation/reports/2026_01_31_legacy/`
+- ✅ `consolidation/reports/latest.json` auto-updates after each run
+
+### Milestone 3 Complete (2026-02-01)
+- ✅ Updated `copy_consolidated_dataset_to_server.ps1` to read from `manifest.json` (v2.0.0)
+- ✅ Added `-DryRun` switch and file integrity verification
+- ✅ Created `docs/arcgis/import_cad_polished_to_geodatabase.py` arcpy script
+- ✅ Created `docs/arcgis/README.md` with workflow guide
+
+### Milestone 4 Complete (2026-02-02)
+- ✅ Added parallel Excel loading with `ThreadPoolExecutor`
+- ✅ Added chunked reading for large files (>50MB)
+- ✅ Implemented baseline + incremental append mode
+- ✅ Memory optimization with dtype downcasting (66-68% reduction)
+
+### Milestone 5 Complete (2026-02-02)
+- ✅ Created `monthly_validation/scripts/validate_cad.py` - Full CAD validation CLI
+- ✅ Created `monthly_validation/scripts/validate_rms.py` - Full RMS validation CLI
+- ✅ Quality scoring (0-100) with category breakdown
+- ✅ Action items export (Excel with P1/P2/P3 priority sheets)
+- ✅ HTML validation summary report with visual quality indicators
+- ✅ JSON metrics for trend analysis
+- ✅ Auto-generated report directories (YYYY_MM_DD_cad/, YYYY_MM_DD_rms/)
+- ✅ Added `monthly_processing` section to config
+- ✅ Created proper Python package structure (shared/__init__.py, etc.)
+
+### Milestone 6 Complete (2026-02-02)
+- ✅ Moved 5 legacy projects to `02_ETL_Scripts/_Archive/`
+- ✅ Created `_Archive/README.md` with migration notes for each project
+- ✅ Archived: CAD_Data_Cleaning_Engine, Combined_CAD_RMS, RMS_CAD_Combined_ETL, RMS_Data_ETL, RMS_Data_Processing
+- ✅ cad_rms_data_quality is now the single active project for CAD/RMS data quality
+
+### Expansion Plan Complete
+All 6 milestones implemented. cad_rms_data_quality is the unified, production-ready system.
 
 ---
 
@@ -146,4 +199,4 @@ See [CHANGELOG.md](CHANGELOG.md#111---2026-01-31) for complete details.
 
 ---
 
-Last updated: 2026-01-31
+Last updated: 2026-02-02

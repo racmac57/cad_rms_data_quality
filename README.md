@@ -1,10 +1,10 @@
 # CAD/RMS Data Quality System
 
-**Version:** 1.1.1 (Complete January Consolidation)  
-**Created:** 2026-01-29  
-**Updated:** 2026-01-31  
-**Author:** R. A. Carucci  
-**Status:** ✅ Phase 1 Complete - 724,794 Records Ready for ArcGIS Pro Import
+**Version:** 1.2.5 (Expansion Plan - All Milestones Complete)
+**Created:** 2026-01-29
+**Updated:** 2026-02-02
+**Author:** R. A. Carucci
+**Status:** ✅ Expansion Plan Complete - Legacy Projects Archived
 
 ---
 
@@ -46,14 +46,15 @@ cad_rms_data_quality/
 │   ├── reports/                       # Validation reports (empty)
 │   └── logs/                          # Processing logs (empty)
 │
-├── monthly_validation/         # Component 2: Ongoing validation
+├── monthly_validation/         # Component 2: Ongoing validation ✅
 │   ├── scripts/
-│   │   ├── validate_cad.py            # Monthly CAD validator (TO DO)
-│   │   └── validate_rms.py            # Monthly RMS validator (TO DO)
+│   │   ├── validate_cad.py            # Monthly CAD validator ✅
+│   │   └── validate_rms.py            # Monthly RMS validator ✅
 │   ├── templates/
 │   │   └── validation_report_template.html  # Report template (TO DO)
-│   ├── reports/                       # Monthly reports (empty)
-│   └── logs/                          # Validation logs (empty)
+│   ├── processed/                     # Processed monthly outputs ✅
+│   ├── reports/                       # Monthly reports (YYYY_MM_DD_cad/, YYYY_MM_DD_rms/) ✅
+│   └── logs/                          # Validation logs
 │
 ├── shared/                     # Shared utilities (refactored from legacy projects)
 │   ├── validators/
@@ -83,6 +84,9 @@ cad_rms_data_quality/
 │   └── fixtures/                      # Test data (empty)
 │
 └── docs/                       # Documentation
+    ├── arcgis/                        # ArcGIS import documentation ✅
+    │   ├── README.md                  # Workflow guide for geodatabase import ✅
+    │   └── import_cad_polished_to_geodatabase.py  # arcpy import script ✅
     ├── ARCHITECTURE.md                # System design (TO DO)
     ├── MIGRATION_NOTES.md             # What came from legacy projects (TO DO)
     ├── CONSOLIDATION_GUIDE.md         # How to run consolidation (TO DO)
@@ -214,6 +218,16 @@ cad_rms_data_quality/
 
 ---
 
+## What changed in v1.2.5
+
+- **Expansion Plan complete**: All 6 milestones done (paths and baseline, reports, server copy and ArcPy, speed optimizations, monthly processing, legacy archive).
+- **Legacy projects archived**: Five projects moved to `02_ETL_Scripts/_Archive/` with README; cad_rms_data_quality is the single active project.
+- **Version sync**: pyproject.toml version aligned to 1.2.5.
+
+See [CHANGELOG.md](CHANGELOG.md#125---2026-02-02) for full details.
+
+---
+
 ## What Changed in v1.1.0
 
 ### Consolidation Implementation Complete
@@ -299,6 +313,43 @@ See `outputs/consolidation/CAD_CONSOLIDATION_EXECUTION_GUIDE.txt` for detailed i
 3. **Modular Design**: Shared utilities reusable across consolidation and monthly validation
 4. **Production-Ready**: Pre-run/post-run checks, audit trails, comprehensive logging
 5. **Performance-Optimized**: Vectorized operations, parallel processing, quality scoring
+6. **Baseline + Incremental**: Load baseline once, append new monthly data only (skip re-reading 7 years)
+
+---
+
+## Processed Data Location (13_PROCESSED_DATA)
+
+**Location:** `C:\Users\carucci_r\OneDrive - City of Hackensack\13_PROCESSED_DATA\`
+
+Production-ready ESRI polished datasets are stored here:
+
+```
+13_PROCESSED_DATA/
+├── manifest.json                    # Latest file registry (read this first!)
+├── README.md                        # Usage documentation
+└── ESRI_Polished/
+    ├── base/                        # Immutable baseline (724,794 records)
+    │   └── CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx
+    ├── incremental/                 # Incremental run outputs
+    │   └── YYYY_MM_DD_append/
+    └── full_rebuild/                # Full consolidation outputs
+```
+
+### Finding the Latest File
+```powershell
+# PowerShell: Read manifest.json
+$manifest = Get-Content "C:\...\13_PROCESSED_DATA\manifest.json" | ConvertFrom-Json
+$latestPath = $manifest.latest.full_path
+Write-Host "Latest: $latestPath ($($manifest.latest.record_count) records)"
+```
+
+### Baseline Dataset
+- **File:** `CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx`
+- **Records:** 724,794 | **Unique cases:** 559,202
+- **Date range:** 2019-01-01 to 2026-01-30
+- **Created:** 2026-01-31
+
+Incremental runs load this baseline and append only new monthly data, avoiding re-processing 7 years of records
 
 ---
 

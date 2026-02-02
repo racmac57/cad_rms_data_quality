@@ -1,0 +1,349 @@
+=============================================================================
+CAD CONSOLIDATION EXECUTION GUIDE
+=============================================================================
+Date: 2026-01-31 00:00:00 EST
+Script: consolidate_cad_2019_2026.py
+Purpose: Step-by-step guide to create clean ESRI-ready CAD data
+
+=============================================================================
+OVERVIEW
+=============================================================================
+
+This guide walks you through:
+1. Running consolidation script (5-10 minutes)
+2. Processing with CAD_Data_Cleaning_Engine (15-20 minutes)
+3. Validation (5 minutes)
+4. Copying results back to cad_rms_data_quality
+
+Total time: ~30-45 minutes
+
+=============================================================================
+STEP 1: RUN CONSOLIDATION SCRIPT
+=============================================================================
+
+Purpose: Merge 2019-2025 yearly + 2026-01-29 monthly files into single CSV
+
+Commands:
+```powershell
+cd "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality"
+
+# Run consolidation
+python consolidate_cad_2019_2026.py
+```
+
+Expected Output:
+```
+============================================================
+CAD DATA CONSOLIDATION: 2019-01-01 to 2026-01-29
+============================================================
+
+LOADING YEARLY FILES (2019-2025)
+────────────────────────────────────────────────────────────
+Loading 2019: 2019_CAD_ALL.xlsx
+  Size: 15.2 MB
+  Rows: 91,217
+  ✓ Record count within 5% of expected 91,217
+  ✓ Successfully loaded 2019: 91,217 records
+
+[... continues for 2020-2025 ...]
+
+LOADING MONTHLY FILE (2026-01-01 to 2026-01-29)
+────────────────────────────────────────────────────────────
+Loading 2026: 2026_01_01_to_2026_01_29_CAD_Export.xlsx
+  Size: 0.9 MB
+  Rows: 5,500
+  ✓ Successfully loaded 2026: 5,500 records
+
+CONSOLIDATING DATA
+────────────────────────────────────────────────────────────
+Merging 8 files...
+✓ Consolidated total: 720,189 records
+
+EXPORTING TO CSV
+────────────────────────────────────────────────────────────
+Output file: CAD_Data_Cleaning_Engine/data/01_raw/2019_to_2026_01_29_CAD.csv
+✓ Export complete: 115.3 MB
+
+CONSOLIDATION SUMMARY
+============================================================
+Total records: 720,189
+Date range: 2019-01-01 00:00:03 to 2026-01-29 23:58:42
+Unique cases: ~547,000
+✓ Consolidation complete!
+```
+
+Files Created:
+✓ CAD_Data_Cleaning_Engine/data/01_raw/2019_to_2026_01_29_CAD.csv
+✓ logs/consolidate_2019_2026.log
+✓ outputs/consolidation/consolidation_summary.txt
+
+=============================================================================
+STEP 2: RUN CAD_DATA_CLEANING_ENGINE PIPELINE
+=============================================================================
+
+Purpose: Apply RMS backfill, normalization, and ESRI formatting
+
+Commands:
+```powershell
+cd "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine"
+
+# Run enhanced ESRI pipeline
+python scripts/enhanced_esri_output_generator.py
+```
+
+Expected Output:
+```
+=============================================================================
+Enhanced ESRI Output Generator v3.2
+=============================================================================
+
+Loading input data...
+✓ Loaded 720,189 records from 2019_to_2026_01_29_CAD.csv
+
+Loading RMS data for backfill...
+✓ Loaded 8 RMS files (175,000 records)
+
+Performing RMS backfill...
+  PDZone backfill: 28.5% coverage (205,354 records)
+  Officer backfill: 15.2% coverage
+  Incident backfill: 8.7% coverage
+✓ Backfill complete
+
+Applying Advanced Normalization v3.2...
+  Disposition: 74 → 21 values (100% domain compliance)
+  How Reported: 139 → 12 values (100% domain compliance)
+  Incident: 831 → 589 values standardized
+✓ Normalization complete
+
+Generating ESRI outputs...
+✓ Draft output: data/03_final/CAD_ESRI_DRAFT_20260131_001542.xlsx
+✓ Polished output: data/03_final/CAD_ESRI_POLISHED_20260131_001542.xlsx
+✓ Normalization report: data/03_final/normalization_report_20260131_001542.md
+
+Processing time: 14 minutes 32 seconds
+Quality score: 99.7/100
+```
+
+Files Created:
+✓ data/03_final/CAD_ESRI_POLISHED_20260131_HHMMSS.xlsx (ESRI-ready)
+✓ data/03_final/CAD_ESRI_DRAFT_20260131_HHMMSS.xlsx (all columns)
+✓ data/03_final/normalization_report_20260131_HHMMSS.md
+✓ data/03_final/generation_stats_20260131_HHMMSS.json
+
+=============================================================================
+STEP 3: VALIDATE OUTPUT
+=============================================================================
+
+Purpose: Verify data quality and schema compliance
+
+Commands:
+```powershell
+# Still in CAD_Data_Cleaning_Engine directory
+python scripts/validation/validate_esri_polished_dataset.py `
+  --input "data/03_final/CAD_ESRI_POLISHED_20260131_001542.xlsx"
+```
+
+Expected Output:
+```
+=============================================================================
+ESRI Polished Dataset Validation
+=============================================================================
+
+Schema Validation:
+  ✓ All 20 required ESRI columns present
+  ✓ Column order correct
+  ✓ Data types correct
+
+Domain Validation:
+  ✓ Disposition: 100% compliant (21 valid values)
+  ✓ How Reported: 100% compliant (12 valid values)
+  ✓ PDZone: 96.5% populated
+  ✓ Response_Type: 100% compliant (11 ESRI categories)
+
+Data Quality Checks:
+  ✓ No duplicate ReportNumberNew
+  ✓ TimeOfCall: 100% valid datetime
+  ✓ Hour_Calc: 100% populated (0-23)
+  ✓ ZoneCalc: 96.5% populated (1-4)
+
+Quality Score: 99.7/100
+
+VALIDATION PASSED ✓
+```
+
+=============================================================================
+STEP 4: COPY RESULTS TO CAD_RMS_DATA_QUALITY PROJECT
+=============================================================================
+
+Purpose: Archive final outputs in the cad_rms_data_quality project
+
+Commands:
+```powershell
+cd "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine"
+
+# Get latest polished file (use actual timestamp from Step 2)
+$latest = Get-ChildItem "data/03_final/CAD_ESRI_POLISHED_*.xlsx" | 
+          Sort-Object LastWriteTime -Descending | 
+          Select-Object -First 1
+
+# Copy to cad_rms_data_quality
+Copy-Item $latest.FullName `
+  "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\outputs\consolidation\2019_2026_CAD_ESRI_Ready.xlsx"
+
+# Copy reports
+Copy-Item "data/03_final/normalization_report_*.md" `
+  "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\outputs\consolidation\"
+
+Copy-Item "data/03_final/generation_stats_*.json" `
+  "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\outputs\consolidation\"
+
+Write-Host "✓ Files copied successfully!"
+```
+
+Files Copied:
+✓ outputs/consolidation/2019_2026_CAD_ESRI_Ready.xlsx (final output)
+✓ outputs/consolidation/normalization_report_*.md
+✓ outputs/consolidation/generation_stats_*.json
+
+=============================================================================
+STEP 5: FINAL VERIFICATION
+=============================================================================
+
+Purpose: Confirm all outputs and metrics
+
+Checklist:
+□ Consolidation complete: 720K records
+□ RMS backfill applied: ~28.5% PDZone coverage
+□ Normalization applied: 100% domain compliance
+□ ESRI format validated: 20 columns, correct order
+□ Quality score: ≥99/100
+□ Output file created: 2019_2026_CAD_ESRI_Ready.xlsx
+□ File size: ~115 MB
+□ Date range: 2019-01-01 to 2026-01-29
+
+Verification Commands:
+```powershell
+cd "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality"
+
+# Check output file
+$file = "outputs/consolidation/2019_2026_CAD_ESRI_Ready.xlsx"
+if (Test-Path $file) {
+    $sizeMB = [math]::Round((Get-Item $file).Length / 1MB, 1)
+    Write-Host "✓ Output file exists: $sizeMB MB"
+} else {
+    Write-Host "✗ Output file NOT found!"
+}
+
+# View consolidation summary
+Get-Content "outputs/consolidation/consolidation_summary.txt"
+
+# View normalization report
+Get-Content "outputs/consolidation/normalization_report_*.md" | Select-Object -First 50
+```
+
+=============================================================================
+TROUBLESHOOTING
+=============================================================================
+
+Issue: "File not found" error during consolidation
+Fix: Check that all source files exist in 05_EXPORTS\_CAD
+     Verify paths in consolidate_cad_2019_2026.py
+
+Issue: "Memory error" during processing
+Fix: Close other applications
+     Process in chunks (modify script if needed)
+     Ensure 8GB+ RAM available
+
+Issue: Low quality score (<99)
+Fix: Check normalization report for issues
+     Review validation output for domain violations
+     Re-run if temporary I/O issue
+
+Issue: Missing RMS data during backfill
+Fix: Verify RMS files in CAD_Data_Cleaning_Engine/data/rms/
+     Copy from 05_EXPORTS\_RMS/csv/yearly/ if needed
+
+Issue: ChromaDB or pydantic errors
+Fix: These are unrelated to CAD consolidation
+     CAD pipeline doesn't use ChromaDB
+     Ignore if running CAD consolidation only
+
+=============================================================================
+SUCCESS CRITERIA
+=============================================================================
+
+✓ CONSOLIDATION COMPLETE WHEN:
+1. 720,189 records consolidated (2019-01-01 to 2026-01-29)
+2. RMS backfill applied (~28.5% PDZone coverage)
+3. Advanced normalization v3.2 applied (100% domain compliance)
+4. ESRI polished output generated (20 columns)
+5. Quality score ≥99/100
+6. Validation passes all checks
+7. Output file: outputs/consolidation/2019_2026_CAD_ESRI_Ready.xlsx
+
+✓ READY FOR DASHBOARDS WHEN:
+- File imported into ArcGIS Pro without errors
+- All required fields present and populated
+- Date range covers 2019-2026 (7 years)
+- Coordinates populated (if geocoded)
+- No schema violations
+
+=============================================================================
+NEXT STEPS AFTER CONSOLIDATION
+=============================================================================
+
+After successful consolidation, you can:
+
+1. **Import to ArcGIS Pro**
+   - Use 2019_2026_CAD_ESRI_Ready.xlsx
+   - Add as XY data (if geocoded)
+   - Create dashboards and visualizations
+
+2. **Update Documentation**
+   - Update CHANGELOG.md with consolidation details
+   - Update README.md with actual record counts
+   - Archive this execution guide
+
+3. **Test Quality Scripts** (from Claude chat)
+   - Run validation scripts from chat chunks
+   - Generate quality reports
+   - Document any findings
+
+4. **Schedule Monthly Updates**
+   - Re-run consolidation monthly
+   - Add latest month's data
+   - Update dashboards
+
+=============================================================================
+ESTIMATED TIMELINE
+=============================================================================
+
+Task                          | Time      | Status
+------------------------------|-----------|--------
+Step 1: Consolidation         | 5-10 min  | Ready
+Step 2: CAD_Cleaning_Engine   | 15-20 min | Ready
+Step 3: Validation            | 5 min     | Ready
+Step 4: Copy Results          | 2 min     | Ready
+Step 5: Final Verification    | 3 min     | Ready
+------------------------------|-----------|--------
+TOTAL                         | 30-45 min | Ready to Execute
+
+=============================================================================
+SUPPORT DOCUMENTATION
+=============================================================================
+
+Reference Files:
+- CAD_CONSOLIDATION_EXECUTION_PLAN.txt (detailed strategy)
+- UNIFIED_DATA_DICTIONARY_REVIEW.txt (mapping rules)
+- RECORD_COUNT_DISCREPANCY_ANALYSIS.txt (data volume analysis)
+- config/consolidation_sources.yaml (source configuration)
+
+Scripts:
+- consolidate_cad_2019_2026.py (this consolidation)
+- verify_record_counts.py (count verification)
+- CAD_Data_Cleaning_Engine/scripts/enhanced_esri_output_generator.py
+- CAD_Data_Cleaning_Engine/scripts/validation/validate_esri_polished_dataset.py
+
+=============================================================================
+END OF EXECUTION GUIDE
+=============================================================================

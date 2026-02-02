@@ -9,9 +9,214 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### In Progress
-- Monthly validation framework (Phase 2)
-- Comprehensive validator implementation
+### Completed
+- All 6 Expansion Plan milestones complete
+
+---
+
+## [1.2.5] - 2026-02-02
+
+### Added - Expansion Plan Implementation (Milestone 6: Legacy Archive)
+
+#### Legacy Projects Archived
+Moved 5 legacy projects to `02_ETL_Scripts/_Archive/`:
+- **CAD_Data_Cleaning_Engine** - Validation framework, ESRI generator, normalization rules
+- **Combined_CAD_RMS** - CAD+RMS matching, PowerBI/Excel dashboards
+- **RMS_CAD_Combined_ETL** - Empty skeleton project
+- **RMS_Data_ETL** - Address standardization, ArcGIS deployment guides
+- **RMS_Data_Processing** - Time artifact fixes, quality reporting
+
+#### Archive Documentation
+- Created `_Archive/README.md` with:
+  - Detailed description of each archived project
+  - What components were migrated to cad_rms_data_quality
+  - Why each project was archived
+  - Reference to active project entry points
+
+#### Expansion Plan Complete
+All 6 milestones of the Expansion Plan are now complete:
+1. Paths & Baseline (v1.2.0)
+2. Reports Reorganization (v1.2.1)
+3. Server Copy + ArcPy (v1.2.2)
+4. Speed Optimizations (v1.2.3)
+5. Monthly Processing (v1.2.4)
+6. Legacy Archive (v1.2.5)
+
+---
+
+## [1.2.4] - 2026-02-02
+
+### Added - Expansion Plan Implementation (Milestone 5: Monthly Processing)
+
+#### Monthly Validation Scripts
+- Added `monthly_validation/scripts/validate_cad.py` - CAD export validation CLI
+- Added `monthly_validation/scripts/validate_rms.py` - RMS export validation CLI
+- Both scripts support:
+  - Quality scoring (0-100) with category breakdown
+  - Action items export (Excel with priority sheets: Critical/Warnings/Info)
+  - HTML validation summary report with visual quality indicators
+  - JSON metrics for trend analysis
+  - Auto-generated report directories (YYYY_MM_DD_cad/, YYYY_MM_DD_rms/)
+
+#### Validation Checks (CAD)
+- Case number format validation (YY-NNNNNN pattern)
+- Required fields: ReportNumberNew, Incident, TimeOfCall, FullAddress2, PDZone, Disposition, HowReported
+- Domain value validation (HowReported valid values)
+- Call type format validation using call_type_normalizer
+
+#### Validation Checks (RMS)
+- Case number format validation (YY-NNNNNN pattern)
+- Required fields: CaseNumber, IncidentDate, IncidentTime, Location, OffenseCode
+- Date validation (future dates, suspiciously old dates)
+- Time validation (including known "1" artifact detection)
+- Offense code validation
+
+#### Configuration Updates
+- Added `monthly_processing` section to `config/consolidation_sources.yaml`
+- Includes CAD/RMS source directories, file patterns, output paths, naming conventions
+- Configurable validation settings (parallel validation, min quality score, record range)
+- Action items configuration (priority labels, export format)
+- Config version updated to 2.1.0
+
+#### Directory Structure
+- Created `monthly_validation/processed/` directory
+- Created `monthly_validation/__init__.py` for package structure
+- Created `monthly_validation/scripts/__init__.py`
+- Initialized `monthly_validation/reports/latest.json`
+
+#### Package Structure Improvements
+- Created `shared/__init__.py`, `shared/utils/__init__.py`
+- Created `shared/validators/__init__.py`, `shared/processors/__init__.py`
+- Created `shared/reporting/__init__.py`
+- Proper Python package structure for imports
+
+---
+
+## [1.2.3] - 2026-02-02
+
+### Added - Expansion Plan Implementation (Milestone 4: Speed Optimizations)
+
+#### Parallel Excel Loading
+- Added `load_files_parallel()` using `ThreadPoolExecutor`
+- Configurable via `performance.parallel_loading.max_workers` (default: 8)
+- Files load concurrently, ~2x faster than sequential loading
+- Full consolidation: 8 files in 128.9s (parallel) vs ~300s (sequential)
+
+#### Chunked Reading for Large Files
+- Added `load_excel_chunked()` using openpyxl read_only mode
+- Automatically enabled for files >50MB (configurable threshold)
+- Reduces memory pressure for large workbooks
+
+#### Memory Optimization
+- Added `optimize_dtypes()` function for automatic type optimization
+- Converts low-cardinality strings (<5% unique) to categorical
+- Downcasts numeric types (int64->int32, float64->float32)
+- Memory reduction: 66-68% (770 MB -> 260 MB for full dataset)
+
+#### Baseline + Incremental Mode
+- Added `run_incremental_consolidation()` for fast updates
+- Loads baseline polished file (724,794 records) once
+- Appends only new monthly data instead of re-reading 7 years
+- Incremental load: ~170s vs Full load: ~250s
+- Configurable via `baseline.enabled` and `incremental.enabled`
+
+#### CLI Enhancements
+- Added `--full` flag to force full consolidation
+- Added `--dry-run` flag to preview mode selection without execution
+
+#### Code Quality
+- Refactored consolidation into separate functions for testability
+- Added comprehensive logging with timing metrics
+- Handles ESRI polished baseline files (different column names)
+
+---
+
+## [1.2.2] - 2026-02-01
+
+### Added - Expansion Plan Implementation (Milestone 3: Server Copy + ArcPy)
+
+#### PowerShell Script Enhancement (copy_consolidated_dataset_to_server.ps1)
+- Script now reads from `13_PROCESSED_DATA/manifest.json` to find latest polished file
+- Removed hardcoded paths - dynamically resolves source file location
+- Added `-DryRun` switch for testing without file copy
+- Added file integrity verification (size comparison after copy)
+- Displays manifest metadata (record count, date range, run type) during execution
+- Version updated to 2.0.0
+
+#### ArcPy Import Script (docs/arcgis/import_cad_polished_to_geodatabase.py)
+- New arcpy script for importing Excel to geodatabase using `ExcelToTable`
+- Includes pre-flight checks (arcpy availability, license, file existence)
+- Automatic backup of existing table before overwrite
+- Post-import verification (record count, field validation, date range check)
+- Configurable paths for source file and target geodatabase
+- Detailed logging with timestamps
+
+#### ArcGIS Documentation (docs/arcgis/README.md)
+- Complete workflow guide: consolidation -> server copy -> geodatabase import
+- Order of operations with step-by-step instructions
+- Configuration reference for server paths
+- Troubleshooting section for common issues
+- Data flow diagram showing local to server pipeline
+- Links to REMOTE_SERVER_GUIDE.md for comprehensive server documentation
+
+---
+
+## [1.2.1] - 2026-02-01
+
+### Added - Expansion Plan Implementation (Milestone 2: Reports Reorganization)
+
+#### Reports Directory Structure
+- Reports now written to `consolidation/reports/YYYY_MM_DD_<run_type>/` instead of flat `outputs/consolidation/`
+- Each run creates its own timestamped folder (e.g., `2026_02_01_consolidation/`)
+- `consolidation/reports/latest.json` tracks most recent run for easy lookup
+
+#### Script Updates (consolidate_cad_2019_2026.py)
+- Added `get_report_directory()` function to generate run-specific report folders
+- Added `update_latest_pointer()` function to update `latest.json` after each run
+- Added `consolidation_metrics.json` output with machine-readable run stats
+- Reports include: `consolidation_summary.txt`, `consolidation_metrics.json`
+
+#### Legacy Migration
+- Migrated 26 files from `outputs/consolidation/` to `consolidation/reports/2026_01_31_legacy/`
+- Preserved all historical reports, guides, and analysis documents
+
+---
+
+## [1.2.0] - 2026-02-01
+
+### Added - Expansion Plan Implementation (Milestone 1: Paths and Baseline)
+
+#### New Directory Structure: 13_PROCESSED_DATA
+- Created `13_PROCESSED_DATA/ESRI_Polished/base/` - Immutable baseline storage
+- Created `13_PROCESSED_DATA/ESRI_Polished/incremental/` - Incremental run outputs
+- Created `13_PROCESSED_DATA/ESRI_Polished/full_rebuild/` - Full consolidation outputs
+- Created `13_PROCESSED_DATA/archive/` - Old files after schema changes
+- Created `13_PROCESSED_DATA/README.md` - Directory usage documentation
+- Created `13_PROCESSED_DATA/manifest.json` - Latest file registry (machine-readable)
+
+#### Baseline Dataset
+- Copied `CAD_ESRI_POLISHED_20260131_014644.xlsx` to baseline location
+- Baseline file: `CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx` (71.4 MB)
+- Records: 724,794 | Unique cases: 559,202 | Date range: 2019-01-01 to 2026-01-30
+
+#### Configuration Enhancements (config/consolidation_sources.yaml)
+- Added `baseline` section: enabled, path, date_range, record_count, checksum
+- Added `incremental` section: enabled, mode (append/full), last_run_date, dedup_strategy
+- Added `performance` section: parallel_loading, chunked_reading, memory_optimization, esri_generation
+- Added `processed_data` section: root paths, manifest_path, naming conventions
+- Added `output` section: base_directory, consolidated_filename, report/log directories
+- Added `validation` section: min_quality_score, max_duplicate_rate, expected_total_records
+- Added `metadata` section: config_version, standards_version, last_updated
+- Config version updated to 2.0.0
+
+#### Report Infrastructure
+- Created `consolidation/reports/` directory
+- Created `consolidation/reports/latest.json` - Pointer to most recent run
+- Created `consolidation/reports/.gitkeep` - Preserve directory in git
+
+### Changed
+- Config file `consolidation_sources.yaml` expanded from 73 lines to ~170 lines
+- Added January 2026 monthly file to sources list
 
 ---
 
@@ -288,7 +493,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 | 1.0.2 | 2026-01-30 | ✅ Complete | Record verification and RMS standardization |
 | 1.1.0 | 2026-01-31 | ✅ Complete | Consolidation implementation operational |
 | 1.1.1 | 2026-01-31 | ✅ Complete | Complete January consolidation (724,794 records) |
-| Next | TBD | 🚧 Planned | Monthly validation framework |
+| 1.2.0 | 2026-02-01 | ✅ Complete | Expansion Plan Milestone 1 (Paths & Baseline) |
+| 1.2.1 | 2026-02-01 | ✅ Complete | Expansion Plan Milestone 2 (Reports Reorganization) |
+| 1.2.2 | 2026-02-01 | ✅ Complete | Expansion Plan Milestone 3 (Server Copy + ArcPy) |
+| 1.2.3 | 2026-02-02 | ✅ Complete | Expansion Plan Milestone 4 (Speed Optimizations) |
+| Next | TBD | 🚧 Planned | Expansion Plan Milestone 5 (Monthly Processing) |
 
 ---
 
@@ -308,7 +517,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/racmac57/cad_rms_data_quality/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/racmac57/cad_rms_data_quality/compare/v1.2.2...HEAD
+[1.2.2]: https://github.com/racmac57/cad_rms_data_quality/compare/v1.2.1...v1.2.2
+[1.2.1]: https://github.com/racmac57/cad_rms_data_quality/compare/v1.2.0...v1.2.1
+[1.2.0]: https://github.com/racmac57/cad_rms_data_quality/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/racmac57/cad_rms_data_quality/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/racmac57/cad_rms_data_quality/compare/v1.0.2...v1.1.0
 [1.0.2]: https://github.com/racmac57/cad_rms_data_quality/compare/v1.0.1...v1.0.2

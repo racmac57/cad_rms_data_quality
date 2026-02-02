@@ -70,3 +70,146 @@ sources:
     - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\monthly\\2025\\2025_10_CAD.xlsx'
     - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\monthly\\2025\\2025_11_CAD.xlsx'
     - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\monthly\\2025\\2025_12_CAD.xlsx'
+    # 2026: Monthly exports
+    - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\monthly\\2026\\2026_01_01_to_2026_01_30_CAD_Export.xlsx'
+      month: '2026-01'
+      notes: 'January 2026 full month export'
+
+# ============================================================================
+# BASELINE CONFIGURATION (Added 2026-02-01)
+# ============================================================================
+# Enables incremental mode: load baseline once, append new monthly data only
+baseline:
+  enabled: true
+  path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\13_PROCESSED_DATA\\ESRI_Polished\\base\\CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx'
+  date_range:
+    start: '2019-01-01'
+    end: '2026-01-30'
+  record_count: 724794
+  unique_cases: 559202
+  checksum_sha256: null  # Populate after verification if needed
+  created: '2026-01-31'
+  source_file: 'CAD_ESRI_POLISHED_20260131_014644.xlsx'
+
+# ============================================================================
+# INCREMENTAL MODE CONFIGURATION (Added 2026-02-01)
+# ============================================================================
+# Controls how consolidation handles existing data vs new monthly data
+incremental:
+  enabled: true
+  mode: 'append'  # Options: 'append' (add new records), 'full' (rebuild from scratch)
+  last_run_date: '2026-01-31'
+  last_run_record_count: 724794
+  dedup_strategy: 'keep_latest'  # Options: 'keep_latest', 'keep_first', 'keep_all_supplements'
+
+# ============================================================================
+# PERFORMANCE CONFIGURATION (Added 2026-02-01)
+# ============================================================================
+# Tunable settings for parallel processing, chunking, and memory optimization
+performance:
+  parallel_loading:
+    enabled: true
+    max_workers: 8  # Cap at 8 to avoid memory issues; adjust based on system
+
+  chunked_reading:
+    enabled: true
+    threshold_mb: 50  # Use chunked reading for files over this size
+    chunk_size: 100000  # Rows per chunk
+
+  memory_optimization:
+    use_categories: true  # Convert low-cardinality strings to categorical
+    downcast_numeric: true  # Downcast int64/float64 to smaller types
+
+  esri_generation:
+    n_workers: 4  # Workers for enhanced_esri_output_generator.py
+    enable_parallel: true
+    chunk_size: 10000  # Normalization chunk size
+
+# ============================================================================
+# PROCESSED DATA PATHS (Added 2026-02-01)
+# ============================================================================
+# Centralized path management for polished outputs and manifests
+processed_data:
+  root: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\13_PROCESSED_DATA'
+
+  esri_polished:
+    base_dir: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\13_PROCESSED_DATA\\ESRI_Polished\\base'
+    incremental_dir: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\13_PROCESSED_DATA\\ESRI_Polished\\incremental'
+    full_rebuild_dir: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\13_PROCESSED_DATA\\ESRI_Polished\\full_rebuild'
+
+  manifest_path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\13_PROCESSED_DATA\\manifest.json'
+
+  naming:
+    base_pattern: 'CAD_ESRI_Polished_Baseline_{start_date}_{end_date}.xlsx'
+    incremental_pattern: 'CAD_ESRI_Polished_{run_date}.xlsx'
+    folder_pattern: '{YYYY}_{MM}_{DD}_{run_type}'  # e.g., 2026_02_01_append
+
+# ============================================================================
+# OUTPUT CONFIGURATION
+# ============================================================================
+output:
+  base_directory: 'consolidation/output'
+  consolidated_filename: '2019_2026_CAD_Consolidated.csv'
+  report_directory: 'consolidation/reports'
+  log_directory: 'consolidation/logs'
+
+# ============================================================================
+# VALIDATION THRESHOLDS
+# ============================================================================
+validation:
+  min_quality_score: 95
+  max_duplicate_rate: 0.01  # 1% max
+  expected_total_records_min: 700000
+  expected_total_records_max: 800000
+
+# ============================================================================
+# MONTHLY PROCESSING CONFIGURATION (Added 2026-02-02)
+# ============================================================================
+# Configuration for ongoing monthly CAD and RMS validation workflows
+monthly_processing:
+  cad:
+    source_directory: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\monthly'
+    file_pattern: '{YYYY}_{MM}_CAD.xlsx'
+    current_year_subdir: true  # Files organized as monthly/YYYY/file.xlsx
+
+  rms:
+    source_directory: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_RMS\\monthly'
+    file_pattern: '{YYYY}_{MM}_RMS.xlsx'
+    current_year_subdir: true
+
+  output:
+    base_directory: 'monthly_validation'
+    processed_dir: 'monthly_validation/processed'
+    reports_dir: 'monthly_validation/reports'
+    logs_dir: 'monthly_validation/logs'
+
+  naming:
+    cad_report_folder: '{YYYY}_{MM}_{DD}_cad'
+    rms_report_folder: '{YYYY}_{MM}_{DD}_rms'
+    action_items_file: 'action_items.xlsx'
+    validation_summary: 'validation_summary.html'
+    metrics_file: 'metrics.json'
+
+  validation:
+    parallel_validation: true  # Use vectorized validation from CAD_Data_Cleaning_Engine
+    min_quality_score: 80
+    expected_record_range:
+      min: 2000
+      max: 5000
+
+  action_items:
+    priority_1_label: 'Critical Issues'
+    priority_2_label: 'Warnings'
+    priority_3_label: 'Info'
+    export_format: 'xlsx'  # xlsx or csv
+
+# ============================================================================
+# METADATA
+# ============================================================================
+metadata:
+  config_version: '2.1.0'
+  standards_version: 'v2.3.0'
+  last_updated: '2026-02-02'
+  total_years_consolidated: 7
+  canonical_source: '05_EXPORTS/_CAD/yearly'
+  schema_reference: '09_Reference/Standards/unified_data_dictionary/schemas/cad_fields_schema_latest.json'

@@ -1,0 +1,170 @@
+{
+  "generated": "2026-01-30T23:04:34.072729",
+  "source_directory": "C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\yearly",
+  "tolerance_percent": 5.0,
+  "summary": {
+    "all_years_total": 1401462,
+    "all_years_unique": 1071205,
+    "consolidation_target_actual": 714689,
+    "consolidation_target_expected": 214000,
+    "within_tolerance": false
+  },
+  "yearly_counts": [
+    {
+      "year": 2012,
+      "file": "2012_CAD_ALL.xlsx",
+      "total_rows": 85234,
+      "unique_cases": 67604,
+      "file_size": 10600072,
+      "expected_rows": null,
+      "deviation": null,
+      "within_tolerance": null,
+      "status": "success"
+    },
+    {
+      "year": 2013,
+      "file": "2013_CAD_ALL.xlsx",
+      "total_rows": 92643,
+      "unique_cases": 70234,
+      "file_size": 11414332,
+      "expected_rows": null,
+      "deviation": null,
+      "within_tolerance": null,
+      "status": "success"
+    },
+    {
+      "year": 2014,
+      "file": "2014_CAD_ALL.xlsx",
+      "total_rows": 103840,
+      "unique_cases": 77287,
+      "file_size": 14036155,
+      "expected_rows": null,
+      "deviation": null,
+      "within_tolerance": null,
+      "status": "success"
+    },
+    {
+      "year": 2015,
+      "file": "2015_CAD_ALL.xlsx",
+      "total_rows": 98962,
+      "unique_cases": 74830,
+      "file_size": 13739287,
+      "expected_rows": null,
+      "deviation": null,
+      "within_tolerance": null,
+      "status": "success"
+    },
+    {
+      "year": 2016,
+      "file": "2016_CAD_ALL.xlsx",
+      "total_rows": 98795,
+      "unique_cases": 75304,
+      "file_size": 13936389,
+      "expected_rows": null,
+      "deviation": null,
+      "within_tolerance": null,
+      "status": "success"
+    },
+    {
+      "year": 2017,
+      "file": "2017_CAD_ALL.xlsx",
+      "total_rows": 108543,
+      "unique_cases": 77905,
+      "file_size": 14622821,
+      "expected_rows": null,
+      "deviation": null,
+      "within_tolerance": null,
+      "status": "success"
+    },
+    {
+      "year": 2018,
+      "file": "2018_CAD_ALL.xlsx",
+      "total_rows": 98756,
+      "unique_cases": 76108,
+      "file_size": 14852419,
+      "expected_rows": null,
+      "deviation": null,
+      "within_tolerance": null,
+      "status": "success"
+    },
+    {
+      "year": 2019,
+      "file": "2019_CAD_ALL.xlsx",
+      "total_rows": 91217,
+      "unique_cases": 72849,
+      "file_size": 13775400,
+      "expected_rows": 26000,
+      "deviation": "+65,217 (+250.8%)",
+      "within_tolerance": false,
+      "status": "success"
+    },
+    {
+      "year": 2020,
+      "file": "2020_CAD_ALL.xlsx",
+      "total_rows": 89400,
+      "unique_cases": 68041,
+      "file_size": 13058405,
+      "expected_rows": 28000,
+      "deviation": "+61,400 (+219.3%)",
+      "within_tolerance": false,
+      "status": "success"
+    },
+    {
+      "year": 2021,
+      "file": "2021_CAD_ALL.xlsx",
+      "total_rows": 91477,
+      "unique_cases": 72448,
+      "file_size": 12304719,
+      "expected_rows": 30000,
+      "deviation": "+61,477 (+204.9%)",
+      "within_tolerance": false,
+      "status": "success"
+    },
+    {
+      "year": 2022,
+      "file": "2022_CAD_ALL.xlsx",
+      "total_rows": 105038,
+      "unique_cases": 81020,
+      "file_size": 15280168,
+      "expected_rows": 31000,
+      "deviation": "+74,038 (+238.8%)",
+      "within_tolerance": false,
+      "status": "success"
+    },
+    {
+      "year": 2023,
+      "file": "2023_CAD_ALL.xlsx",
+      "total_rows": 113179,
+      "unique_cases": 87258,
+      "file_size": 16214514,
+      "expected_rows": 32000,
+      "deviation": "+81,179 (+253.7%)",
+      "within_tolerance": false,
+      "status": "success"
+    },
+    {
+      "year": 2024,
+      "file": "2024_CAD_ALL.xlsx",
+      "total_rows": 110313,
+      "unique_cases": 82881,
+      "file_size": 17680211,
+      "expected_rows": 33000,
+      "deviation": "+77,313 (+234.3%)",
+      "within_tolerance": false,
+      "status": "success"
+    },
+    {
+      "year": 2025,
+      "file": "2025_CAD_ALL.xlsx",
+      "total_rows": 114065,
+      "unique_cases": 87436,
+      "file_size": 16591137,
+      "expected_rows": 34000,
+      "deviation": "+80,065 (+235.5%)",
+      "within_tolerance": false,
+      "status": "success"
+    }
+  ],
+  "errors": 0,
+  "out_of_tolerance": 7
+}
