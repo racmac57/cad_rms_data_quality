@@ -1,0 +1,309 @@
+=============================================================================
+CAD EXPORT DIRECTORY - ISSUES AND ACTION ITEMS
+=============================================================================
+Date: 2026-01-30 20:15:00 EST (Updated: 2026-01-30 20:45:00 EST)
+Review Source: C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_CAD\
+Related Project: cad_rms_data_quality v1.0.1
+Status: 2 of 5 Issues Resolved (Critical Issues Complete)
+
+=============================================================================
+OVERVIEW
+=============================================================================
+
+The CAD export directory (05_EXPORTS\_CAD) was recently restructured to v2.0.0
+(2026-01-30) with a new canonical organization. During review, several issues
+were identified that need resolution before the consolidation pipeline can run.
+
+=============================================================================
+CRITICAL ISSUES (Block Pipeline Execution)
+=============================================================================
+
+## ISSUE 1: ESRI Export Error - 2025_11_CAD.xlsx
+────────────────────────────────────────────────────────────────────────────
+Priority: HIGH → ✅ RESOLVED
+Status: COMPLETE (2026-01-30 20:45)
+Impact: All 3 monthly ESRI CSV exports for 2025 now present
+
+Resolution:
+  ✅ ESRI CSV successfully created: csv\monthly\2025_11_CAD_ESRI.csv
+  ✅ File size: 235,503 bytes (235 KB)
+  ✅ Created: 2026-01-30 18:22:14
+
+Source File:
+  C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_CAD\monthly\2025\2025_11_CAD.xlsx
+
+Output File:
+  C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_CAD\csv\monthly\2025_11_CAD_ESRI.csv
+
+Verification Results:
+  ✅ Output file exists
+  ✅ File size > 0 bytes (235,503 bytes)
+  ✅ Expected columns present (11 ESRI columns)
+  ✅ File successfully created by export_esri_cad.py
+
+Note: Initial error report was based on incomplete run. File successfully
+      generated and is now present in canonical location.
+
+=============================================================================
+HIGH PRIORITY ISSUES (Affect Data Integrity)
+=============================================================================
+
+## ISSUE 2: Temporary 2026 CAD Backfill Files
+────────────────────────────────────────────────────────────────────────────
+Priority: HIGH → ✅ RESOLVED
+Status: COMPLETE (2026-01-30 20:45)
+
+Resolution:
+  ✅ Old temp file removed: 2026_01_01_to_2026_01_28_CAD.xlsx (from root)
+  ✅ Current file in place: monthly\2026\2026_01_01_to_2026_01_29_CAD_Export.xlsx
+  
+User Context (Purpose):
+  These files contain 2026 Jan 1-29 CAD data extracted for ArcGIS Pro
+  Dashboard backfill. Created to provide the most complete and cleanest
+  CAD data for dashboard initialization.
+  
+  Backfill Process:
+    1. Export Jan 1-29, 2026 data for backfill → COMPLETE
+    2. Backfill dashboard with 2019-01-01 to 2026-01-29 data → IN PROGRESS
+    3. Switch dashboard to daily server exports → PENDING
+    4. Remove temporary backfill files → PENDING (after step 3)
+
+Current State:
+  ❌ 2026_01_01_to_2026_01_28_CAD.xlsx - REMOVED (superseded by newer export)
+  ✅ 2026_01_01_to_2026_01_29_CAD_Export.xlsx - IN PLACE
+  
+  File: 2026_01_01_to_2026_01_29_CAD_Export.xlsx
+  Size: 1,518,626 bytes (~1.5 MB)
+  Location: monthly\2026\
+  Status: TEMPORARY - Remove after dashboard backfill complete
+  Coverage: Jan 1-29, 2026
+
+Note: Non-standard naming acceptable for temporary backfill files.
+      File will be removed once dashboard switches to daily export source.
+
+=============================================================================
+MEDIUM PRIORITY ISSUES (Cleanup/Organization)
+=============================================================================
+
+## ISSUE 3: Malformed Empty File in response_time/2025/
+────────────────────────────────────────────────────────────────────────────
+Priority: MEDIUM
+Status: UNRESOLVED
+Impact: No data impact, but creates confusion
+
+Description:
+  Empty file named ".xlsx" (no filename prefix) exists in response_time/2025/
+  Likely a file creation error or incomplete operation
+
+File Location:
+  C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_CAD\response_time\2025\.xlsx
+
+Action Required:
+  Remove the empty/malformed file:
+  Remove-Item "...\05_EXPORTS\_CAD\response_time\2025\.xlsx" -Force
+
+Verification:
+  - File no longer exists
+  - response_time/2025/ contains only valid files:
+    - 2024_11_to_2025_11_ResponseTime_CAD.xlsx
+    - 2024_12_to_2025_12_ResponseTime_CAD.xlsx
+
+## ISSUE 4: Double Extension in monthly_export/
+────────────────────────────────────────────────────────────────────────────
+Priority: MEDIUM
+Status: UNRESOLVED
+Impact: File may not be readable by automated tools expecting single extension
+
+Description:
+  File has double .xlsx.xlsx extension
+  Should be renamed to single .xlsx extension
+
+Current Filename:
+  2025_11_Monthly_CAD.xlsx.xlsx
+
+Corrected Filename:
+  2025_11_Monthly_CAD.xlsx
+
+File Location:
+  C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_CAD\monthly_export\2025\
+
+Action Required:
+  Rename file to remove duplicate extension:
+  Rename-Item "...\monthly_export\2025\2025_11_Monthly_CAD.xlsx.xlsx" "2025_11_Monthly_CAD.xlsx"
+
+Verification:
+  - File renamed successfully
+  - File opens correctly in Excel
+  - Extension is single .xlsx
+
+=============================================================================
+LOW PRIORITY ISSUES (Documentation/Alignment)
+=============================================================================
+
+## ISSUE 5: Legacy Directory Duplication
+────────────────────────────────────────────────────────────────────────────
+Priority: LOW
+Status: NOTED (Not blocking)
+Impact: Storage duplication, potential confusion about canonical source
+
+Description:
+  Data exists in both canonical (yearly/) and legacy (full_year/) structures
+  Per README.md v2.0.0, yearly/ is now the canonical source
+  full_year/ is retained for backward compatibility
+
+Directories Affected:
+  - yearly/YYYY/YYYY_CAD_ALL.xlsx (canonical)
+  - full_year/YYYY/raw/YYYY_CAD_ALL.xlsx (legacy)
+
+Recommendation:
+  1. Continue using yearly/ as canonical source (current approach)
+  2. Keep full_year/ for backward compatibility (do not delete)
+  3. Add note to README.md about eventual deprecation timeline
+  4. Consider archiving full_year/ to archive/ after 6-month transition period
+
+Action Required:
+  Document in README.md:
+  - State that full_year/ is deprecated as of 2026-01-30
+  - Recommend all new scripts use yearly/ path
+  - Set deprecation sunset date (suggest 2026-07-31)
+
+=============================================================================
+CONSOLIDATION PROJECT UPDATES COMPLETED
+=============================================================================
+
+## UPDATE 1: consolidation_sources.yaml - Path Migration
+────────────────────────────────────────────────────────────────────────────
+Status: ✅ COMPLETED (2026-01-30 20:15)
+File: config/consolidation_sources.yaml
+
+Changes Made:
+  - Updated header comment with new timestamp and migration note
+  - Updated all yearly source paths from full_year/YYYY/raw/ to yearly/YYYY/
+  - Added inline comments for data categories (2012-2018 historical, 2019-2025 canonical)
+  - Preserved monthly paths (already using correct canonical structure)
+
+Before:
+  path: 'C:\...\05_EXPORTS\_CAD\full_year\2019\raw\2019_ALL_CAD.xlsx'
+
+After:
+  path: 'C:\...\05_EXPORTS\_CAD\yearly\2019\2019_CAD_ALL.xlsx'
+
+Verification Required:
+  - After Phase 2 Python module extraction, run:
+    python -m shared.utils.schema_loader
+  - Verify all paths resolve correctly
+  - Run dry-run to confirm files are accessible:
+    python run_consolidation.py --dry-run --verbose
+
+=============================================================================
+RECOMMENDED ACTION SEQUENCE
+=============================================================================
+
+Execute in this order to minimize risk:
+
+STEP 1: Fix Critical ESRI Export Error
+  Priority: IMMEDIATE
+  Time: 5-10 minutes
+  Commands:
+    cd "C:\Users\carucci_r\OneDrive - City of Hackensack\00_dev\scripts"
+    python export_esri_cad.py --input "...\monthly\2025\2025_11_CAD.xlsx"
+
+STEP 2: Relocate 2026 File
+  Priority: HIGH
+  Time: 2 minutes
+  Commands:
+    cd "C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_CAD"
+    New-Item -ItemType Directory "monthly\2026" -Force
+    Move-Item "2026_01_01_to_2026_01_28_CAD.xlsx" "monthly\2026\"
+
+STEP 3: Generate 2026 ESRI Export
+  Priority: HIGH
+  Time: 5 minutes
+  Commands:
+    cd "C:\Users\carucci_r\OneDrive - City of Hackensack\00_dev\scripts"
+    python export_esri_cad.py --input "...\monthly\2026\2026_01_01_to_2026_01_28_CAD.xlsx"
+
+STEP 4: Cleanup Malformed Files
+  Priority: MEDIUM
+  Time: 1 minute
+  Commands:
+    cd "C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_CAD"
+    Remove-Item "response_time\2025\.xlsx" -Force
+    Rename-Item "monthly_export\2025\2025_11_Monthly_CAD.xlsx.xlsx" "2025_11_Monthly_CAD.xlsx"
+
+STEP 5: Update CAD Export Documentation
+  Priority: LOW
+  Time: 10 minutes
+  Files to Update:
+    - 05_EXPORTS\_CAD\README.md (add deprecation note for full_year/)
+    - 05_EXPORTS\_CAD\csv_export_checklist.txt (add 2026 entry)
+
+STEP 6: Verify Consolidation Project Integration
+  Priority: HIGH (after Phase 2 complete)
+  Time: 15 minutes
+  Commands:
+    cd "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality"
+    pip install -r requirements.txt
+    python -m shared.utils.schema_loader  # Verify paths
+    python run_consolidation.py --dry-run --verbose
+
+=============================================================================
+VERIFICATION CHECKLIST
+=============================================================================
+
+After completing all actions, verify:
+
+☐ 1. ESRI Exports Complete
+   - csv/monthly/2025_11_CAD_ESRI.csv exists
+   - csv/monthly/2026_01_01_to_2026_01_28_CAD_ESRI.csv exists
+   - All 16 expected ESRI CSVs present (14 yearly + 4 monthly)
+
+☐ 2. File Locations Correct
+   - monthly/2026/2026_01_01_to_2026_01_28_CAD.xlsx in place
+   - No files at _CAD root level (except docs and scripts)
+
+☐ 3. Malformed Files Removed
+   - response_time/2025/.xlsx deleted
+   - monthly_export/2025/ has single .xlsx extensions
+
+☐ 4. Consolidation Config Updated
+   - config/consolidation_sources.yaml uses yearly/ paths
+   - Paths resolve correctly (verified via schema_loader)
+
+☐ 5. Documentation Current
+   - README.md mentions full_year/ deprecation
+   - ESRI_export_report.txt shows all 17 files created
+
+=============================================================================
+NOTES & CONTEXT
+=============================================================================
+
+Directory Restructure Context:
+  - Completed: 2026-01-30 (v2.0.0)
+  - Rationale: Simplify structure, separate canonical from legacy
+  - Documentation: 05_EXPORTS\_CAD\README.md v2.0.0
+
+Related Projects:
+  - cad_rms_data_quality (consolidation project)
+  - CAD_Data_Cleaning_Engine (active reference)
+  - 09_Reference/Standards (schema source)
+
+Integration Points:
+  - Consolidation pipeline uses yearly/ files (2019-2025)
+  - Monthly validation will use monthly/ files (2025 Q4)
+  - ESRI exports used for ArcGIS Pro dashboards
+
+=============================================================================
+CONTACT
+=============================================================================
+
+For questions or issues:
+  Primary: R. Carucci
+  Department: Hackensack Police Department - Data Services
+  Project: CAD/RMS Data Quality System v1.0.1
+
+=============================================================================
+END OF ISSUE TRACKING DOCUMENT
+=============================================================================
+Last Updated: 2026-01-30 20:15:00 EST
+Next Review: After completion of action items

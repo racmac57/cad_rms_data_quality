@@ -16,45 +16,36 @@ This repository contains a unified data quality system for CAD (Computer-Aided D
 
 ## Project Status & Implementation Progress
 
-### ✅ Phase 1: Configuration & Scaffolding (COMPLETE - 2026-01-30)
+### ✅ Phase 1: Consolidation Complete (2026-01-31)
+- 724,794 records consolidated (2019-01-01 to 2026-01-30)
+- ESRI polished output generated: `CAD_ESRI_POLISHED_20260131_014644.xlsx`
+- Production script: `consolidate_cad_2019_2026.py`
 
-**Configuration Files Created:**
-- `config/schemas.yaml` - Paths to 09_Reference/Standards with ${variable} expansion
-- `config/validation_rules.yaml` - Validation patterns, quality scoring weights, domain values
-- `config/consolidation_sources.yaml` - 2019-2026 CAD source file paths and configurations
+### ✅ Expansion Plan Milestone 1: Paths & Baseline (2026-02-01)
+- Created `13_PROCESSED_DATA/ESRI_Polished/` directory structure
+- Copied baseline file (724,794 records) to `base/` directory
+- Created `manifest.json` for latest file tracking
+- Added baseline, incremental, performance, processed_data sections to config
+- Config version updated to 2.0.0
 
-**Project Scaffolding:**
-- `requirements.txt` - All Python dependencies (pandas, pyyaml, usaddress, rapidfuzz, etc.)
-- `pyproject.toml` - Project metadata, entry points, build configuration
-- `.gitignore` - Exclusions for outputs, logs, Python artifacts
-- Directory structure created with all required folders
+### ✅ Expansion Plan Milestone 3: Server Copy + ArcPy (2026-02-01)
+- Updated `copy_consolidated_dataset_to_server.ps1` to read from `manifest.json` (v2.0.0)
+- Added `-DryRun` switch for testing, file integrity verification
+- Created `docs/arcgis/import_cad_polished_to_geodatabase.py` - arcpy ExcelToTable script
+- Created `docs/arcgis/README.md` - Workflow guide with order of operations
 
-**Documentation:**
-- `outputs/consolidation/EXTRACTION_REPORT.txt` - Complete guide for extracting Python modules
-- Updated CHANGELOG.md, README.md, NEXT_STEPS.md
+### 🚧 Expansion Plan Milestones 4-6 (In Progress)
 
-### 🚧 Phase 2: Python Module Extraction (IN PROGRESS)
+| Milestone | Description | Status |
+|-----------|-------------|--------|
+| 1. Paths & Baseline | 13_PROCESSED_DATA, baseline file, config sections | ✅ Complete |
+| 2. Reports Reorganization | consolidation/reports/YYYY_MM_DD_* structure | ✅ Complete |
+| 3. Server Copy + ArcPy | Update PowerShell to use manifest, add arcpy script | ✅ Complete |
+| 4. Speed Optimizations | Parallel loading, chunked reads, incremental mode | 🔜 Next |
+| 5. Monthly Processing | validate_cad.py, validate_rms.py, action items | 🔜 Pending |
+| 6. Legacy Archive | Move legacy projects to _Archive | 🔜 Pending |
 
-**Status:** Configuration layer complete. Python modules (~5000 lines) designed and ready in chat transcripts.
-
-**Files to Extract** (See EXTRACTION_REPORT.txt for details):
-1. `shared/utils/schema_loader.py` (~500 lines) - from chunk_00001.txt
-2. `shared/processors/field_normalizer.py` (~1200 lines) - from chunk_00003.txt
-3. `shared/validators/validation_engine.py` (~1100 lines) - from chunk_00006.txt
-4. `shared/validators/quality_scorer.py` (~1000 lines) - from chunks 00008/00009
-5. `consolidation/scripts/consolidate_cad.py` (~800 lines) - from chunk_00009.txt
-6. `run_consolidation.py` (~400 lines) - from chunk_00010.txt
-7. `Makefile` (~200 lines) - from chunk_00010.txt
-8. Updated `Claude.md` - from chunk_00011.txt
-
-**Extraction Source:** `docs/Claude-Data_cleaning_project_implementation_roadmap/`
-
-### 🔜 Phases 3-7 (After Module Extraction)
-- Phase 3: Run verification tests (imports, schema validation, dry-run)
-- Phase 4: Build ArcGIS preparation script
-- Phase 5: Build monthly validation scripts  
-- Phase 6: Create test suite
-- Phase 7: Write user documentation and archive legacy projects
+**Plan Reference:** `docs/Plan_Review_Package_For_Claude/CAD_RMS_Data_Quality_Expansion_Plan_ENHANCED.md`
 
 ---
 
@@ -81,6 +72,58 @@ This repository contains a unified data quality system for CAD (Computer-Aided D
 | `tests/` | Pytest test suite with fixtures | N/A |
 | `tests/fixtures/` | Sample data for testing | CSV/Excel samples |
 | `docs/` | Documentation (architecture, migration notes, user guides) | Markdown files |
+| `docs/arcgis/` | ArcGIS import scripts and documentation | Python scripts, README |
+
+---
+
+## Processed Data Location (13_PROCESSED_DATA)
+
+**Location:** `C:\Users\carucci_r\OneDrive - City of Hackensack\13_PROCESSED_DATA\`
+
+This directory stores production-ready ESRI polished datasets **outside** the repo (large files excluded from git).
+
+```
+13_PROCESSED_DATA/
+├── manifest.json                    # Latest file registry (READ THIS FIRST!)
+├── README.md                        # Usage documentation
+└── ESRI_Polished/
+    ├── base/                        # Immutable baseline (724,794 records)
+    │   └── CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx
+    ├── incremental/                 # Incremental run outputs (YYYY_MM_DD_append/)
+    └── full_rebuild/                # Full consolidation outputs (YYYY_MM_DD_full/)
+```
+
+### Baseline + Incremental Mode
+
+**Purpose:** Avoid re-reading 7 years of data for each consolidation run.
+
+**How it works:**
+1. **Baseline file** contains 724,794 records (2019-01-01 to 2026-01-30)
+2. Incremental runs load baseline once, then append only new monthly data
+3. `manifest.json` tracks the latest polished file for scripts/server copy
+
+**Configuration:** See `config/consolidation_sources.yaml` sections:
+- `baseline` - Path, date range, record count
+- `incremental` - Mode (append/full), dedup strategy
+- `processed_data` - Root paths, manifest location
+
+### Finding the Latest Polished File
+
+```python
+# Python
+import json
+from pathlib import Path
+PROCESSED_ROOT = Path(r"C:\Users\carucci_r\OneDrive - City of Hackensack\13_PROCESSED_DATA")
+manifest = json.loads((PROCESSED_ROOT / "manifest.json").read_text())
+latest_path = manifest["latest"]["full_path"]
+record_count = manifest["latest"]["record_count"]
+```
+
+```powershell
+# PowerShell
+$manifest = Get-Content "C:\...\13_PROCESSED_DATA\manifest.json" | ConvertFrom-Json
+$latestPath = $manifest.latest.full_path
+```
 
 ---
 
@@ -458,15 +501,43 @@ Validation patterns and quality scoring configuration.
 - `anomaly_detection` - Variance and null rate thresholds
 - `response_time_exclusions` - Filters for response time calculations
 
-### config/consolidation_sources.yaml
-Source file paths for 2019-2026 CAD consolidation.
-- `base_directory` - Root path to CAD exports
-- `source_files` - Array of yearly files with expected record counts
-- `output` - Consolidated and ArcGIS file names
-- `reports` - Report directory and file names
-- `logging` - Log configuration
-- `processing` - Dedup field, chunk size, preserve fields
-- `validation` - Quality thresholds and expected totals
+### config/consolidation_sources.yaml (v2.0.0)
+Source file paths for 2019-2026 CAD consolidation. **Updated 2026-02-01** with baseline/incremental/performance sections.
+
+**Source Configuration:**
+- `sources.yearly` - Array of yearly CAD files with paths and expected counts
+- `sources.monthly` - Monthly CAD files (2025 Q4, 2026)
+
+**Baseline Configuration (NEW):**
+- `baseline.enabled` - Enable baseline mode (true/false)
+- `baseline.path` - Path to baseline polished file in 13_PROCESSED_DATA
+- `baseline.date_range` - Start/end dates covered by baseline
+- `baseline.record_count` - Expected record count for validation
+
+**Incremental Configuration (NEW):**
+- `incremental.enabled` - Enable incremental processing
+- `incremental.mode` - "append" (add new records) or "full" (rebuild)
+- `incremental.last_run_date` - Auto-updated after each run
+- `incremental.dedup_strategy` - "keep_latest", "keep_first", or "keep_all_supplements"
+
+**Performance Configuration (NEW):**
+- `performance.parallel_loading.enabled` - Enable parallel Excel loading
+- `performance.parallel_loading.max_workers` - Number of parallel workers (default: 8)
+- `performance.chunked_reading.enabled` - Enable chunked reading for large files
+- `performance.chunked_reading.threshold_mb` - Size threshold for chunked reads
+- `performance.memory_optimization.use_categories` - Convert strings to categorical
+- `performance.esri_generation.n_workers` - Workers for ESRI output generator
+
+**Processed Data Configuration (NEW):**
+- `processed_data.root` - Path to 13_PROCESSED_DATA
+- `processed_data.esri_polished.base_dir` - Baseline file location
+- `processed_data.esri_polished.incremental_dir` - Incremental outputs
+- `processed_data.manifest_path` - Path to manifest.json
+
+**Output/Validation:**
+- `output` - Directory and filename configuration
+- `validation` - Quality score thresholds, duplicate rate limits
+- `metadata` - Config version, last updated, schema reference
 
 ---
 
@@ -511,10 +582,15 @@ See `docs/MIGRATION_NOTES.md` for complete migration details.
 
 ## Version Information
 
-**Current Version:** 1.0.1 (Phase 1 Complete - Configuration Layer)  
-**Created:** 2026-01-29  
-**Last Updated:** 2026-01-30  
-**Author:** R. A. Carucci  
-**Status:** Phase 1 Complete - Ready for Python Module Extraction
+**Current Version:** 1.2.2 (Expansion Plan - Milestone 3 Complete)
+**Created:** 2026-01-29
+**Last Updated:** 2026-02-01
+**Author:** R. A. Carucci
+**Status:** Server Copy + ArcPy Complete - 724,794 Records in Production
 
-**Next Phase:** Phase 2 - Extract Python modules from chat transcripts (see EXTRACTION_REPORT.txt)
+**Current Phase:** Expansion Plan Implementation (6 Milestones)
+- ✅ Milestone 1: Paths & Baseline (Complete)
+- ✅ Milestone 2: Reports Reorganization (Complete)
+- ✅ Milestone 3: Server Copy + ArcPy (Complete)
+- 🔜 Milestone 4: Speed Optimizations (Next)
+- See `docs/Plan_Review_Package_For_Claude/CAD_RMS_Data_Quality_Expansion_Plan_ENHANCED.md`

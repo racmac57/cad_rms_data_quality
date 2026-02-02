@@ -1,0 +1,1830 @@
+================================================================================
+VALIDATION LOGIC REFERENCE LIBRARY
+================================================================================
+Generated: 2026-01-31
+Purpose: Complete catalog of transformation & validation logic from 09_Reference
+Source: Code library files, backups, and classification references
+
+This document catalogs ALL validation and transformation logic found in your
+09_Reference directory that should be incorporated into the monthly validation
+system. This complements VALIDATION_GAP_ANALYSIS_AND_SOLUTIONS.txt.
+
+================================================================================
+TABLE OF CONTENTS
+================================================================================
+
+PART 1: CAD/RMS TRANSFORMATION PIPELINES
+  1.1 Dataset Loading & Joining Logic
+  1.2 Date & Time Transformations
+  1.3 Location & Block Enhancements
+  1.4 Duration Calculations & Formatting
+  1.5 Text Normalization & Categorization
+  1.6 Squad Enrichment & Analysis
+
+PART 2: VALIDATION RULES CATALOG
+  2.1 Field Format Validation
+  2.2 Domain Value Validation
+  2.3 Address Validation Rules
+  2.4 Time Calculation Rules
+  2.5 Data Quality Checks
+
+PART 3: TRANSFORMATION RULES CATALOG
+  3.1 RMS Data Transformations
+  3.2 CAD Data Transformations
+  3.3 Merge & Conflict Resolution Logic
+
+PART 4: IMPLEMENTATION GUIDANCE
+  4.1 Priority Implementation Order
+  4.2 Integration with Existing Validators
+  4.3 Configuration Files Needed
+
+================================================================================
+PART 1: CAD/RMS TRANSFORMATION PIPELINES
+================================================================================
+
+1.1 DATASET LOADING & JOINING LOGIC
+────────────────────────────────────
+
+SOURCE: 09_Reference/Code/group1_dataset_loading.md
+
+COLUMN RENAMING STRATEGY (Prevent Conflicts):
+───────────────────────────────────────────────
+
+RMS Columns to Rename:
+  Grid          → RMS_Grid
+  Zone          → RMS_Zone
+  Officer of Record → RMS_Officer
+  Block         → RMS_Block
+
+CAD Columns to Rename:
+  Grid          → CAD_Grid
+  PDZone        → CAD_Zone
+  Officer       → CAD_Officer
+  Block         → CAD_Block
+  Disposition   → CAD_Disposition
+  Response Type → CAD_Response_Type
+
+JOIN LOGIC:
+  Type: LEFT OUTER JOIN
+  Key:  RMS.CaseNumber = CAD.ReportNumberNew
+  Result: All RMS records, with matching CAD data where available
+
+PYTHON IMPLEMENTATION:
+```python
+import pandas as pd
+
+# Rename columns to prevent conflicts
+df_rms = df_rms.rename(columns={
+    "Grid": "RMS_Grid",
+    "Zone": "RMS_Zone",
+    "Officer of Record": "RMS_Officer",
+    "Block": "RMS_Block"
+})
+
+df_cad = df_cad.rename(columns={
+    "Grid": "CAD_Grid",
+    "PDZone": "CAD_Zone",
+    "Officer": "CAD_Officer",
+    "Block": "CAD_Block",
+    "Disposition": "CAD_Disposition",
+    "Response Type": "CAD_Response_Type"
+})
+
+# Join datasets
+merged = pd.merge(
+    df_rms,
+    df_cad,
+    how="left",
+    left_on="Case Number",
+    right_on="ReportNumberNew",
+    suffixes=("_RMS", "_CAD")
+)
+```
+
+VALIDATION CHECK:
+- Verify all RMS records preserved (row count matches)
+- Check for duplicate keys (should be 0)
+- Verify expected match rate (70-85% typical)
+
+────────────────────────────────────────────────────────────────────────────
+
+1.2 DATE & TIME TRANSFORMATIONS
+────────────────────────────────
+
+SOURCE: 09_Reference/Code/group2_date_time_transformations.md
+
+CASCADING DATE LOGIC (Primary → Fallback → Fallback):
+──────────────────────────────────────────────────────
+
+Incident_Date Cascading Priority:
+  1. Incident Date         (Primary)
+  2. Incident Date_Between (Fallback 1)
+  3. Report Date           (Fallback 2)
+
+Incident_Time Cascading Priority:
+  1. Incident Time         (Primary)
+  2. Incident Time_Between (Fallback 1)
+  3. Report Time           (Fallback 2)
+
+PYTHON IMPLEMENTATION:
+```python
+import pandas as pd
+import numpy as np
+
+# Cascading date
+df["Incident_Date"] = (
+    pd.to_datetime(df["Incident Date"], errors='coerce')
+      .fillna(pd.to_datetime(df["Incident Date_Between"], errors='coerce'))
+      .fillna(pd.to_datetime(df["Report Date"], errors='coerce'))
+      .dt.date
+)
+
+# Cascading time
+df["Incident_Time"] = pd.to_datetime(df["Incident Time"], errors='coerce').dt.time
+mask = df["Incident_Time"].isna()
+df.loc[mask, "Incident_Time"] = pd.to_datetime(
+    df.loc[mask, "Incident Time_Between"], errors='coerce'
+).dt.time
+mask = df["Incident_Time"].isna()
+df.loc[mask, "Incident_Time"] = pd.to_datetime(
+    df.loc[mask, "Report Time"], errors='coerce'
+).dt.time
+```
+
+TIME OF DAY BINNING:
+────────────────────
+
+Categories (6 bins):
+  1. 00:00-03:59 → "Early Morning"   (Sort: 1)
+  2. 04:00-07:59 → "Morning"         (Sort: 2)
+  3. 08:00-11:59 → "Morning Peak"    (Sort: 3)
+  4. 12:00-15:59 → "Afternoon"       (Sort: 4)
+  5. 16:00-19:59 → "Evening Peak"    (Sort: 5)
+  6. 20:00-23:59 → "Night"           (Sort: 6)
+  7. NULL        → "Unknown"         (Sort: 7)
+
+PYTHON IMPLEMENTATION:
+```python
+def map_time_of_day(t):
+    if pd.isna(t): return "Unknown"
+    h = t.hour
+    if h < 4:    return "00:00-03:59 Early Morning"
+    if h < 8:    return "04:00-07:59 Morning"
+    if h < 12:   return "08:00-11:59 Morning Peak"
+    if h < 16:   return "12:00-15:59 Afternoon"
+    if h < 20:   return "16:00-19:59 Evening Peak"
+    return "20:00-23:59 Night"
+
+df["TimeOfDay"] = df["Incident_Time"].apply(map_time_of_day)
+
+order_map = {
+    "00:00-03:59 Early Morning": 1,
+    "04:00-07:59 Morning": 2,
+    "08:00-11:59 Morning Peak": 3,
+    "12:00-15:59 Afternoon": 4,
+    "16:00-19:59 Evening Peak": 5,
+    "20:00-23:59 Night": 6,
+    "Unknown": 7
+}
+df["TimeOfDay_SortOrder"] = df["TimeOfDay"].map(order_map)
+```
+
+SEASONAL CLASSIFICATION:
+────────────────────────
+
+Seasons (by month):
+  Winter: December, January, February    (12, 1, 2)
+  Spring: March, April, May              (3, 4, 5)
+  Summer: June, July, August             (6, 7, 8)
+  Fall:   September, October, November   (9, 10, 11)
+
+PYTHON IMPLEMENTATION:
+```python
+def get_season(date):
+    if pd.isna(date): return None
+    month = date.month
+    if month in (12, 1, 2):   return "Winter"
+    elif month in (3, 4, 5):  return "Spring"
+    elif month in (6, 7, 8):  return "Summer"
+    else:                     return "Fall"
+
+df["Season"] = pd.to_datetime(df["Incident_Date"]).apply(get_season)
+```
+
+DATE ENRICHMENT COLUMNS:
+────────────────────────
+
+Additional columns to create:
+  - DayOfWeek:     Day name (Monday, Tuesday, etc.)
+  - WeekOfYear:    ISO week number (1-53)
+  - MonthName:     Month name (January, February, etc.)
+  - Quarter:       Quarter (Q1, Q2, Q3, Q4)
+  - IsWeekend:     Boolean (Saturday/Sunday = True)
+  - DayType:       "Weekend" or "Weekday"
+  - Date_SortKey:  YYYYMMDD as integer for sorting
+
+PYTHON IMPLEMENTATION:
+```python
+df["DayOfWeek"] = pd.to_datetime(df["Incident_Date"]).dt.day_name()
+df["WeekOfYear"] = pd.to_datetime(df["Incident_Date"]).dt.isocalendar().week
+df["MonthName"] = pd.to_datetime(df["Incident_Date"]).dt.month_name()
+df["Quarter"] = "Q" + pd.to_datetime(df["Incident_Date"]).dt.quarter.astype(str)
+df["IsWeekend"] = pd.to_datetime(df["Incident_Date"]).dt.dayofweek >= 5
+df["DayType"] = df["IsWeekend"].apply(lambda x: "Weekend" if x else "Weekday")
+df["Date_SortKey"] = df["Incident_Date"].apply(
+    lambda d: int(d.strftime("%Y%m%d")) if pd.notna(d) else np.nan
+)
+```
+
+VALIDATION CHECKS:
+  - Verify Incident_Date is never null (should be filled by cascade)
+  - Check date range is reasonable (1990-2030)
+  - Verify TimeOfDay distribution is logical
+  - Check Weekend/Weekday split is ~5:2 ratio
+
+────────────────────────────────────────────────────────────────────────────
+
+1.3 LOCATION & BLOCK ENHANCEMENTS
+──────────────────────────────────
+
+SOURCE: 09_Reference/Code/group3_location_block_enhancements.md
+
+UNIFIED GRID & ZONE LOGIC (RMS vs CAD Conflict Resolution):
+────────────────────────────────────────────────────────────
+
+Grid Priority:
+  1. CAD_Grid (Primary - more accurate)
+  2. RMS_Grid (Fallback)
+
+Zone Priority:
+  1. CAD_Zone (Primary - more accurate)
+  2. RMS_Zone (Fallback)
+
+PYTHON IMPLEMENTATION:
+```python
+df["Grid"] = df["CAD_Grid"].fillna(df["RMS_Grid"])
+df["Zone"] = df["CAD_Zone"].fillna(df["RMS_Zone"])
+```
+
+ENHANCED BLOCK LOGIC:
+─────────────────────
+
+Special handling for RMS blocks with "Check CAD Location Data":
+  - If RMS_Block contains "Check CAD Location Data" AND CAD_Block exists
+  - Use CAD_Block
+  - Otherwise use RMS_Block
+
+PYTHON IMPLEMENTATION:
+```python
+def enhance_block(rms_block, cad_block):
+    if pd.notna(rms_block) and "Check CAD Location Data" in rms_block:
+        if pd.notna(cad_block):
+            return cad_block
+    return rms_block
+
+df["Enhanced_Block"] = df.apply(
+    lambda row: enhance_block(row["RMS_Block"], row["CAD_Block"]), 
+    axis=1
+)
+```
+
+BLOCK PARSING FROM ADDRESS:
+───────────────────────────
+
+Logic:
+  1. If address contains " & " → Preserve as intersection
+  2. Otherwise:
+     - Extract street number
+     - Extract street name
+     - Create "X Block of STREET NAME" format
+     - Block number = (street number // 100) * 100
+
+PYTHON IMPLEMENTATION:
+```python
+def parse_block(addr):
+    if pd.isna(addr):
+        return None
+    
+    # Preserve intersections
+    if "&" in addr:
+        return addr
+    
+    # Parse standard address
+    try:
+        # Remove city/state/zip
+        clean = addr.replace(", Hackensack, NJ, 07601", "")
+        parts = clean.split(" ", 1)
+        
+        # Extract number and street
+        num = int(parts[0])
+        street = parts[1].split(",", 1)[0].strip()
+        
+        # Calculate block number
+        block_num = (num // 100) * 100
+        
+        return f"{block_num} Block of {street}"
+    except:
+        return "Check CAD Location Data"
+
+df["Block"] = df["FullAddress2"].apply(parse_block)
+```
+
+VALIDATION CHECKS:
+  - Verify Grid has <70% null rate (target: <50%)
+  - Verify Zone has <30% null rate (target: <20%)
+  - Check Block format consistency
+  - Flag addresses without parseable block numbers
+
+────────────────────────────────────────────────────────────────────────────
+
+1.4 DURATION CALCULATIONS & FORMATTING
+───────────────────────────────────────
+
+SOURCE: 09_Reference/Code/group4_duration_formatting_flags.md
+
+TIME RESPONSE CALCULATION:
+──────────────────────────
+
+Formula: Time Dispatched - Time of Call
+
+Rules:
+  - Handle negative results by swapping timestamps
+  - Cap outliers at 480 minutes (8 hours)
+  - Calculate in minutes
+  - Format as "M Mins S Secs"
+
+PYTHON IMPLEMENTATION:
+```python
+def calculate_time_response(time_call, time_dispatched):
+    if pd.isna(time_call) or pd.isna(time_dispatched):
+        return None
+    
+    # Calculate difference
+    diff = (time_dispatched - time_call).total_seconds() / 60
+    
+    # Handle negatives (swap timestamps)
+    if diff < 0:
+        diff = abs(diff)
+    
+    # Cap at 480 minutes (8 hours)
+    if diff > 480:
+        diff = 480
+    
+    return diff
+
+df["Time_Response_Minutes"] = df.apply(
+    lambda row: calculate_time_response(
+        row["Time of Call"], 
+        row["Time Dispatched"]
+    ),
+    axis=1
+)
+```
+
+RESPONSE TIME FORMATTING:
+─────────────────────────
+
+Format Rules:
+  - 0 seconds:      "0 Secs"
+  - < 1 minute:     "X Secs"
+  - >= 1 minute:    "M Mins S Secs"
+  - No seconds:     "M Mins"
+
+PYTHON IMPLEMENTATION:
+```python
+def format_response_time(mins):
+    if pd.isna(mins): 
+        return None
+    
+    total_sec = round(mins * 60)
+    m, s = divmod(total_sec, 60)
+    
+    if total_sec <= 0: 
+        return "0 Secs"
+    if m == 0:         
+        return f"{s} Secs"
+    if s == 0:         
+        return f"{m} Mins"
+    
+    return f"{m} Mins {s:02d} Secs"
+
+df["Time_Response_Formatted"] = df["Time_Response_Minutes"].apply(
+    format_response_time
+)
+```
+
+RESPONSE TIME FLAGS:
+────────────────────
+
+Flag Categories:
+  - "0-1 Minutes":      <= 1 minute (Very Fast)
+  - "Normal":           1-10 minutes
+  - "Over 10 Minutes":  > 10 minutes (Slow)
+
+PYTHON IMPLEMENTATION:
+```python
+def flag_response_time(mins):
+    if pd.isna(mins): 
+        return None
+    if mins <= 1:     
+        return "0-1 Minutes"
+    if mins > 10:     
+        return "Over 10 Minutes"
+    return "Normal"
+
+df["Time_Response_Flag"] = df["Time_Response_Minutes"].apply(
+    flag_response_time
+)
+```
+
+TIME SPENT CALCULATION:
+───────────────────────
+
+Formula: Time In - Time Out
+
+Rules:
+  - Handle negative results by swapping timestamps
+  - Cap outliers at 720 minutes (12 hours)
+  - Calculate in minutes
+  - Format as "H Hrs M Mins"
+
+PYTHON IMPLEMENTATION:
+```python
+def calculate_time_spent(time_out, time_in):
+    if pd.isna(time_out) or pd.isna(time_in):
+        return None
+    
+    # Calculate difference
+    diff = (time_in - time_out).total_seconds() / 60
+    
+    # Handle negatives (swap timestamps)
+    if diff < 0:
+        diff = abs(diff)
+    
+    # Cap at 720 minutes (12 hours)
+    if diff > 720:
+        diff = 720
+    
+    return diff
+
+df["Time_Spent_Minutes"] = df.apply(
+    lambda row: calculate_time_spent(row["Time Out"], row["Time In"]),
+    axis=1
+)
+```
+
+TIME SPENT FORMATTING:
+──────────────────────
+
+Format Rules:
+  - 0 minutes:      "0 Mins"
+  - < 1 hour:       "M Mins"
+  - >= 1 hour:      "H Hrs MM Mins"
+  - No minutes:     "H Hrs"
+
+PYTHON IMPLEMENTATION:
+```python
+def format_time_spent(mins):
+    if pd.isna(mins): 
+        return None
+    
+    vm = round(mins)
+    h, r = divmod(vm, 60)
+    
+    if vm <= 0:       
+        return "0 Mins"
+    if h == 0:        
+        return f"{r} Mins"
+    if r == 0:        
+        return f"{h} Hrs"
+    
+    return f"{h} Hrs {r:02d} Mins"
+
+df["Time_Spent_Formatted"] = df["Time_Spent_Minutes"].apply(
+    format_time_spent
+)
+```
+
+TIME SPENT FLAGS:
+─────────────────
+
+Flag Categories:
+  - "Under 5 Minutes":  < 5 minutes (Very Short)
+  - "Normal":           5-300 minutes (5 mins to 5 hours)
+  - "Over 5 Hours":     > 300 minutes (Long)
+
+PYTHON IMPLEMENTATION:
+```python
+def flag_time_spent(mins):
+    if pd.isna(mins): 
+        return None
+    if mins < 5:      
+        return "Under 5 Minutes"
+    if mins > 300:    
+        return "Over 5 Hours"
+    return "Normal"
+
+df["Time_Spent_Flag"] = df["Time_Spent_Minutes"].apply(flag_time_spent)
+```
+
+VALIDATION CHECKS:
+  - Verify negative times are handled (should be 0)
+  - Check response time distribution (median should be 2-5 minutes)
+  - Verify spent time distribution (median should be 15-30 minutes)
+  - Flag records with 0 response/spent time for review
+
+────────────────────────────────────────────────────────────────────────────
+
+1.5 TEXT NORMALIZATION & CATEGORIZATION
+────────────────────────────────────────
+
+SOURCE: 09_Reference/Code/group5_text_normalization_categorization.md
+
+TEXT NORMALIZATION RULES:
+─────────────────────────
+
+Squad:       Convert to UPPERCASE
+Reviewed By: Apply Title Case
+
+PYTHON IMPLEMENTATION:
+```python
+df["Squad"] = df["Squad"].str.upper()
+df["Reviewed By"] = df["Reviewed By"].str.title()
+```
+
+CAD NOTES PARSING:
+──────────────────
+
+Extract from CADNotes:
+  1. CAD_Username:  Username from header (contains underscore)
+  2. CAD_Timestamp: Timestamp from header (MM/DD/YYYY HH:MM:SS format)
+  3. CAD_Notes_Cleaned: Note text with metadata removed
+
+PYTHON IMPLEMENTATION:
+```python
+import re
+
+def parse_cad_notes(raw):
+    if pd.isna(raw): 
+        return pd.Series([None, None, None])
+    
+    lines = [l for l in raw.splitlines() if l.strip()]
+    header = lines[0] if lines else ""
+    tokens = header.split()
+    
+    # Extract username (contains underscore)
+    user = next((t for t in tokens if "_" in t), None)
+    
+    # Extract timestamp
+    dt_raw = ""
+    for i, t in enumerate(tokens):
+        if "/" in t and i + 1 < len(tokens):
+            dt_raw = t + " " + tokens[i + 1]
+            break
+    
+    # Parse timestamp
+    try:
+        dt = pd.to_datetime(dt_raw)
+        ts = dt.strftime("%m/%d/%Y %H:%M:%S")
+    except:
+        ts = None
+    
+    # Clean note text
+    cleaned = raw.replace(header, "").replace(dt_raw, "")
+    if user:
+        cleaned = cleaned.replace(user, "")
+    
+    # Remove remaining date patterns
+    cleaned = " ".join([
+        w for w in cleaned.split() 
+        if not re.match(r"\d{1,2}/\d{1,2}/", w)
+    ])
+    
+    cleaned = cleaned.strip().title() or None
+    
+    return pd.Series([user, ts, cleaned])
+
+df[["CAD_Username", "CAD_Timestamp", "CAD_Notes_Cleaned"]] = (
+    df["CADNotes"].apply(parse_cad_notes)
+)
+```
+
+RMS INCIDENT TYPE COMBINATION:
+───────────────────────────────
+
+Combine Incident Type_1, Incident Type_2, Incident Type_3:
+  1. Remove statute codes (split at " - 2C", keep first part)
+  2. Combine into comma-separated string
+  3. Remove nulls
+
+PYTHON IMPLEMENTATION:
+```python
+def clean_incident_type(incident):
+    if pd.isna(incident):
+        return None
+    # Remove statute code
+    return incident.split(" - 2C")[0].strip()
+
+df["All_Incidents"] = df[
+    ["Incident Type_1", "Incident Type_2", "Incident Type_3"]
+].apply(
+    lambda row: ", ".join([
+        clean_incident_type(t) for t in row if pd.notna(t)
+    ]),
+    axis=1
+)
+```
+
+CRIME CATEGORIZATION:
+─────────────────────
+
+Categories (based on incident text):
+  - Motor Vehicle Theft
+  - Robbery
+  - Burglary
+  - Assault
+  - Theft
+  - Other
+
+PYTHON IMPLEMENTATION:
+```python
+def categorize_crime(row):
+    inc = (row.get("Incident") or "").upper()
+    all_inc = (row.get("All_Incidents") or "").upper()
+    combined = inc + " " + all_inc
+    
+    if "MOTOR VEHICLE THEFT" in combined:
+        return "Motor Vehicle Theft"
+    if "ROBBERY" in combined:
+        return "Robbery"
+    if "BURGLARY" in combined:
+        return "Burglary"
+    if "ASSAULT" in combined:
+        return "Assault"
+    if "THEFT" in combined or "LARCENY" in combined:
+        return "Theft"
+    
+    return "Other"
+
+df["Crime_Category"] = df.apply(categorize_crime, axis=1)
+```
+
+NARRATIVE CLEANING:
+───────────────────
+
+Clean RMS Narrative field:
+  1. Remove #(lf), #(cr) codes
+  2. Normalize whitespace (replace multiple spaces with single space)
+  3. Trim leading/trailing whitespace
+  4. Apply Title Case
+
+PYTHON IMPLEMENTATION:
+```python
+df["Narrative"] = (
+    df["Narrative"]
+      .str.replace(r"#\(lf\)|#\(cr\)", " ", regex=True)
+      .str.replace(r"\s{2,}", " ", regex=True)
+      .str.strip()
+      .str.title()
+)
+```
+
+VALIDATION CHECKS:
+  - Verify Squad is all uppercase
+  - Verify Reviewed By has proper capitalization
+  - Check CAD_Timestamp format consistency
+  - Verify All_Incidents has no statute codes remaining
+  - Check Narrative has no special characters remaining
+
+────────────────────────────────────────────────────────────────────────────
+
+1.6 SQUAD ENRICHMENT & ANALYSIS
+────────────────────────────────
+
+SOURCE: 09_Reference/Code/group6_squad_enrichment_and_analysis.md
+
+PREVIOUS INCIDENTS (7-DAY ROLLING):
+───────────────────────────────────
+
+Calculate incidents per squad in previous 7 days:
+
+PYTHON IMPLEMENTATION:
+```python
+# Ensure Incident_Date is datetime
+df["Incident_Date"] = pd.to_datetime(df["Incident_Date"])
+
+# Sort by date
+df = df.sort_values(["Squad", "Incident_Date"])
+
+# Calculate rolling count per squad
+df["PrevIncidents7Day"] = (
+    df.set_index("Incident_Date")
+      .groupby("Squad")
+      .rolling("7D")
+      .size()
+      .subtract(1)  # Exclude current incident
+      .reset_index(level=0, drop=True)
+)
+```
+
+REPEAT LOCATION PERCENTAGE:
+───────────────────────────
+
+Calculate percentage of incidents at repeated locations:
+
+PYTHON IMPLEMENTATION:
+```python
+# Compute counts per block
+block_counts = df["Block"].value_counts()
+
+def calc_repeat_pct(block):
+    if pd.isna(block):
+        return None
+    count = block_counts.get(block, 0)
+    if count <= 1:
+        return 0.0
+    return (count - 1) / count * 100
+
+df["PctRepeatLocation"] = df["Block"].apply(calc_repeat_pct)
+```
+
+NARRATIVE LENGTH (WORD COUNT):
+──────────────────────────────
+
+PYTHON IMPLEMENTATION:
+```python
+df["NarrativeLength"] = (
+    df["Narrative"]
+      .fillna("")
+      .str.split()
+      .apply(len)
+)
+```
+
+TIME TO DISPATCH:
+─────────────────
+
+Time from call received to dispatch:
+
+PYTHON IMPLEMENTATION:
+```python
+df["Time of Call"] = pd.to_datetime(df["Time of Call"])
+df["Time Dispatched"] = pd.to_datetime(df["Time Dispatched"])
+
+df["TimeToDispatch"] = (
+    (df["Time Dispatched"] - df["Time of Call"])
+    .dt.total_seconds() / 60
+)
+```
+
+ON-SCENE DURATION:
+──────────────────
+
+Time from dispatch to arrival at scene:
+
+PYTHON IMPLEMENTATION:
+```python
+df["Time Out"] = pd.to_datetime(df["Time Out"])
+
+df["OnSceneDuration"] = (
+    (df["Time Out"] - df["Time Dispatched"])
+    .dt.total_seconds() / 60
+)
+```
+
+VALIDATION CHECKS:
+  - Verify PrevIncidents7Day is non-negative
+  - Check PctRepeatLocation range (0-100%)
+  - Verify NarrativeLength distribution (median should be 30-100 words)
+  - Check TimeToDispatch is reasonable (<30 minutes typical)
+  - Verify OnSceneDuration is positive
+
+────────────────────────────────────────────────────────────────────────────
+
+================================================================================
+PART 2: VALIDATION RULES CATALOG
+================================================================================
+
+2.1 FIELD FORMAT VALIDATION
+────────────────────────────
+
+SOURCE: 09_Reference/2025_12_15_cad_default_values.md
+
+HOW REPORTED (Domain - 12 values):
+───────────────────────────────────
+Valid values:
+  - 9-1-1
+  - Walk-In
+  - Phone
+  - Self-Initiated
+  - Radio
+  - Fax
+  - Other - See Notes
+  - eMail
+  - Mail
+  - Virtual Patrol
+  - Canceled Call
+  - Teletype
+
+VALIDATION:
+```python
+valid_how_reported = [
+    "9-1-1", "Walk-In", "Phone", "Self-Initiated", "Radio",
+    "Fax", "Other - See Notes", "eMail", "Mail", 
+    "Virtual Patrol", "Canceled Call", "Teletype"
+]
+
+invalid_how_reported = ~df["How Reported"].isin(valid_how_reported)
+error_count = invalid_how_reported.sum()
+```
+
+CALL DISPOSITION (Domain - 19 values):
+──────────────────────────────────────
+Valid values:
+  - Advised
+  - Arrest
+  - Assisted
+  - Checked OK
+  - Canceled
+  - Complete
+  - Curbside Warning
+  - Dispersed
+  - Field Contact
+  - G.O.A.
+  - Issued
+  - Other - See Notes
+  - Record Only
+  - See Report
+  - See Supplement
+  - TOT - See Notes
+  - Temp. Settled
+  - Transported
+  - Unable to Locate
+  - Unfounded
+
+VALIDATION:
+```python
+valid_dispositions = [
+    "Advised", "Arrest", "Assisted", "Checked OK", "Canceled",
+    "Complete", "Curbside Warning", "Dispersed", "Field Contact",
+    "G.O.A.", "Issued", "Other - See Notes", "Record Only",
+    "See Report", "See Supplement", "TOT - See Notes",
+    "Temp. Settled", "Transported", "Unable to Locate", "Unfounded"
+]
+
+invalid_disposition = ~df["Disposition"].isin(valid_dispositions)
+error_count = invalid_disposition.sum()
+```
+
+SEX (Domain - 2 values):
+────────────────────────
+Valid values:
+  - M (Male)
+  - F (Female)
+
+VALIDATION:
+```python
+valid_sex = ["M", "F"]
+invalid_sex = ~df["Sex"].isin(valid_sex)
+error_count = invalid_sex.sum()
+```
+
+RACE (Domain - 8 values):
+─────────────────────────
+Valid values:
+  - 1A White Hisp.
+  - 1B White Non Hisp.
+  - 2A Black Hisp.
+  - 2B Black Non-Hisp.
+  - 3A Native Amer/Eskimo Hisp.
+  - 3B Native Amer/Eskimo Non-Hisp
+  - 4A Asian Hisp.
+  - 4B Asian Non-Hisp.
+
+VALIDATION:
+```python
+valid_race = [
+    "1A White Hisp.", "1B White Non Hisp.",
+    "2A Black Hisp.", "2B Black Non-Hisp.",
+    "3A Native Amer/Eskimo Hisp.", "3B Native Amer/Eskimo Non-Hisp",
+    "4A Asian Hisp.", "4B Asian Non-Hisp."
+]
+
+invalid_race = ~df["Race"].isin(valid_race)
+error_count = invalid_race.sum()
+```
+
+POST (Domain - 5 values):
+─────────────────────────
+Valid values:
+  - 5
+  - 6
+  - 7
+  - 8
+  - 9
+
+VALIDATION:
+```python
+valid_posts = ["5", "6", "7", "8", "9"]
+invalid_post = ~df["Post"].astype(str).isin(valid_posts)
+error_count = invalid_post.sum()
+```
+
+────────────────────────────────────────────────────────────────────────────
+
+2.2 DOMAIN VALUE VALIDATION
+────────────────────────────
+
+SOURCE: 09_Reference/Classifications/CallTypes/CallType_Categories.csv
+
+CALL TYPE CATEGORIES (11 ESRI Categories):
+──────────────────────────────────────────
+
+Valid Categories:
+  1. Administrative and Support
+  2. Assistance and Mutual Aid
+  3. Community Engagement
+  4. Criminal Incidents
+  5. Emergency Response
+  6. Investigations and Follow-Ups
+  7. Juvenile-Related Incidents
+  8. Public Safety and Welfare
+  9. Regulatory and Ordinance
+  10. Special Operations and Tactical
+  11. Traffic and Motor Vehicle
+
+VALIDATION:
+```python
+valid_categories = [
+    "Administrative and Support",
+    "Assistance and Mutual Aid",
+    "Community Engagement",
+    "Criminal Incidents",
+    "Emergency Response",
+    "Investigations and Follow-Ups",
+    "Juvenile-Related Incidents",
+    "Public Safety and Welfare",
+    "Regulatory and Ordinance",
+    "Special Operations and Tactical",
+    "Traffic and Motor Vehicle"
+]
+
+invalid_category = ~df["Category_Type"].isin(valid_categories)
+error_count = invalid_category.sum()
+```
+
+RESPONSE TYPES (3 values):
+──────────────────────────
+
+Valid Response Types:
+  - Emergency
+  - Routine
+  - Urgent
+
+VALIDATION:
+```python
+valid_response_types = ["Emergency", "Routine", "Urgent"]
+
+invalid_response = ~df["Response_Type"].isin(valid_response_types)
+error_count = invalid_response.sum()
+```
+
+INCIDENT-TO-CATEGORY MAPPING:
+──────────────────────────────
+
+Verify incident is valid and maps to correct category:
+
+```python
+# Load mapping from CSV
+mapping = pd.read_csv(
+    "09_Reference/Classifications/CallTypes/CallType_Categories.csv"
+)
+
+# Create lookup dictionary
+incident_to_category = dict(
+    zip(mapping["Incident"], mapping["Category_Type"])
+)
+incident_to_response = dict(
+    zip(mapping["Incident"], mapping["Response_Type"])
+)
+
+# Validate mappings
+df["Expected_Category"] = df["Incident"].map(incident_to_category)
+df["Expected_Response"] = df["Incident"].map(incident_to_response)
+
+category_mismatch = (
+    (df["Category_Type"] != df["Expected_Category"]) & 
+    df["Expected_Category"].notna()
+)
+
+response_mismatch = (
+    (df["Response_Type"] != df["Expected_Response"]) & 
+    df["Expected_Response"].notna()
+)
+
+unmapped_incidents = df["Expected_Category"].isna()
+```
+
+────────────────────────────────────────────────────────────────────────────
+
+2.3 ADDRESS VALIDATION RULES
+─────────────────────────────
+
+SOURCE: 09_Reference/Code/cad_rms_clean_join2.md
+
+ADDRESS FORMAT VALIDATION:
+──────────────────────────
+
+Required format: {Number} {Street Name} {Street Type}, Hackensack, NJ, 07601
+
+Validation rules:
+  1. Must contain street number (digits at start)
+  2. Must contain street name
+  3. Must contain "Hackensack, NJ"
+  4. Must NOT contain "Jersey City" or other non-Hackensack locations
+  5. Intersection format: {Street 1} & {Street 2}
+
+PYTHON IMPLEMENTATION:
+```python
+import re
+
+def validate_address(addr):
+    """
+    Validate address format against ArcGIS standards.
+    Returns: (is_valid: bool, error_message: str)
+    """
+    if pd.isna(addr):
+        return False, "Address is null"
+    
+    addr_clean = str(addr).strip()
+    
+    # Check for required city
+    if "Hackensack, NJ" not in addr_clean:
+        if "Jersey City" in addr_clean:
+            return False, "Wrong city (Jersey City)"
+        return False, "Missing 'Hackensack, NJ'"
+    
+    # Check for intersection format
+    if " & " in addr_clean:
+        # Intersection should have two street names
+        parts = addr_clean.split(" & ")
+        if len(parts) != 2:
+            return False, "Invalid intersection format"
+        if not parts[0].strip() or not parts[1].strip():
+            return False, "Missing street name in intersection"
+        return True, None
+    
+    # Check for standard address format
+    # Should start with number
+    match = re.match(r'^(\d+)\s+(.+)', addr_clean)
+    if not match:
+        return False, "Missing street number"
+    
+    street_number = match.group(1)
+    street_part = match.group(2)
+    
+    # Should have street name
+    if not street_part or len(street_part) < 3:
+        return False, "Missing or invalid street name"
+    
+    return True, None
+
+# Apply validation
+df[["Address_Valid", "Address_Error"]] = df["FullAddress2"].apply(
+    lambda x: pd.Series(validate_address(x))
+)
+
+# Count errors
+address_errors = (~df["Address_Valid"]).sum()
+```
+
+HACKENSACK STREET NAME VALIDATION:
+──────────────────────────────────
+
+Validate street name against official Hackensack street list:
+
+```python
+# Load official street names
+# (Reference file location TBD - check 09_Reference/Standards)
+# official_streets = load_hackensack_streets()
+
+def validate_street_name(addr, official_streets):
+    """
+    Validate street name against official list.
+    Returns: (is_valid: bool, suggested_name: str)
+    """
+    if pd.isna(addr) or " & " in addr:
+        return True, None  # Skip intersections
+    
+    # Extract street name
+    match = re.match(r'^\d+\s+(.+?),', addr)
+    if not match:
+        return False, None
+    
+    street_full = match.group(1).strip()
+    
+    # Check exact match
+    if street_full in official_streets:
+        return True, None
+    
+    # Check fuzzy match (Levenshtein distance)
+    from difflib import get_close_matches
+    matches = get_close_matches(street_full, official_streets, n=1, cutoff=0.8)
+    
+    if matches:
+        return False, matches[0]  # Suggest closest match
+    
+    return False, None  # No match found
+
+# Apply validation (if official streets list available)
+# df[["Street_Valid", "Street_Suggestion"]] = df["FullAddress2"].apply(
+#     lambda x: pd.Series(validate_street_name(x, official_streets))
+# )
+```
+
+────────────────────────────────────────────────────────────────────────────
+
+2.4 TIME CALCULATION RULES
+───────────────────────────
+
+SOURCE: 09_Reference/Code/cad_rms_clean_join2.md
+
+RESPONSE TIME VALIDATION:
+─────────────────────────
+
+Rules:
+  1. Must be non-negative (Time Dispatched >= Time of Call)
+  2. Must be < 480 minutes (8 hours)
+  3. If negative, flag as error (timestamps swapped)
+  4. If > 480 minutes, flag as outlier
+
+PYTHON IMPLEMENTATION:
+```python
+def validate_response_time(time_call, time_dispatched):
+    """
+    Validate response time calculation.
+    Returns: (is_valid: bool, error_type: str, corrected_value: float)
+    """
+    if pd.isna(time_call) or pd.isna(time_dispatched):
+        return False, "Missing timestamp", None
+    
+    # Calculate difference
+    diff_minutes = (time_dispatched - time_call).total_seconds() / 60
+    
+    # Check for negative (timestamps swapped)
+    if diff_minutes < 0:
+        corrected = abs(diff_minutes)
+        if corrected <= 480:
+            return False, "Negative time (timestamps swapped)", corrected
+        else:
+            return False, "Invalid timestamps (difference > 8 hours)", None
+    
+    # Check for outlier
+    if diff_minutes > 480:
+        return False, "Outlier (> 8 hours)", 480  # Cap at 480
+    
+    return True, None, diff_minutes
+
+# Apply validation
+df[["Response_Valid", "Response_Error", "Response_Corrected"]] = (
+    df.apply(
+        lambda row: pd.Series(
+            validate_response_time(
+                row["Time of Call"], 
+                row["Time Dispatched"]
+            )
+        ),
+        axis=1
+    )
+)
+```
+
+TIME SPENT VALIDATION:
+──────────────────────
+
+Rules:
+  1. Must be non-negative (Time In >= Time Out)
+  2. Must be < 720 minutes (12 hours)
+  3. If negative, flag as error (timestamps swapped)
+  4. If > 720 minutes, flag as outlier
+
+PYTHON IMPLEMENTATION:
+```python
+def validate_time_spent(time_out, time_in):
+    """
+    Validate time spent calculation.
+    Returns: (is_valid: bool, error_type: str, corrected_value: float)
+    """
+    if pd.isna(time_out) or pd.isna(time_in):
+        return False, "Missing timestamp", None
+    
+    # Calculate difference
+    diff_minutes = (time_in - time_out).total_seconds() / 60
+    
+    # Check for negative (timestamps swapped)
+    if diff_minutes < 0:
+        corrected = abs(diff_minutes)
+        if corrected <= 720:
+            return False, "Negative time (timestamps swapped)", corrected
+        else:
+            return False, "Invalid timestamps (difference > 12 hours)", None
+    
+    # Check for outlier
+    if diff_minutes > 720:
+        return False, "Outlier (> 12 hours)", 720  # Cap at 720
+    
+    return True, None, diff_minutes
+
+# Apply validation
+df[["Spent_Valid", "Spent_Error", "Spent_Corrected"]] = (
+    df.apply(
+        lambda row: pd.Series(
+            validate_time_spent(row["Time Out"], row["Time In"])
+        ),
+        axis=1
+    )
+)
+```
+
+TIMESTAMP SEQUENCE VALIDATION:
+──────────────────────────────
+
+Verify timestamps are in logical order:
+  Time of Call <= Time Dispatched <= Time Out <= Time In
+
+PYTHON IMPLEMENTATION:
+```python
+def validate_timestamp_sequence(row):
+    """
+    Validate timestamp sequence is logical.
+    Returns: list of errors
+    """
+    errors = []
+    
+    time_call = row["Time of Call"]
+    time_dispatched = row["Time Dispatched"]
+    time_out = row["Time Out"]
+    time_in = row["Time In"]
+    
+    # Check call <= dispatched
+    if pd.notna(time_call) and pd.notna(time_dispatched):
+        if time_call > time_dispatched:
+            errors.append("Call time > Dispatch time")
+    
+    # Check dispatched <= out
+    if pd.notna(time_dispatched) and pd.notna(time_out):
+        if time_dispatched > time_out:
+            errors.append("Dispatch time > Out time")
+    
+    # Check out <= in
+    if pd.notna(time_out) and pd.notna(time_in):
+        if time_out > time_in:
+            errors.append("Out time > In time")
+    
+    return errors if errors else None
+
+df["Timestamp_Errors"] = df.apply(validate_timestamp_sequence, axis=1)
+timestamp_error_count = df["Timestamp_Errors"].notna().sum()
+```
+
+────────────────────────────────────────────────────────────────────────────
+
+2.5 DATA QUALITY CHECKS
+────────────────────────
+
+ZONE & GRID BACKFILL VALIDATION:
+─────────────────────────────────
+
+SOURCE: 09_Reference/Code/zone_grid_backfill.md
+
+Check if Zone/Grid were successfully backfilled:
+
+```python
+# Load zone-grid master reference
+zone_grid_master = pd.read_excel(
+    "C:/Users/carucci_r/OneDrive - City of Hackensack/09_Reference/GeographicData/zone_grid_data/zone_grid_master.xlsx"
+)
+
+# Merge with main dataset
+df_merged = df.merge(
+    zone_grid_master[["Zone", "Post", "Grid"]],
+    how="left",
+    on="Zone",
+    suffixes=("", "_expected")
+)
+
+# Check for mismatches
+zone_mismatch = (
+    (df_merged["Zone"] != df_merged["Zone_expected"]) & 
+    df_merged["Zone_expected"].notna()
+)
+
+grid_mismatch = (
+    (df_merged["Grid"] != df_merged["Grid_expected"]) & 
+    df_merged["Grid_expected"].notna()
+)
+
+post_mismatch = (
+    (df_merged["Post"] != df_merged["Post_expected"]) & 
+    df_merged["Post_expected"].notna()
+)
+
+# Count errors
+zone_error_count = zone_mismatch.sum()
+grid_error_count = grid_mismatch.sum()
+post_error_count = post_mismatch.sum()
+```
+
+NULL RATE CHECKS:
+─────────────────
+
+Acceptable null rates by field:
+
+Critical fields (should be 0% null):
+  - ReportNumberNew / Case Number
+  - Incident_Date
+  - Incident_Time
+
+Important fields (should be <5% null):
+  - How Reported
+  - Disposition
+  - Officer
+  - Zone
+
+Optional fields (can be >5% null):
+  - Grid
+  - CADNotes
+  - Narrative
+  - Response_Type
+
+PYTHON IMPLEMENTATION:
+```python
+def calculate_null_rates(df):
+    """Calculate null rates for all columns."""
+    null_rates = {}
+    
+    for col in df.columns:
+        null_count = df[col].isna().sum()
+        null_rate = (null_count / len(df)) * 100
+        null_rates[col] = {
+            "null_count": null_count,
+            "null_rate": null_rate
+        }
+    
+    return pd.DataFrame(null_rates).T
+
+# Calculate and review
+null_report = calculate_null_rates(df)
+
+# Flag critical fields with null values
+critical_fields = ["ReportNumberNew", "Incident_Date", "Incident_Time"]
+critical_nulls = null_report.loc[
+    critical_fields, "null_count"
+].sum()
+
+# Flag important fields with high null rates
+important_fields = ["How Reported", "Disposition", "Officer", "Zone"]
+high_null_important = null_report.loc[
+    important_fields[null_report.loc[important_fields, "null_rate"] > 5.0]
+]
+```
+
+DUPLICATE DETECTION:
+────────────────────
+
+Check for duplicate case numbers (should be unique):
+
+```python
+# Check for duplicate case numbers
+duplicates = df[df.duplicated(subset=["ReportNumberNew"], keep=False)]
+duplicate_count = len(duplicates)
+
+# Group duplicates to see which cases are duplicated
+duplicate_groups = duplicates.groupby("ReportNumberNew").size()
+
+# Check if duplicates are legitimate (supplements: 25-000001A, 25-000001B)
+legitimate_supplements = duplicates[
+    duplicates["ReportNumberNew"].str.match(r'^\d{2}-\d{6}[A-Z]$')
+]
+```
+
+COMPLETENESS CHECK:
+───────────────────
+
+Verify expected fields exist and are populated:
+
+```python
+def check_completeness(df):
+    """
+    Check data completeness.
+    Returns: completeness report
+    """
+    report = {
+        "total_records": len(df),
+        "fields_checked": {},
+        "overall_score": 0
+    }
+    
+    # Define expected fields and weights
+    field_weights = {
+        "ReportNumberNew": 10,
+        "Incident": 8,
+        "Incident_Date": 10,
+        "Incident_Time": 8,
+        "How Reported": 7,
+        "Disposition": 7,
+        "FullAddress2": 8,
+        "Zone": 6,
+        "Grid": 5,
+        "Officer": 6,
+        "Time of Call": 6,
+        "Time Dispatched": 5,
+        "Time Out": 4,
+        "Time In": 4
+    }
+    
+    total_weight = sum(field_weights.values())
+    weighted_score = 0
+    
+    for field, weight in field_weights.items():
+        if field in df.columns:
+            null_count = df[field].isna().sum()
+            populated_rate = ((len(df) - null_count) / len(df)) * 100
+            field_score = populated_rate * weight / 100
+            weighted_score += field_score
+            
+            report["fields_checked"][field] = {
+                "exists": True,
+                "null_count": int(null_count),
+                "populated_rate": round(populated_rate, 2),
+                "weight": weight,
+                "weighted_score": round(field_score, 2)
+            }
+        else:
+            report["fields_checked"][field] = {
+                "exists": False,
+                "null_count": len(df),
+                "populated_rate": 0,
+                "weight": weight,
+                "weighted_score": 0
+            }
+    
+    report["overall_score"] = round((weighted_score / total_weight) * 100, 2)
+    
+    return report
+
+# Run completeness check
+completeness_report = check_completeness(df)
+print(f"Overall Completeness Score: {completeness_report['overall_score']}%")
+```
+
+────────────────────────────────────────────────────────────────────────────
+
+================================================================================
+PART 3: TRANSFORMATION RULES CATALOG
+================================================================================
+
+3.1 RMS DATA TRANSFORMATIONS
+─────────────────────────────
+
+SOURCE: 09_Reference/Code/cad_rms_clean_join2.md
+
+1. ADD DATE AND TIME COLUMNS
+   ─────────────────────────
+   Create Report_Date and Report_Time columns for merging
+   (Source column TBD - check actual RMS export format)
+
+2. COMBINE AND CLEAN INCIDENT TYPES
+   ────────────────────────────────
+   - Remove statute codes (split at " - 2C", keep first part)
+   - Combine Incident Type_1, _2, _3 into comma-separated string
+   - Output: All_Incidents
+
+3. CLEAN NARRATIVE TEXT
+   ────────────────────
+   - Remove special characters: #(cr)#(lf), #(lf), #(cr)
+   - Remove non-printable characters
+   - Remove repeated special characters (? - ? -)
+   - Normalize whitespace to single spaces
+   - Apply Title Case
+   - Output: Narrative (cleaned)
+
+4. FORMAT AND COMBINE VEHICLE INFORMATION
+   ──────────────────────────────────────
+   - Format: "{STATE} - {REGISTRATION}, {MAKE}/{MODEL}"
+   - Combine vehicle_1 and vehicle_2 with pipe separator
+   - Convert to UPPERCASE
+   - Output: vehicle_1, vehicle_2, vehicle_1_and_vehicle_2
+
+5. STANDARDIZE ADDITIONAL FIELDS
+   ─────────────────────────────
+   - Reviewed By: Apply Title Case
+   - Squad: Convert to UPPERCASE
+
+6. VALIDATE ADDRESS AGAINST ARCGIS STANDARDS
+   ──────────────────────────────────────────
+   - Check format: {Number} {Street}, {City}, {State}, {ZIP}
+   - Ensure contains "Hackensack, NJ"
+   - Remove erroneous entries (e.g., "Jersey City")
+   - Output: location
+
+────────────────────────────────────────────────────────────────────────────
+
+3.2 CAD DATA TRANSFORMATIONS
+─────────────────────────────
+
+SOURCE: 09_Reference/Code/cad_rms_clean_join2.md
+
+1. CORRECT "9-1-1" DATE CONVERSION ISSUE
+   ─────────────────────────────────────
+   - Read How Reported column as string (prevent Excel auto-parse)
+   - Use regex to find date-like patterns
+   - Revert date patterns back to "9-1-1"
+
+2. PARSE AND CLEAN CAD NOTES
+   ──────────────────────────
+   - Pre-clean: Remove placeholder text (? - ? - ?)
+   - Extract metadata: username and timestamp from header
+   - Populate CAD_Username, CAD_Timestamp
+   - Remove metadata from note text
+   - Output: CAD_Username, CAD_Timestamp, CAD_Notes_Cleaned
+
+3. CALCULATE DURATIONS
+   ────────────────────
+   See Part 1.4 (Duration Calculations & Formatting)
+
+4. VALIDATE ADDRESS AGAINST ARCGIS STANDARDS
+   ──────────────────────────────────────────
+   - Same logic as RMS (see Part 3.1.6)
+   - Output: location
+
+────────────────────────────────────────────────────────────────────────────
+
+3.3 MERGE & CONFLICT RESOLUTION LOGIC
+──────────────────────────────────────
+
+SOURCE: 09_Reference/Code/cad_rms_clean_join2.md
+
+ADDRESS POLICY:
+───────────────
+
+Priority:
+  1. RMS.location (Primary - manually reviewed)
+  2. CAD.location (Fallback)
+
+PYTHON IMPLEMENTATION:
+```python
+df["location"] = df["RMS_location"].fillna(df["CAD_location"])
+```
+
+GRID/ZONE CONFLICT RESOLUTION:
+──────────────────────────────
+
+Grid Priority:
+  1. CAD.Grid (Primary - more accurate)
+  2. RMS.Grid (Fallback)
+
+Zone Priority:
+  1. CAD.Zone (Primary - more accurate)
+  2. RMS.Zone (Fallback)
+
+PYTHON IMPLEMENTATION:
+```python
+df["Grid"] = df["CAD_Grid"].fillna(df["RMS_Grid"])
+df["Zone"] = df["CAD_Zone"].fillna(df["RMS_Zone"])
+```
+
+FINAL SCHEMA AND COLUMN EXCLUSION:
+───────────────────────────────────
+
+After merging, drop these columns:
+  - Raw incident type columns: Incident Type_1, Incident Type_2, Incident Type_3
+  - Raw vehicle columns: registration_1, make_1, model_1, etc.
+  - Individual timestamp columns: Time of Call, Time In, Time Out, Time Dispatched
+  - Raw address columns: RMS_location, CAD_location, FullAddress, FullAddress2
+  - Raw grid/zone columns: RMS_Grid, CAD_Grid, RMS_Zone, CAD_Zone
+  - Raw notes columns: CADNotes, narrative_raw
+
+PYTHON IMPLEMENTATION:
+```python
+columns_to_drop = [
+    "Incident Type_1", "Incident Type_2", "Incident Type_3",
+    "registration_1", "make_1", "model_1", "reg_state_1",
+    "registration_2", "make_2", "model_2", "reg_state_2",
+    "Time of Call", "Time In", "Time Out", "Time Dispatched",
+    "RMS_location", "CAD_location", "FullAddress", "FullAddress2",
+    "RMS_Grid", "CAD_Grid", "RMS_Zone", "CAD_Zone",
+    "CADNotes", "narrative_raw"
+]
+
+df_final = df.drop(columns=columns_to_drop, errors='ignore')
+```
+
+────────────────────────────────────────────────────────────────────────────
+
+================================================================================
+PART 4: IMPLEMENTATION GUIDANCE
+================================================================================
+
+4.1 PRIORITY IMPLEMENTATION ORDER
+──────────────────────────────────
+
+PHASE 1 (CRITICAL - Implement First):
+──────────────────────────────────────
+
+1. Field Format Validation
+   - How Reported domain (12 values)
+   - Disposition domain (19 values)
+   - Sex domain (2 values)
+   - Race domain (8 values)
+   - Post domain (5 values)
+
+2. Time Calculation Validation
+   - Response time negative detection
+   - Response time outlier detection (> 8 hours)
+   - Time spent negative detection
+   - Time spent outlier detection (> 12 hours)
+   - Timestamp sequence validation
+
+3. Address Format Validation
+   - Street number presence check
+   - Street name presence check
+   - City validation (must be Hackensack)
+   - Intersection format validation
+
+PHASE 2 (IMPORTANT - Implement Second):
+────────────────────────────────────────
+
+4. Call Type Category Validation
+   - Incident-to-category mapping validation
+   - Response type domain validation (3 values)
+   - Category-response consistency check
+
+5. Zone & Grid Backfill Validation
+   - Zone-grid master reference check
+   - Post-zone consistency check
+   - Null rate validation
+
+6. Data Completeness Checks
+   - Critical field null rate check (0% target)
+   - Important field null rate check (<5% target)
+   - Overall completeness score calculation
+
+PHASE 3 (ENHANCEMENTS - Implement Last):
+─────────────────────────────────────────
+
+7. Text Normalization Validation
+   - Squad uppercase check
+   - Reviewed By title case check
+   - Narrative special character check
+
+8. Derived Field Validation
+   - TimeOfDay binning verification
+   - Season calculation verification
+   - Date enrichment columns verification
+
+9. Advanced Analytics
+   - PrevIncidents7Day calculation
+   - PctRepeatLocation calculation
+   - NarrativeLength calculation
+   - TimeToDispatch calculation
+   - OnSceneDuration calculation
+
+────────────────────────────────────────────────────────────────────────────
+
+4.2 INTEGRATION WITH EXISTING VALIDATORS
+─────────────────────────────────────────
+
+EXISTING VALIDATORS (CAD_Data_Cleaning_Engine):
+────────────────────────────────────────────────
+
+Location: CAD_Data_Cleaning_Engine/scripts/validation/
+
+Files to integrate with:
+  - validate_esri_polished_dataset.py (main validator)
+  - validate_cad_export_parallel.py (high-performance validator)
+  - ../enhanced_esri_output_generator.py (normalization engine)
+
+INTEGRATION STRATEGY:
+─────────────────────
+
+Option A: Extend Existing Validators
+  - Add new validation checks to existing scripts
+  - Maintain backward compatibility
+  - Update configuration files
+
+Option B: Create New Comprehensive Validator
+  - Build new validator incorporating all logic
+  - Keep existing validators for comparison
+  - Provide migration path
+
+RECOMMENDED: Option B (Create New Comprehensive Validator)
+  - Location: cad_rms_data_quality/monthly_validation/scripts/
+  - Name: validate_monthly_comprehensive.py
+  - Import and reuse logic from existing validators
+  - Add new validation checks from this reference library
+
+────────────────────────────────────────────────────────────────────────────
+
+4.3 CONFIGURATION FILES NEEDED
+───────────────────────────────
+
+CREATE THESE CONFIGURATION FILES:
+──────────────────────────────────
+
+1. config/transformation_rules.yaml
+   ─────────────────────────────────
+   Contains:
+   - Column renaming mappings
+   - Field normalization rules
+   - Text cleaning patterns
+   - Date/time cascading priorities
+
+2. config/domain_values.yaml
+   ─────────────────────────
+   Contains:
+   - How Reported valid values (12)
+   - Disposition valid values (19)
+   - Sex valid values (2)
+   - Race valid values (8)
+   - Post valid values (5)
+   - Response Type valid values (3)
+   - Category Type valid values (11)
+
+3. config/validation_thresholds.yaml
+   ──────────────────────────────────
+   Contains:
+   - Response time limits (min/max)
+   - Time spent limits (min/max)
+   - Null rate thresholds by field
+   - Completeness score targets
+   - Quality score weights
+
+4. config/address_validation_rules.yaml
+   ─────────────────────────────────────
+   Contains:
+   - Required address format regex
+   - City validation rules
+   - Intersection patterns
+   - Street name validation rules
+   - Hackensack street names reference path
+
+5. config/zone_grid_reference.yaml
+   ────────────────────────────────
+   Contains:
+   - Zone-grid master file path
+   - Post-zone mappings
+   - Grid validation rules
+
+────────────────────────────────────────────────────────────────────────────
+
+================================================================================
+SUMMARY AND NEXT STEPS
+================================================================================
+
+WHAT THIS DOCUMENT PROVIDES:
+────────────────────────────
+
+√ Complete catalog of transformation logic from 09_Reference/Code
+√ All validation rules from 09_Reference classifications
+√ Python implementations for all transformations
+√ Validation checks for all critical fields
+√ Integration guidance with existing validators
+√ Configuration file specifications
+
+WHAT YOU NEED TO DO:
+────────────────────
+
+1. Review this document alongside VALIDATION_GAP_ANALYSIS_AND_SOLUTIONS.txt
+2. Prioritize which validations to implement first (see Part 4.1)
+3. Create configuration files (see Part 4.3)
+4. Implement validators following Phase 1, 2, 3 order
+5. Test with January 2026 data
+6. Deploy for February 2026 monthly validation
+
+ESTIMATED IMPLEMENTATION TIME:
+───────────────────────────────
+
+Phase 1 (Critical):        3-4 days
+Phase 2 (Important):       2-3 days
+Phase 3 (Enhancements):    2-3 days
+Testing & Documentation:   2 days
+─────────────────────────────────
+TOTAL:                     9-12 days
+
+READY TO PROCEED:
+─────────────────
+
+You now have:
+  √ Complete validation logic from Standards
+  √ Complete transformation logic from Code library
+  √ Implementation roadmap
+  √ Configuration specifications
+  √ Integration strategy
+
+Next conversation: Discuss which phase to implement first and create the
+comprehensive monthly validator script!
+
+================================================================================
+END OF REFERENCE LIBRARY
+================================================================================

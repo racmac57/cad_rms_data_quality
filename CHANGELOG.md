@@ -12,6 +12,96 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### In Progress
 - Monthly validation framework (Phase 2)
 - Comprehensive validator implementation
+- Speed optimizations (Milestone 4)
+
+---
+
+## [1.2.2] - 2026-02-01
+
+### Added - Expansion Plan Implementation (Milestone 3: Server Copy + ArcPy)
+
+#### PowerShell Script Enhancement (copy_consolidated_dataset_to_server.ps1)
+- Script now reads from `13_PROCESSED_DATA/manifest.json` to find latest polished file
+- Removed hardcoded paths - dynamically resolves source file location
+- Added `-DryRun` switch for testing without file copy
+- Added file integrity verification (size comparison after copy)
+- Displays manifest metadata (record count, date range, run type) during execution
+- Version updated to 2.0.0
+
+#### ArcPy Import Script (docs/arcgis/import_cad_polished_to_geodatabase.py)
+- New arcpy script for importing Excel to geodatabase using `ExcelToTable`
+- Includes pre-flight checks (arcpy availability, license, file existence)
+- Automatic backup of existing table before overwrite
+- Post-import verification (record count, field validation, date range check)
+- Configurable paths for source file and target geodatabase
+- Detailed logging with timestamps
+
+#### ArcGIS Documentation (docs/arcgis/README.md)
+- Complete workflow guide: consolidation -> server copy -> geodatabase import
+- Order of operations with step-by-step instructions
+- Configuration reference for server paths
+- Troubleshooting section for common issues
+- Data flow diagram showing local to server pipeline
+- Links to REMOTE_SERVER_GUIDE.md for comprehensive server documentation
+
+---
+
+## [1.2.1] - 2026-02-01
+
+### Added - Expansion Plan Implementation (Milestone 2: Reports Reorganization)
+
+#### Reports Directory Structure
+- Reports now written to `consolidation/reports/YYYY_MM_DD_<run_type>/` instead of flat `outputs/consolidation/`
+- Each run creates its own timestamped folder (e.g., `2026_02_01_consolidation/`)
+- `consolidation/reports/latest.json` tracks most recent run for easy lookup
+
+#### Script Updates (consolidate_cad_2019_2026.py)
+- Added `get_report_directory()` function to generate run-specific report folders
+- Added `update_latest_pointer()` function to update `latest.json` after each run
+- Added `consolidation_metrics.json` output with machine-readable run stats
+- Reports include: `consolidation_summary.txt`, `consolidation_metrics.json`
+
+#### Legacy Migration
+- Migrated 26 files from `outputs/consolidation/` to `consolidation/reports/2026_01_31_legacy/`
+- Preserved all historical reports, guides, and analysis documents
+
+---
+
+## [1.2.0] - 2026-02-01
+
+### Added - Expansion Plan Implementation (Milestone 1: Paths and Baseline)
+
+#### New Directory Structure: 13_PROCESSED_DATA
+- Created `13_PROCESSED_DATA/ESRI_Polished/base/` - Immutable baseline storage
+- Created `13_PROCESSED_DATA/ESRI_Polished/incremental/` - Incremental run outputs
+- Created `13_PROCESSED_DATA/ESRI_Polished/full_rebuild/` - Full consolidation outputs
+- Created `13_PROCESSED_DATA/archive/` - Old files after schema changes
+- Created `13_PROCESSED_DATA/README.md` - Directory usage documentation
+- Created `13_PROCESSED_DATA/manifest.json` - Latest file registry (machine-readable)
+
+#### Baseline Dataset
+- Copied `CAD_ESRI_POLISHED_20260131_014644.xlsx` to baseline location
+- Baseline file: `CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx` (71.4 MB)
+- Records: 724,794 | Unique cases: 559,202 | Date range: 2019-01-01 to 2026-01-30
+
+#### Configuration Enhancements (config/consolidation_sources.yaml)
+- Added `baseline` section: enabled, path, date_range, record_count, checksum
+- Added `incremental` section: enabled, mode (append/full), last_run_date, dedup_strategy
+- Added `performance` section: parallel_loading, chunked_reading, memory_optimization, esri_generation
+- Added `processed_data` section: root paths, manifest_path, naming conventions
+- Added `output` section: base_directory, consolidated_filename, report/log directories
+- Added `validation` section: min_quality_score, max_duplicate_rate, expected_total_records
+- Added `metadata` section: config_version, standards_version, last_updated
+- Config version updated to 2.0.0
+
+#### Report Infrastructure
+- Created `consolidation/reports/` directory
+- Created `consolidation/reports/latest.json` - Pointer to most recent run
+- Created `consolidation/reports/.gitkeep` - Preserve directory in git
+
+### Changed
+- Config file `consolidation_sources.yaml` expanded from 73 lines to ~170 lines
+- Added January 2026 monthly file to sources list
 
 ---
 
@@ -288,7 +378,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 | 1.0.2 | 2026-01-30 | ✅ Complete | Record verification and RMS standardization |
 | 1.1.0 | 2026-01-31 | ✅ Complete | Consolidation implementation operational |
 | 1.1.1 | 2026-01-31 | ✅ Complete | Complete January consolidation (724,794 records) |
-| Next | TBD | 🚧 Planned | Monthly validation framework |
+| 1.2.0 | 2026-02-01 | ✅ Complete | Expansion Plan Milestone 1 (Paths & Baseline) |
+| 1.2.1 | 2026-02-01 | ✅ Complete | Expansion Plan Milestone 2 (Reports Reorganization) |
+| 1.2.2 | 2026-02-01 | ✅ Complete | Expansion Plan Milestone 3 (Server Copy + ArcPy) |
+| Next | TBD | 🚧 Planned | Expansion Plan Milestone 4 (Speed Optimizations) |
 
 ---
 
@@ -308,7 +401,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/racmac57/cad_rms_data_quality/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/racmac57/cad_rms_data_quality/compare/v1.2.2...HEAD
+[1.2.2]: https://github.com/racmac57/cad_rms_data_quality/compare/v1.2.1...v1.2.2
+[1.2.1]: https://github.com/racmac57/cad_rms_data_quality/compare/v1.2.0...v1.2.1
+[1.2.0]: https://github.com/racmac57/cad_rms_data_quality/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/racmac57/cad_rms_data_quality/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/racmac57/cad_rms_data_quality/compare/v1.0.2...v1.1.0
 [1.0.2]: https://github.com/racmac57/cad_rms_data_quality/compare/v1.0.1...v1.0.2

@@ -1,10 +1,10 @@
 # CAD/RMS Data Quality System
 
-**Version:** 1.1.1 (Complete January Consolidation)  
-**Created:** 2026-01-29  
-**Updated:** 2026-01-31  
-**Author:** R. A. Carucci  
-**Status:** ✅ Phase 1 Complete - 724,794 Records Ready for ArcGIS Pro Import
+**Version:** 1.2.2 (Expansion Plan - Milestone 3 Complete)
+**Created:** 2026-01-29
+**Updated:** 2026-02-01
+**Author:** R. A. Carucci
+**Status:** ✅ Server Copy + ArcPy Scripts Complete - 724,794 Records in Production
 
 ---
 
@@ -83,6 +83,9 @@ cad_rms_data_quality/
 │   └── fixtures/                      # Test data (empty)
 │
 └── docs/                       # Documentation
+    ├── arcgis/                        # ArcGIS import documentation ✅
+    │   ├── README.md                  # Workflow guide for geodatabase import ✅
+    │   └── import_cad_polished_to_geodatabase.py  # arcpy import script ✅
     ├── ARCHITECTURE.md                # System design (TO DO)
     ├── MIGRATION_NOTES.md             # What came from legacy projects (TO DO)
     ├── CONSOLIDATION_GUIDE.md         # How to run consolidation (TO DO)
@@ -299,6 +302,43 @@ See `outputs/consolidation/CAD_CONSOLIDATION_EXECUTION_GUIDE.txt` for detailed i
 3. **Modular Design**: Shared utilities reusable across consolidation and monthly validation
 4. **Production-Ready**: Pre-run/post-run checks, audit trails, comprehensive logging
 5. **Performance-Optimized**: Vectorized operations, parallel processing, quality scoring
+6. **Baseline + Incremental**: Load baseline once, append new monthly data only (skip re-reading 7 years)
+
+---
+
+## Processed Data Location (13_PROCESSED_DATA)
+
+**Location:** `C:\Users\carucci_r\OneDrive - City of Hackensack\13_PROCESSED_DATA\`
+
+Production-ready ESRI polished datasets are stored here:
+
+```
+13_PROCESSED_DATA/
+├── manifest.json                    # Latest file registry (read this first!)
+├── README.md                        # Usage documentation
+└── ESRI_Polished/
+    ├── base/                        # Immutable baseline (724,794 records)
+    │   └── CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx
+    ├── incremental/                 # Incremental run outputs
+    │   └── YYYY_MM_DD_append/
+    └── full_rebuild/                # Full consolidation outputs
+```
+
+### Finding the Latest File
+```powershell
+# PowerShell: Read manifest.json
+$manifest = Get-Content "C:\...\13_PROCESSED_DATA\manifest.json" | ConvertFrom-Json
+$latestPath = $manifest.latest.full_path
+Write-Host "Latest: $latestPath ($($manifest.latest.record_count) records)"
+```
+
+### Baseline Dataset
+- **File:** `CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx`
+- **Records:** 724,794 | **Unique cases:** 559,202
+- **Date range:** 2019-01-01 to 2026-01-30
+- **Created:** 2026-01-31
+
+Incremental runs load this baseline and append only new monthly data, avoiding re-processing 7 years of records
 
 ---
 

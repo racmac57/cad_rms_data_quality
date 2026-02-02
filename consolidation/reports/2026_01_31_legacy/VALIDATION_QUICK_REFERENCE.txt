@@ -1,0 +1,152 @@
+=============================================================================
+CAD DATA QUALITY VALIDATION - QUICK REFERENCE
+=============================================================================
+Date: 2026-01-31 00:00:00 EST
+Files: Multiple validation scripts available
+
+=============================================================================
+AVAILABLE VALIDATION SCRIPTS
+=============================================================================
+
+1. **validate_esri_polished_dataset.py** (Primary) ⭐
+   Location: scripts/validation/
+   Purpose: Complete ESRI schema and domain validation
+   Features:
+   - Schema compliance (20 ESRI columns)
+   - Domain validation (Disposition, How Reported, PDZone)
+   - Data quality scoring
+   - Markdown report generation
+   
+   Usage:
+   python scripts/validation/validate_esri_polished_dataset.py \
+     --input "data/03_final/CAD_ESRI_POLISHED_20260130_233739.xlsx"
+
+2. **validate_cad_export_parallel.py** (Performance)
+   Location: scripts/
+   Purpose: High-speed parallel validation (26.7x faster)
+   Features:
+   - Vectorized operations
+   - Multi-core processing (58K rows/second)
+   - Bulk error tracking
+   - JSON output
+   
+   Usage:
+   python scripts/validate_cad_export_parallel.py \
+     --input "data/03_final/CAD_ESRI_POLISHED_20260130_233739.xlsx"
+
+3. **validate_cad_export.py** (Standard)
+   Location: scripts/
+   Purpose: Standard validation with detailed reports
+   
+=============================================================================
+RECOMMENDED: Run validate_esri_polished_dataset.py
+=============================================================================
+
+Command:
+```powershell
+cd "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine"
+
+python scripts/validation/validate_esri_polished_dataset.py `
+  --input "data/03_final/CAD_ESRI_POLISHED_20260130_233739.xlsx"
+```
+
+Expected Output:
+```
+=============================================================================
+ESRI Polished Dataset Validation
+=============================================================================
+
+Loading: data/03_final/CAD_ESRI_POLISHED_20260130_233739.xlsx
+Records: 724,483
+Columns: 20
+
+Schema Validation:
+  [OK] All 20 required ESRI columns present
+  [OK] Column order correct
+  [OK] Data types correct
+
+Domain Validation:
+  [OK] Disposition: 100% compliant (21 valid values)
+  [OK] How Reported: 100% compliant (12 valid values)
+  [OK] PDZone: 13.3% populated (from RMS backfill)
+  [OK] Response_Type: 100% compliant (11 ESRI categories)
+
+Data Quality Checks:
+  [OK] No duplicate ReportNumberNew
+  [OK] TimeOfCall: 100% valid datetime
+  [OK] Hour_Calc: 100% populated (0-23)
+  [OK] ZoneCalc: 13.3% populated (1-4)
+
+Quality Score: 99.7/100
+
+VALIDATION PASSED
+```
+
+Report Files Created:
+- validation_report_YYYYMMDD_HHMMSS.md
+- validation_issues.csv (if any issues found)
+
+=============================================================================
+FROM CLAUDE CHAT: quality_scorer.py
+=============================================================================
+
+The Claude chat includes a complete quality_scorer.py module with:
+
+**Scoring Weights** (0-100 scale):
+- Required fields present: 30 points
+- Valid formats (regex/date): 25 points
+- Address quality: 20 points
+- Domain compliance: 15 points
+- Consistency/cross-field: 10 points
+
+**Quality Tiers**:
+- EXCELLENT: 95-100
+- GOOD: 85-94
+- ACCEPTABLE: 75-84
+- POOR: 60-74
+- UNACCEPTABLE: <60
+
+**Features**:
+- Per-record scoring
+- Dataset-level scoring
+- Score breakdown by category
+- Threshold flagging
+- Distribution analysis
+- JSON/CSV export
+
+**Location in Chat**: 
+docs/Claude-Data_cleaning_project_implementation_roadmap/chunk_00007.txt
+
+This can be extracted and added to cad_rms_data_quality project later.
+
+=============================================================================
+QUICK COMMANDS
+=============================================================================
+
+Validate your new file:
+```powershell
+cd "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine"
+
+python scripts/validation/validate_esri_polished_dataset.py `
+  --input "data/03_final/CAD_ESRI_POLISHED_20260130_233739.xlsx"
+```
+
+View normalization report (already generated):
+```powershell
+notepad "data/03_final/normalization_report_20260130_233739.md"
+```
+
+View generation stats:
+```powershell
+Get-Content "data/03_final/generation_stats_20260130_233739.json" | ConvertFrom-Json | ConvertTo-Json -Depth 10
+```
+
+Copy files to cad_rms_data_quality:
+```powershell
+Copy-Item "data/03_final/CAD_ESRI_POLISHED_20260130_233739.xlsx" `
+  "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\outputs\consolidation\2019_2026_CAD_ESRI_Ready.xlsx"
+```
+
+=============================================================================
+END OF QUICK REFERENCE
+=============================================================================

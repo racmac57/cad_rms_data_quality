@@ -1,0 +1,536 @@
+=============================================================================
+RMS EXPORT DIRECTORY - ANALYSIS AND ACTION PLAN
+=============================================================================
+Date: 2026-01-30 20:30:00 EST
+Source: C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_RMS
+Goal: Standardize to match CAD directory structure (v2.0.0)
+
+=============================================================================
+CURRENT STATE ANALYSIS
+=============================================================================
+
+## RMS Directory Structure (Current)
+
+_RMS/
+├── yearly/                   ✅ EXISTS - Good structure, needs standardization
+│   ├── 2018/
+│   │   ├── raw/ (empty)
+│   │   └── 2018_FULL_RMS.xlsx (~6.3 MB)
+│   ├── 2019/
+│   │   ├── raw/ (empty)
+│   │   └── 2019_ALL_RMS.xlsx (~6.3 MB)
+│   ├── 2020/
+│   │   ├── raw/ (empty)
+│   │   └── 2020_ALL_RMS.xlsx (~5.2 MB)
+│   ├── 2021/
+│   │   ├── raw/ (empty)
+│   │   └── 2021_ALL_RMS.xlsx (~5.5 MB)
+│   ├── 2022/
+│   │   ├── raw/ (empty)
+│   │   └── 2022_ALL_RMS.xlsx (~6.6 MB)
+│   ├── 2023/
+│   │   ├── raw/ (empty)
+│   │   └── 2023_ALL_RMS.xlsx (~6.7 MB)
+│   ├── 2024/
+│   │   ├── raw/ (empty)
+│   │   └── 2024_ALL_RMS.xlsx (~7.4 MB)
+│   ├── 2025/
+│   │   ├── raw/ (empty)
+│   │   └── 2025_01_10_All_RMS.xlsx (~5.1 MB) ⚠️ NON-STANDARD NAME
+│   └── 2026/
+│       └── raw/ (empty)
+│
+├── monthly/                  ✅ EXISTS - Well organized
+│   ├── 2025/
+│   │   ├── 2025_10_RMS.xlsx ✅ STANDARD NAME
+│   │   ├── 2025_11_RMS.xlsx ✅ STANDARD NAME
+│   │   └── 2025_12_RMS.xlsx ✅ STANDARD NAME
+│   └── 2026/ (empty)
+│
+├── archive/                  ✅ EXISTS - Contains old exports
+│   ├── 2024/, 2025/, 2026/
+│   ├── MAIN_STREET/
+│   ├── MVA/
+│   └── OldExports/
+│
+├── scrpa/                    ✅ EXISTS - SCRPA reports
+│   ├── archive/ (multiple dated subdirs)
+│   └── place/
+│
+├── rolling_13/               ✅ EXISTS
+└── 99_sample/                ✅ EXISTS - Test data
+
+MISSING:
+❌ csv/ directory (no CSV exports exist yet)
+❌ csv/yearly/ subdirectory
+❌ csv/monthly/ subdirectory
+❌ README.md (no documentation)
+❌ csv_export_checklist.txt (no file inventory)
+
+=============================================================================
+COMPARISON WITH CAD STRUCTURE
+=============================================================================
+
+Feature                     | CAD (_CAD)        | RMS (_RMS)       | Status
+----------------------------|-------------------|------------------|--------
+yearly/ directory           | ✅ YYYY_CAD_ALL   | ⚠️ Mixed names   | NEEDS FIX
+monthly/ directory          | ✅ YYYY_MM_CAD    | ✅ YYYY_MM_RMS   | GOOD
+csv/ directory              | ✅ With yearly/   | ❌ Missing       | NEEDS CREATE
+csv/yearly/                 | ✅ 14 files       | ❌ Missing       | NEEDS CREATE
+csv/monthly/                | ✅ 3 files        | ❌ Missing       | NEEDS CREATE
+raw/ subdirectories         | ❌ Removed        | ⚠️ Empty dirs    | NEEDS CLEANUP
+README.md                   | ✅ v2.0.0         | ❌ Missing       | NEEDS CREATE
+csv_export_checklist.txt    | ✅ Exists         | ❌ Missing       | NEEDS CREATE
+ESRI_export_report.txt      | ✅ Exists         | ❌ N/A           | NOT NEEDED
+archive/ structure          | ✅ Clean          | ✅ Clean         | GOOD
+99_sample/                  | ✅ Exists         | ✅ Exists        | GOOD
+
+=============================================================================
+CRITICAL ISSUES IDENTIFIED
+=============================================================================
+
+## ISSUE 1: Inconsistent Filename in yearly/2025/
+────────────────────────────────────────────────────────────────────────────
+Priority: HIGH
+Current: 2025_01_10_All_RMS.xlsx (non-standard, includes month/day)
+Expected: 2025_ALL_RMS.xlsx (standard yearly format)
+Impact: Breaks pattern matching and automation
+
+Action:
+  Rename-Item "...\yearly\2025\2025_01_10_All_RMS.xlsx" "2025_ALL_RMS.xlsx"
+
+## ISSUE 2: Inconsistent Filename in yearly/2018/
+────────────────────────────────────────────────────────────────────────────
+Priority: HIGH
+Current: 2018_FULL_RMS.xlsx (uses FULL instead of ALL)
+Expected: 2018_ALL_RMS.xlsx (standard format)
+Impact: Inconsistent naming convention
+
+Action:
+  Rename-Item "...\yearly\2018\2018_FULL_RMS.xlsx" "2018_ALL_RMS.xlsx"
+
+## ISSUE 3: Empty raw/ Subdirectories
+────────────────────────────────────────────────────────────────────────────
+Priority: MEDIUM
+Description: All yearly/YYYY/raw/ directories are empty (legacy structure)
+Impact: Clutters directory tree, serves no purpose
+
+Action:
+  Remove all empty raw/ subdirectories:
+  Get-ChildItem "...\yearly" -Recurse -Directory -Filter "raw" | 
+    Where-Object {(Get-ChildItem $_.FullName).Count -eq 0} | 
+    Remove-Item -Force
+
+## ISSUE 4: Missing csv/ Directory Structure
+────────────────────────────────────────────────────────────────────────────
+Priority: HIGH
+Description: No CSV export infrastructure exists for RMS
+Impact: Cannot generate CSV exports for downstream processing
+
+Action:
+  New-Item -ItemType Directory "...\05_EXPORTS\_RMS\csv\yearly" -Force
+  New-Item -ItemType Directory "...\05_EXPORTS\_RMS\csv\monthly" -Force
+
+## ISSUE 5: No CSV Exports Exist
+────────────────────────────────────────────────────────────────────────────
+Priority: HIGH
+Description: No CSV versions of XLSX files (unlike CAD which has 17 CSVs)
+Impact: Data not available in CSV format for quality pipeline
+
+Action:
+  Create adapted export_raw_csv.py for RMS data
+  Run to generate CSV exports from all yearly and monthly XLSX files
+
+## ISSUE 6: No Documentation Files
+────────────────────────────────────────────────────────────────────────────
+Priority: MEDIUM
+Description: Missing README.md and csv_export_checklist.txt
+Impact: No documentation of structure, no file inventory
+
+Action:
+  Create README.md matching CAD format (adapted for RMS)
+  Create csv_export_checklist.txt after CSV generation
+
+=============================================================================
+CAD DIRECTORY ISSUES (From Review)
+=============================================================================
+
+## CAD ISSUE 1: Duplicate/Old CSV Exports in full_year/csv/
+────────────────────────────────────────────────────────────────────────────
+Priority: HIGH
+Description: Legacy CSV exports exist in full_year/csv/ with timestamp subdirs
+Location: full_year/csv/YYYY_*_CAD_2025-11-13_HHMM/
+Impact: Duplication, confusion about canonical source, storage waste
+
+Current Structure:
+  full_year/csv/
+  ├── 2012_ALL_CAD_2025-11-13_2110/
+  │   └── 2012_ALL_CAD.csv
+  ├── 2019_ALL_CAD_2025-11-13_1917/
+  │   ├── 2019_ALL_CAD.csv
+  │   └── manifest.json
+  └── ... (9+ timestamped subdirectories)
+
+Canonical Structure (CORRECT):
+  csv/yearly/
+  ├── 2012_CAD_ALL_ESRI.csv
+  ├── 2013_CAD_ALL_ESRI.csv
+  └── ... (14 files)
+
+Action:
+  Remove all legacy CSV exports in full_year/csv/:
+  Remove-Item "...\05_EXPORTS\_CAD\full_year\csv" -Recurse -Force
+
+Rationale:
+  - New ESRI CSVs in csv/yearly/ are authoritative (2026-01-30)
+  - Old CSVs from Nov 2025 are superseded
+  - Timestamped subdirs add unnecessary complexity
+
+## CAD ISSUE 2: Empty raw/ Subdirectories in full_year/
+────────────────────────────────────────────────────────────────────────────
+Priority: LOW
+Description: full_year/YYYY/raw/ directories contain XLSX files
+Status: NOT AN ISSUE - These are the legacy source files
+Action: None (keep for backward compatibility per README v2.0.0)
+
+=============================================================================
+STANDARDIZATION PLAN
+=============================================================================
+
+## Target State: RMS Directory Structure (v2.0.0)
+
+_RMS/
+├── yearly/                   # CANONICAL - Full-year XLSX source files
+│   ├── 2018/
+│   │   └── 2018_ALL_RMS.xlsx ← RENAMED from 2018_FULL_RMS.xlsx
+│   ├── 2019/
+│   │   └── 2019_ALL_RMS.xlsx
+│   ├── 2020/
+│   │   └── 2020_ALL_RMS.xlsx
+│   ├── 2021/
+│   │   └── 2021_ALL_RMS.xlsx
+│   ├── 2022/
+│   │   └── 2022_ALL_RMS.xlsx
+│   ├── 2023/
+│   │   └── 2023_ALL_RMS.xlsx
+│   ├── 2024/
+│   │   └── 2024_ALL_RMS.xlsx
+│   └── 2025/
+│       └── 2025_ALL_RMS.xlsx ← RENAMED from 2025_01_10_All_RMS.xlsx
+│
+├── monthly/                  # CANONICAL - Monthly XLSX source files
+│   ├── 2025/
+│   │   ├── 2025_10_RMS.xlsx ✅
+│   │   ├── 2025_11_RMS.xlsx ✅
+│   │   └── 2025_12_RMS.xlsx ✅
+│   └── 2026/ (empty, ready for future)
+│
+├── csv/                      # NEW - Raw CSV exports (not ESRI-specific)
+│   ├── yearly/               # Raw yearly CSVs
+│   │   ├── 2018_ALL_RMS.csv
+│   │   ├── 2019_ALL_RMS.csv
+│   │   ├── ...
+│   │   └── 2025_ALL_RMS.csv
+│   └── monthly/              # Raw monthly CSVs
+│       ├── 2025_10_RMS.csv
+│       ├── 2025_11_RMS.csv
+│       └── 2025_12_RMS.csv
+│
+├── archive/                  # Legacy exports (keep as-is)
+├── scrpa/                    # SCRPA reports (keep as-is)
+├── rolling_13/               # Rolling aggregates (keep as-is)
+└── 99_sample/                # Test data (keep as-is)
+
+## Naming Convention Standard
+
+Yearly: YYYY_ALL_RMS.xlsx  (e.g., 2024_ALL_RMS.xlsx)
+Monthly: YYYY_MM_RMS.xlsx   (e.g., 2025_10_RMS.xlsx)
+CSV: Same as XLSX but .csv  (e.g., 2024_ALL_RMS.csv)
+
+NO ESRI-specific formatting for RMS - just raw CSV exports
+
+=============================================================================
+EXECUTION PLAN
+=============================================================================
+
+### PHASE 1: Standardize RMS Filenames
+────────────────────────────────────────────────────────────────────────────
+powershell
+cd "C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_RMS\yearly"
+
+# Fix 2018 filename
+Rename-Item "2018\2018_FULL_RMS.xlsx" "2018_ALL_RMS.xlsx"
+
+# Fix 2025 filename
+Rename-Item "2025\2025_01_10_All_RMS.xlsx" "2025_ALL_RMS.xlsx"
+
+
+### PHASE 2: Remove Empty raw/ Directories
+────────────────────────────────────────────────────────────────────────────
+powershell
+cd "C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_RMS\yearly"
+
+# Remove all empty raw/ subdirectories
+Get-ChildItem -Recurse -Directory -Filter "raw" | 
+  Where-Object {(Get-ChildItem $_.FullName).Count -eq 0} | 
+  Remove-Item -Force
+
+# Verify removal
+Get-ChildItem -Recurse -Directory -Filter "raw"
+
+
+### PHASE 3: Create RMS CSV Directory Structure
+────────────────────────────────────────────────────────────────────────────
+powershell
+cd "C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_RMS"
+
+# Create csv directories
+New-Item -ItemType Directory "csv\yearly" -Force
+New-Item -ItemType Directory "csv\monthly" -Force
+
+
+### PHASE 4: Clean CAD Legacy CSV Exports
+────────────────────────────────────────────────────────────────────────────
+powershell
+cd "C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_CAD"
+
+# Backup verification: Ensure new ESRI CSVs exist
+Get-ChildItem "csv\yearly\*_ESRI.csv" | Measure-Object | Select-Object Count
+# Expected: Count = 14
+
+# Remove legacy timestamped CSV exports
+Remove-Item "full_year\csv" -Recurse -Force
+
+# Verify removal
+Test-Path "full_year\csv"  # Should return False
+
+
+### PHASE 5: Generate RMS CSV Exports
+────────────────────────────────────────────────────────────────────────────
+Use adapted export_raw_csv.py script (see SCRIPT section below)
+
+powershell
+cd "C:\Users\carucci_r\OneDrive - City of Hackensack\00_dev"
+
+# Generate all RMS CSVs
+python export_rms_csv.py
+
+
+Expected Outputs:
+  - csv/yearly/2018_ALL_RMS.csv
+  - csv/yearly/2019_ALL_RMS.csv
+  - ... (8 yearly files)
+  - csv/monthly/2025_10_RMS.csv
+  - csv/monthly/2025_11_RMS.csv
+  - csv/monthly/2025_12_RMS.csv
+
+### PHASE 6: Create RMS Documentation
+────────────────────────────────────────────────────────────────────────────
+Create these files in 05_EXPORTS\_RMS:
+  1. README.md (adapted from CAD README v2.0.0)
+  2. csv_export_checklist.txt (list of all XLSX files)
+
+### PHASE 7: Update Quality Project Configuration
+────────────────────────────────────────────────────────────────────────────
+Add RMS source configuration to cad_rms_data_quality project:
+  - Create config/rms_sources.yaml
+  - Reference yearly/YYYY/YYYY_ALL_RMS.xlsx files
+  - Reference monthly/YYYY/YYYY_MM_RMS.xlsx files
+
+=============================================================================
+SCRIPT: export_rms_csv.py (ADAPTED FROM export_raw_csv.py)
+=============================================================================
+
+(See next section for complete script)
+
+Key Changes from export_raw_csv.py:
+  1. Change base_dir to _RMS
+  2. No ESRI-specific transformations (keep all columns as-is)
+  3. Simple XLSX → CSV conversion
+  4. Generate csv_export_checklist.txt
+  5. Write RMS_export_report.txt log
+
+=============================================================================
+DETAILED FILENAME ANALYSIS
+=============================================================================
+
+## RMS Yearly Files (Current vs Standard)
+
+Year | Current Name                | Standard Name        | Status
+-----|----------------------------|----------------------|--------
+2018 | 2018_FULL_RMS.xlsx         | 2018_ALL_RMS.xlsx   | ⚠️ RENAME
+2019 | 2019_ALL_RMS.xlsx          | 2019_ALL_RMS.xlsx   | ✅ OK
+2020 | 2020_ALL_RMS.xlsx          | 2020_ALL_RMS.xlsx   | ✅ OK
+2021 | 2021_ALL_RMS.xlsx          | 2021_ALL_RMS.xlsx   | ✅ OK
+2022 | 2022_ALL_RMS.xlsx          | 2022_ALL_RMS.xlsx   | ✅ OK
+2023 | 2023_ALL_RMS.xlsx          | 2023_ALL_RMS.xlsx   | ✅ OK
+2024 | 2024_ALL_RMS.xlsx          | 2024_ALL_RMS.xlsx   | ✅ OK
+2025 | 2025_01_10_All_RMS.xlsx    | 2025_ALL_RMS.xlsx   | ⚠️ RENAME
+
+Total Files: 8 (2018-2025)
+Need Rename: 2 (2018, 2025)
+
+## RMS Monthly Files (Current)
+
+File                    | Status
+------------------------|--------
+2025_10_RMS.xlsx       | ✅ PERFECT (matches CAD pattern)
+2025_11_RMS.xlsx       | ✅ PERFECT
+2025_12_RMS.xlsx       | ✅ PERFECT
+
+Total Files: 3 (2025 Q4)
+Need Changes: 0
+
+=============================================================================
+CAD CSV CLEANUP ANALYSIS
+=============================================================================
+
+## Legacy CSV Location: full_year/csv/
+
+Timestamp Subdirectories Found:
+  - 2012_ALL_CAD_2025-11-13_2110/ (1 file)
+  - 2013_ALL_CAD_2025-11-13_2110/ (2 files: CSV + manifest)
+  - 2014_ALL_CAD_2025-11-13_2110/ (1 file)
+  - 2015_ALL_CAD_2025-11-13_2110/ (2 files)
+  - 2016_ALL_CAD_2025-11-13_2110/ (2 files)
+  - 2017_ALL_CAD_2025-11-13_2110/ (2 files)
+  - 2018_ALL_CAD_2025-11-13_2110/ (2 files)
+  - 2019_ALL_CAD_2025-11-13_1917/ (2 files)
+  - 2020_ALL_CAD_2025-11-13_1919/ (2 files)
+  - 2021_ALL_CAD_2025-11-13_1919/ (2 files)
+  - 2022_CAD_ALL_2025-11-13_2052/ (2 files)
+  - 2023_CAD_ALL_2025-11-13_2052/ (2 files)
+  - 2024_CAD_ALL_2025-11-13_2050/ (2 files)
+  - 25_01_10_All_CAD_2025-11-13_2110/ (2 files)
+
+Total: ~20+ files in legacy location
+Created: 2025-11-13 (Nov 2025)
+Status: SUPERSEDED by csv/yearly/ ESRI exports (2026-01-30)
+
+## Current CSV Location: csv/yearly/
+
+ESRI-Formatted CSVs:
+  - 14 files (2012-2025)
+  - Created: 2026-01-30 18:17-18:21
+  - Naming: YYYY_CAD_ALL_ESRI.csv
+  - Schema: ESRI-compatible (11 columns)
+  - Status: ✅ CURRENT/AUTHORITATIVE
+
+Action: SAFE TO DELETE full_year/csv/
+Rationale:
+  1. Legacy exports are 2+ months old (Nov 2025)
+  2. New ESRI exports are current (Jan 2026)
+  3. New exports have better schema and naming
+  4. Legacy structure uses confusing timestamp subdirs
+
+=============================================================================
+RECOMMENDED EXECUTION ORDER
+=============================================================================
+
+EXECUTE IMMEDIATELY (5 minutes):
+
+1. Standardize RMS filenames
+   cd "C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_RMS\yearly"
+   Rename-Item "2018\2018_FULL_RMS.xlsx" "2018_ALL_RMS.xlsx"
+   Rename-Item "2025\2025_01_10_All_RMS.xlsx" "2025_ALL_RMS.xlsx"
+
+2. Clean empty raw/ directories
+   Get-ChildItem "C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_RMS\yearly" -Recurse -Directory -Filter "raw" | Where-Object {(Get-ChildItem $_.FullName).Count -eq 0} | Remove-Item -Force
+
+3. Create RMS CSV directory structure
+   cd "C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_RMS"
+   New-Item -ItemType Directory "csv\yearly" -Force
+   New-Item -ItemType Directory "csv\monthly" -Force
+
+4. Delete CAD legacy CSV exports
+   Remove-Item "C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_CAD\full_year\csv" -Recurse -Force
+
+EXECUTE NEXT (10-15 minutes):
+
+5. Create export_rms_csv.py script (see next document)
+
+6. Generate RMS CSV exports
+   cd "C:\Users\carucci_r\OneDrive - City of Hackensack\00_dev"
+   python export_rms_csv.py
+
+7. Create RMS documentation files
+   - README.md (adapted from CAD README)
+   - csv_export_checklist.txt (generated by script)
+
+EXECUTE FINAL (5 minutes):
+
+8. Update cad_rms_data_quality configuration
+   - Create config/rms_sources.yaml
+   - Add RMS paths to documentation
+
+=============================================================================
+VERIFICATION COMMANDS
+=============================================================================
+
+After all actions:
+
+## Verify RMS Structure
+powershell
+cd "C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_RMS"
+
+# Check yearly files (should be 8, all named YYYY_ALL_RMS.xlsx)
+Get-ChildItem "yearly\*\*.xlsx" | Select-Object Name
+
+# Check monthly files (should be 3, all named YYYY_MM_RMS.xlsx)
+Get-ChildItem "monthly\*\*.xlsx" | Select-Object Name
+
+# Check CSV files (should be 8 yearly + 3 monthly = 11 total)
+Get-ChildItem "csv\yearly\*.csv" | Measure-Object | Select-Object Count
+Get-ChildItem "csv\monthly\*.csv" | Measure-Object | Select-Object Count
+
+# Verify no empty raw/ directories remain
+Get-ChildItem "yearly" -Recurse -Directory -Filter "raw"  # Should be empty
+
+
+## Verify CAD Cleanup
+powershell
+cd "C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_CAD"
+
+# Verify legacy CSV directory is gone
+Test-Path "full_year\csv"  # Should return False
+
+# Verify ESRI CSVs still exist
+Get-ChildItem "csv\yearly\*_ESRI.csv" | Measure-Object | Select-Object Count
+# Expected: Count = 14
+
+# Verify monthly ESRI CSVs
+Get-ChildItem "csv\monthly\*_ESRI.csv" | Measure-Object | Select-Object Count
+# Expected: Count = 3 (or 4 after fixing 2025_11 issue)
+
+
+=============================================================================
+EXPECTED OUTCOMES
+=============================================================================
+
+RMS Directory:
+  ✅ 8 yearly files with standardized names (YYYY_ALL_RMS.xlsx)
+  ✅ 3 monthly files already standardized (YYYY_MM_RMS.xlsx)
+  ✅ 8 yearly CSV files (csv/yearly/)
+  ✅ 3 monthly CSV files (csv/monthly/)
+  ✅ No empty raw/ directories
+  ✅ README.md and csv_export_checklist.txt created
+
+CAD Directory:
+  ✅ Legacy CSV exports deleted (full_year/csv/)
+  ✅ ESRI CSVs remain as authoritative (csv/yearly/, csv/monthly/)
+  ✅ Reduced duplication and confusion
+
+Both Directories:
+  ✅ Matching structure: yearly/, monthly/, csv/, archive/, 99_sample/
+  ✅ Consistent naming: YYYY_ALL_[CAD|RMS].xlsx, YYYY_MM_[CAD|RMS].xlsx
+  ✅ Clear canonical sources for quality project
+
+=============================================================================
+NEXT DOCUMENT
+=============================================================================
+
+See: export_rms_csv.py (complete script adaptation)
+
+=============================================================================
+END OF ANALYSIS AND ACTION PLAN
+=============================================================================
