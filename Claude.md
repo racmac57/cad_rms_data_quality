@@ -51,7 +51,13 @@ This repository contains a unified data quality system for CAD (Computer-Aided D
 - Auto-generated report directories (YYYY_MM_DD_cad/, YYYY_MM_DD_rms/)
 - Added `monthly_processing` section to config (v2.1.0)
 
-### 🔜 Expansion Plan Milestone 6 (Pending)
+### ✅ Expansion Plan Milestone 6: Legacy Archive (2026-02-02)
+- Moved 5 legacy projects to `02_ETL_Scripts/_Archive/`
+- Created `_Archive/README.md` with detailed migration notes
+- Archived: CAD_Data_Cleaning_Engine, Combined_CAD_RMS, RMS_CAD_Combined_ETL, RMS_Data_ETL, RMS_Data_Processing
+- cad_rms_data_quality is now the single active project
+
+### ✅ Expansion Plan Complete
 
 | Milestone | Description | Status |
 |-----------|-------------|--------|
@@ -60,7 +66,7 @@ This repository contains a unified data quality system for CAD (Computer-Aided D
 | 3. Server Copy + ArcPy | Update PowerShell to use manifest, add arcpy script | ✅ Complete |
 | 4. Speed Optimizations | Parallel loading, chunked reads, incremental mode | ✅ Complete |
 | 5. Monthly Processing | validate_cad.py, validate_rms.py, action items | ✅ Complete |
-| 6. Legacy Archive | Move legacy projects to _Archive | 🔜 Next |
+| 6. Legacy Archive | Move legacy projects to _Archive | ✅ Complete |
 
 **Plan Reference:** `docs/Plan_Review_Package_For_Claude/CAD_RMS_Data_Quality_Expansion_Plan_ENHANCED.md`
 
@@ -586,30 +592,33 @@ Source file paths for 2019-2026 CAD consolidation. **Updated 2026-02-01** with b
 
 ## Legacy Projects (Archived)
 
-These projects were analyzed and valuable components migrated to this unified system:
+These projects have been moved to `02_ETL_Scripts/_Archive/` (Milestone 6, 2026-02-02):
 
-- **CAD_Data_Cleaning_Engine** - Validation framework, normalization rules (retained as reference)
-- **RMS_Data_ETL** - Address standardization (archived after migration)
-- **RMS_Data_Processing** - Time artifact fixes (archived after migration)
-- **RMS_CAD_Combined_ETL** - Empty skeleton (deleted)
+- **CAD_Data_Cleaning_Engine** - Validation framework, ESRI generator, normalization rules
+- **Combined_CAD_RMS** - CAD+RMS matching logic, PowerBI/Excel dashboards
+- **RMS_CAD_Combined_ETL** - Empty skeleton project (never developed)
+- **RMS_Data_ETL** - Address standardization, ArcGIS deployment guides
+- **RMS_Data_Processing** - Time artifact fixes, quality reporting
 
-See `docs/MIGRATION_NOTES.md` for complete migration details.
+**Archive Location:** `C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\_Archive\`
+
+See `_Archive/README.md` for detailed migration notes per project.
 
 ---
 
 ## Version Information
 
-**Current Version:** 1.2.4 (Expansion Plan - Milestone 5 Complete)
+**Current Version:** 1.2.5 (Expansion Plan - All Milestones Complete)
 **Created:** 2026-01-29
 **Last Updated:** 2026-02-02
 **Author:** R. A. Carucci
-**Status:** Monthly Processing Complete - validate_cad.py + validate_rms.py
+**Status:** Expansion Plan Complete - Legacy Projects Archived
 
-**Current Phase:** Expansion Plan Implementation (6 Milestones)
-- ✅ Milestone 1: Paths & Baseline (Complete)
-- ✅ Milestone 2: Reports Reorganization (Complete)
-- ✅ Milestone 3: Server Copy + ArcPy (Complete)
-- ✅ Milestone 4: Speed Optimizations (Complete)
-- ✅ Milestone 5: Monthly Processing (Complete)
-- 🔜 Milestone 6: Legacy Archive (Next)
+**Expansion Plan Implementation Complete:**
+- ✅ Milestone 1: Paths & Baseline (v1.2.0)
+- ✅ Milestone 2: Reports Reorganization (v1.2.1)
+- ✅ Milestone 3: Server Copy + ArcPy (v1.2.2)
+- ✅ Milestone 4: Speed Optimizations (v1.2.3)
+- ✅ Milestone 5: Monthly Processing (v1.2.4)
+- ✅ Milestone 6: Legacy Archive (v1.2.5)
 - See `docs/Plan_Review_Package_For_Claude/CAD_RMS_Data_Quality_Expansion_Plan_ENHANCED.md`

@@ -1,8 +1,8 @@
 # Project Summary - CAD/RMS Data Quality System
 
-**Version:** 1.2.4
+**Version:** 1.2.5
 **Last Updated:** 2026-02-02
-**Status:** Expansion Plan Milestone 5 Complete - Monthly Processing Done
+**Status:** Expansion Plan Complete - All 6 Milestones Done
 
 ---
 
@@ -112,7 +112,7 @@ See [CHANGELOG.md](CHANGELOG.md#111---2026-01-31) for complete details.
 | 3. Server Copy + ArcPy | Update PowerShell to use manifest, add arcpy script | ✅ Complete |
 | 4. Speed Optimizations | Parallel loading, chunked reads, incremental mode | ✅ Complete |
 | 5. Monthly Processing | validate_cad.py, validate_rms.py, action items export | ✅ Complete |
-| 6. Legacy Archive | Move legacy projects to _Archive | 🔜 Next |
+| 6. Legacy Archive | Move legacy projects to _Archive | ✅ Complete |
 
 ### Milestone 1 Complete (2026-02-01)
 - ✅ Created `13_PROCESSED_DATA/ESRI_Polished/` directory structure
@@ -149,6 +149,15 @@ See [CHANGELOG.md](CHANGELOG.md#111---2026-01-31) for complete details.
 - ✅ Auto-generated report directories (YYYY_MM_DD_cad/, YYYY_MM_DD_rms/)
 - ✅ Added `monthly_processing` section to config
 - ✅ Created proper Python package structure (shared/__init__.py, etc.)
+
+### Milestone 6 Complete (2026-02-02)
+- ✅ Moved 5 legacy projects to `02_ETL_Scripts/_Archive/`
+- ✅ Created `_Archive/README.md` with migration notes for each project
+- ✅ Archived: CAD_Data_Cleaning_Engine, Combined_CAD_RMS, RMS_CAD_Combined_ETL, RMS_Data_ETL, RMS_Data_Processing
+- ✅ cad_rms_data_quality is now the single active project for CAD/RMS data quality
+
+### Expansion Plan Complete
+All 6 milestones implemented. cad_rms_data_quality is the unified, production-ready system.
 
 ---
 

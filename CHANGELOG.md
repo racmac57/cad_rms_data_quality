@@ -9,8 +9,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### In Progress
-- Milestone 6: Legacy archive (move legacy projects to _Archive)
+### Completed
+- All 6 Expansion Plan milestones complete
+
+---
+
+## [1.2.5] - 2026-02-02
+
+### Added - Expansion Plan Implementation (Milestone 6: Legacy Archive)
+
+#### Legacy Projects Archived
+Moved 5 legacy projects to `02_ETL_Scripts/_Archive/`:
+- **CAD_Data_Cleaning_Engine** - Validation framework, ESRI generator, normalization rules
+- **Combined_CAD_RMS** - CAD+RMS matching, PowerBI/Excel dashboards
+- **RMS_CAD_Combined_ETL** - Empty skeleton project
+- **RMS_Data_ETL** - Address standardization, ArcGIS deployment guides
+- **RMS_Data_Processing** - Time artifact fixes, quality reporting
+
+#### Archive Documentation
+- Created `_Archive/README.md` with:
+  - Detailed description of each archived project
+  - What components were migrated to cad_rms_data_quality
+  - Why each project was archived
+  - Reference to active project entry points
+
+#### Expansion Plan Complete
+All 6 milestones of the Expansion Plan are now complete:
+1. Paths & Baseline (v1.2.0)
+2. Reports Reorganization (v1.2.1)
+3. Server Copy + ArcPy (v1.2.2)
+4. Speed Optimizations (v1.2.3)
+5. Monthly Processing (v1.2.4)
+6. Legacy Archive (v1.2.5)
 
 ---
 
