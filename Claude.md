@@ -57,6 +57,11 @@ This repository contains a unified data quality system for CAD (Computer-Aided D
 - Archived: CAD_Data_Cleaning_Engine, Combined_CAD_RMS, RMS_CAD_Combined_ETL, RMS_Data_ETL, RMS_Data_Processing
 - cad_rms_data_quality is now the single active project
 
+### v1.2.6 - Incremental 2026 Run & Validation Fixes (2026-02-02)
+- **Incremental consolidation**: Config uses 2026_01/02 CAD (and RMS) monthly paths; incremental mode uses only 2026 monthly files; January filtered by baseline IDs; February from 2026-02-01 onward. See `config/consolidation_sources.yaml` and `INCREMENTAL_RUN_GUIDE.md`.
+- **Copy script**: `scripts/copy_polished_to_processed_and_update_manifest.py` copies latest polished Excel to 13_PROCESSED_DATA and updates manifest.json (for `copy_consolidated_dataset_to_server.ps1` and ArcGIS).
+- **ReportNumberNew validation**: In `monthly_validation/scripts/validate_cad.py`, case-number column is forced to string on load and normalized (strip quotes, convert Excel numeric artifacts to YY-NNNNNN); regex pattern fallback when YAML pattern does not match; valid values like 26-000001 no longer flagged (quality score improved 68 → 93 for January CAD).
+
 ### ✅ Expansion Plan Complete
 
 | Milestone | Description | Status |
@@ -155,12 +160,13 @@ $latestPath = $manifest.latest.full_path
 ### Consolidation Workflow (Component 1)
 Run from repo root:
 ```bash
-# Historical consolidation (2019-2026)
-python consolidation/scripts/consolidate_cad.py
+# Historical consolidation (2019-2026, baseline + incremental)
+python consolidate_cad_2019_2026.py
 
-# Prepare ArcGIS-ready dataset
-python consolidation/scripts/prepare_arcgis.py
+# After CAD_Data_Cleaning_Engine produces polished Excel: copy to 13_PROCESSED_DATA and update manifest
+python scripts/copy_polished_to_processed_and_update_manifest.py
 ```
+See `INCREMENTAL_RUN_GUIDE.md` for full order of operations (consolidate → cleaning engine → copy script).
 
 ### Monthly Validation Workflow (Component 2)
 ```bash
@@ -608,11 +614,11 @@ See `_Archive/README.md` for detailed migration notes per project.
 
 ## Version Information
 
-**Current Version:** 1.2.5 (Expansion Plan - All Milestones Complete)
+**Current Version:** 1.2.6 (Incremental 2026 Run & Validation Fixes)
 **Created:** 2026-01-29
 **Last Updated:** 2026-02-02
 **Author:** R. A. Carucci
-**Status:** Expansion Plan Complete - Legacy Projects Archived
+**Status:** Expansion Plan Complete - Incremental Run & ReportNumberNew Fix
 
 **Expansion Plan Implementation Complete:**
 - ✅ Milestone 1: Paths & Baseline (v1.2.0)
@@ -621,4 +627,5 @@ See `_Archive/README.md` for detailed migration notes per project.
 - ✅ Milestone 4: Speed Optimizations (v1.2.3)
 - ✅ Milestone 5: Monthly Processing (v1.2.4)
 - ✅ Milestone 6: Legacy Archive (v1.2.5)
-- See `docs/Plan_Review_Package_For_Claude/CAD_RMS_Data_Quality_Expansion_Plan_ENHANCED.md`
+- v1.2.6: Incremental 2026 monthly (Jan/Feb), copy script, ReportNumberNew validation fix
+- See `docs/Plan_Review_Package_For_Claude/CAD_RMS_Data_Quality_Expansion_Plan_ENHANCED.md` and `INCREMENTAL_RUN_GUIDE.md`

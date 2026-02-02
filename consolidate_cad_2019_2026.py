@@ -490,43 +490,73 @@ def run_incremental_consolidation(config: Dict) -> Tuple[pd.DataFrame, str]:
     if abs(len(baseline_df) - expected_records) > 100:
         logger.warning(f"  [WARN] Record count mismatch: got {len(baseline_df):,}, expected {expected_records:,}")
 
-    # Step 2: Identify new monthly files (after baseline end date)
-    logger.info(f"\n[Step 2] Checking for new monthly files after {baseline_end_date}...")
+    # Step 2: Identify monthly files to append (from config or directory)
+    logger.info(f"\n[Step 2] Resolving monthly files (Jan: exclude already-in-baseline; Feb: from 2026-02-01)...")
 
     baseline_end = pd.Timestamp(baseline_end_date)
-    new_monthly_files = []
+    feb_start = pd.Timestamp("2026-02-01 00:00:00")
 
-    # Check monthly directory for files newer than baseline
-    monthly_2026_dir = CAD_ROOT / "monthly" / "2026"
-    if monthly_2026_dir.exists():
-        for file_path in monthly_2026_dir.glob("*.xlsx"):
-            # Skip files already in baseline
-            if "2026_01_01_to_2026_01_30" in file_path.name:
-                continue  # This is already in baseline
-            new_monthly_files.append(file_path)
-            logger.info(f"  Found new file: {file_path.name}")
+    # Baseline IDs for filtering January (avoid re-adding records already in baseline)
+    id_col = 'ReportNumberNew'
+    if 'Report Number New' in baseline_df.columns and id_col not in baseline_df.columns:
+        baseline_df = baseline_df.rename(columns={'Report Number New': id_col})
+    baseline_ids = set()
+    if id_col in baseline_df.columns:
+        baseline_ids = set(baseline_df[id_col].dropna().astype(str).str.strip())
+        logger.info(f"  Baseline has {len(baseline_ids):,} unique case IDs for dedup")
+
+    # Resolve monthly file list from config (sources.monthly) or directory
+    # In incremental mode only use 2026 monthly files (baseline already has through 2026-01-30)
+    monthly_configs = config.get('sources', {}).get('monthly', [])
+    new_monthly_files = []
+    for item in monthly_configs:
+        path_val = item.get('path') if isinstance(item, dict) else item
+        if path_val and ("2026" in str(path_val)):
+            p = Path(path_val)
+            if p.exists():
+                new_monthly_files.append((p, item.get('month', '') if isinstance(item, dict) else ''))
+            else:
+                logger.warning(f"  Config monthly file not found: {p}")
+    if not new_monthly_files and (CAD_ROOT / "monthly" / "2026").exists():
+        for f in (CAD_ROOT / "monthly" / "2026").glob("*.xlsx"):
+            if "2026_01_01_to_2026_01_30" in f.name:
+                continue
+            new_monthly_files.append((f, ''))
 
     if not new_monthly_files:
-        logger.info("  No new monthly files found after baseline")
-        logger.info("  Returning baseline data as-is")
+        logger.info("  No new monthly files found")
         return baseline_df, "baseline_only"
 
-    # Step 3: Load and process new monthly files
-    logger.info(f"\n[Step 3] Loading {len(new_monthly_files)} new monthly file(s)...")
+    # Step 3: Load and filter each monthly file (Jan: not in baseline; Feb: on or after 2026-02-01)
+    logger.info(f"\n[Step 3] Loading and filtering {len(new_monthly_files)} monthly file(s)...")
 
     new_dfs = []
-    for file_path in new_monthly_files:
+    for file_path, month_key in new_monthly_files:
         try:
             df = pd.read_excel(file_path, engine='openpyxl')
-            # Standardize TimeOfCall column name
             if 'Time of Call' in df.columns:
                 df = df.rename(columns={'Time of Call': 'TimeOfCall'})
-            # Filter to only records after baseline
+            if 'Report Number New' in df.columns and id_col not in df.columns:
+                df = df.rename(columns={'Report Number New': id_col})
             df['TimeOfCall'] = pd.to_datetime(df['TimeOfCall'], errors='coerce')
-            df = df[df['TimeOfCall'] > baseline_end]
+
+            is_jan = '2026-01' in month_key or '2026_01' in file_path.name
+            if is_jan:
+                # January: keep only records NOT already in baseline (by case ID)
+                if id_col in df.columns and baseline_ids:
+                    before = len(df)
+                    df = df[~df[id_col].astype(str).str.strip().isin(baseline_ids)]
+                    logger.info(f"  {file_path.name}: {before:,} -> {len(df):,} after excluding baseline IDs")
+                else:
+                    logger.info(f"  {file_path.name}: {len(df):,} records (no baseline ID filter)")
+            else:
+                # February or later: keep only records on or after 2026-02-01
+                before = len(df)
+                df = df[df['TimeOfCall'] >= feb_start]
+                logger.info(f"  {file_path.name}: {before:,} -> {len(df):,} from 2026-02-01 onward")
+
             if len(df) > 0:
                 new_dfs.append(df)
-                logger.info(f"  {file_path.name}: {len(df):,} new records")
         except Exception as e:
             logger.error(f"  Failed to load {file_path.name}: {e}")
 

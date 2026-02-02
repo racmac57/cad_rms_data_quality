@@ -1,8 +1,8 @@
 # Project Summary - CAD/RMS Data Quality System
 
-**Version:** 1.2.5
+**Version:** 1.2.6
 **Last Updated:** 2026-02-02
-**Status:** Expansion Plan Complete - All 6 Milestones Done
+**Status:** Expansion Plan Complete - Incremental 2026 Run & Validation Fixes
 
 ---
 
@@ -32,7 +32,8 @@ Enterprise data quality system for CAD (Computer-Aided Dispatch) and RMS (Record
 - `config/rms_sources.yaml` - RMS source files
 
 ### Scripts
-- `consolidate_cad_2019_2026.py` - Production consolidation script (operational)
+- `consolidate_cad_2019_2026.py` - Production consolidation script (baseline + incremental)
+- `scripts/copy_polished_to_processed_and_update_manifest.py` - Copy polished Excel to 13_PROCESSED_DATA, update manifest
 - `verify_record_counts.py` - Record count verification utility
 
 ### Shared Utilities
@@ -41,6 +42,7 @@ Enterprise data quality system for CAD (Computer-Aided Dispatch) and RMS (Record
 ### Documentation
 - `README.md` - Complete project documentation
 - `CHANGELOG.md` - Version history
+- `INCREMENTAL_RUN_GUIDE.md` - Incremental CAD run (baseline + Jan/Feb), copy script, January reports
 - `PLAN.md` - Implementation roadmap
 - `Claude.md` - AI context and rules
 - `outputs/consolidation/` - Execution guides and analysis reports (24 files)
@@ -83,6 +85,19 @@ python verify_record_counts.py
 - **Deduplication fix**: Resolved supplement/unit record preservation (165,592 maintained)
 
 See [CHANGELOG.md](CHANGELOG.md#111---2026-01-31) for complete details.
+
+---
+
+## What changed in v1.2.6
+
+- **Incremental 2026 run**: Config uses 2026_01/02 CAD and RMS monthly paths; copy script updates 13_PROCESSED_DATA and manifest.
+- **ReportNumberNew and CaseNumber fix**: CAD and RMS validators force case-number column to string and normalize Excel artifacts; quality scores improved.
+- **SCRPA-style quality reports**: Shared report builder; context-aware text (CAD or RMS only); data-driven "In this run" causes; report folders YYYY_MM_cad/rms.
+- **RMS export alignment**: Required fields and mappings use Case Number, FullAddress, Zone; Standards/unified_data_dictionary updated.
+- **QUALITY_REPORTS_REFERENCE.md**: Field names CAD vs RMS; score categories and consistency checks explained.
+- **INCREMENTAL_RUN_GUIDE.md**: Step-by-step for consolidation, cleaning engine, copy script.
+
+See [CHANGELOG.md](CHANGELOG.md#126---2026-02-02) for full details.
 
 ---
 
@@ -182,6 +197,7 @@ All 6 milestones implemented. cad_rms_data_quality is the unified, production-re
 ## Documentation Index
 
 ### Execution Guides
+- `INCREMENTAL_RUN_GUIDE.md` - Incremental CAD run (baseline + Jan/Feb), copy to 13_PROCESSED_DATA, January reports
 - `outputs/consolidation/CAD_CONSOLIDATION_EXECUTION_GUIDE.txt` - Step-by-step instructions
 - `outputs/consolidation/EXECUTIVE_SUMMARY_2026_01_30.txt` - Quick overview
 - `outputs/consolidation/VERIFICATION_CHECKLIST.txt` - Quality assurance checklist
