@@ -1,10 +1,10 @@
 # CAD/RMS Data Quality System
 
-**Version:** 1.2.5 (Expansion Plan - All Milestones Complete)
+**Version:** 1.2.6 (Incremental 2026 Run & Validation Fixes)
 **Created:** 2026-01-29
 **Updated:** 2026-02-02
 **Author:** R. A. Carucci
-**Status:** ✅ Expansion Plan Complete - Legacy Projects Archived
+**Status:** ✅ Expansion Plan Complete - Incremental Run & ReportNumberNew Fix
 
 ---
 
@@ -26,12 +26,16 @@ Unified data quality system for CAD (Computer-Aided Dispatch) and RMS (Records M
 cad_rms_data_quality/
 ├── README.md                    # This file
 ├── CHANGELOG.md                 # Version history
+├── INCREMENTAL_RUN_GUIDE.md    # Incremental CAD run + copy to 13_PROCESSED_DATA ✅
 ├── PLAN.md                      # Detailed implementation plan
 ├── NEXT_STEPS.md               # Roadmap for next session
 ├── requirements.txt            # Python dependencies ✅
 ├── pyproject.toml              # Project configuration ✅
 ├── Makefile                    # Automation commands (TO DO - in chunk_00010.txt)
 ├── .gitignore                  # Git ignore rules ✅
+├── consolidate_cad_2019_2026.py # Production consolidation (baseline + incremental) ✅
+├── scripts/                    # Post-consolidation utilities ✅
+│   └── copy_polished_to_processed_and_update_manifest.py  # Copy to 13_PROCESSED_DATA, update manifest
 │
 ├── config/                     # Configuration files ✅
 │   ├── schemas.yaml            # Paths to 09_Reference/Standards schemas ✅
@@ -151,10 +155,9 @@ cad_rms_data_quality/
 13. **2024**: `yearly\2024\2024_CAD_ALL.xlsx` (~40,000 records)
 14. **2025**: `yearly\2025\2025_CAD_ALL.xlsx` (~42,000 records)
 
-**Monthly Source Files (2025 Q4):**
-- `monthly\2025\2025_10_CAD.xlsx`
-- `monthly\2025\2025_11_CAD.xlsx`
-- `monthly\2025\2025_12_CAD.xlsx`
+**Monthly Source Files (2025 Q4 & 2026):**
+- `monthly\2025\2025_10_CAD.xlsx`, `2025_11_CAD.xlsx`, `2025_12_CAD.xlsx`
+- `monthly\2026\2026_01_CAD.xlsx`, `2026_02_CAD.xlsx` (incremental: Jan filtered by baseline IDs, Feb from 2026-02-01)
 
 **Actual Records (Verified 2026-01-30):** 714,689 records (2019-2025, 7 years)  
 **Unique Cases:** ~540,000 estimated after deduplication  
@@ -196,7 +199,7 @@ cad_rms_data_quality/
 ### Case Number Format
 - Pattern: `^\d{2}-\d{6}([A-Z])?$`
 - Examples: `25-000001`, `25-000001A` (supplemental)
-- Must be preserved as text (not numeric)
+- Must be preserved as text (not numeric). Monthly validation (`validate_cad.py`) forces ReportNumberNew to string on load and normalizes Excel artifacts (e.g. `26000001.0` → `26-000001`) before validation; see CHANGELOG v1.2.6.
 
 ### Address Validation
 - USPS standardization using `usaddress` library
@@ -294,15 +297,24 @@ python scripts/enhanced_esri_output_generator.py \
 # Validate output
 python scripts/validation/validate_esri_polished_dataset.py \
   --input "data/03_final/CAD_ESRI_POLISHED_[timestamp].xlsx"
+
+# Copy polished file to 13_PROCESSED_DATA and update manifest (from cad_rms_data_quality repo)
+cd ../cad_rms_data_quality
+python scripts/copy_polished_to_processed_and_update_manifest.py
 ```
 
-### Run Monthly Validation (In Development)
+For incremental runs (baseline + new monthly only), see **INCREMENTAL_RUN_GUIDE.md**.
+
+### Run Monthly Validation
 ```powershell
-# Coming in Phase 2
-python monthly_validation/scripts/validate_cad.py --input "path/to/monthly_export.xlsx"
+# CAD monthly export
+python monthly_validation/scripts/validate_cad.py --input "path/to/monthly_export.xlsx" --output "monthly_validation/reports/YYYY_MM_DD_cad"
+
+# RMS monthly export
+python monthly_validation/scripts/validate_rms.py --input "path/to/monthly_export.xlsx" --output "monthly_validation/reports/YYYY_MM_DD_rms"
 ```
 
-See `outputs/consolidation/CAD_CONSOLIDATION_EXECUTION_GUIDE.txt` for detailed instructions.
+See `outputs/consolidation/CAD_CONSOLIDATION_EXECUTION_GUIDE.txt` and `INCREMENTAL_RUN_GUIDE.md` for detailed instructions.
 
 ---
 

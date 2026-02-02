@@ -158,6 +158,9 @@ def load_cad_export(file_path: Path) -> pd.DataFrame:
     """
     Load CAD export file (Excel or CSV).
 
+    ReportNumberNew / "Report Number New" is forced to string so Excel does not
+    convert values like 26-000001 to number (26000001.0) or date.
+
     Args:
         file_path: Path to CAD export file
 
@@ -173,7 +176,15 @@ def load_cad_export(file_path: Path) -> pd.DataFrame:
     suffix = file_path.suffix.lower()
 
     if suffix in ['.xlsx', '.xls']:
-        df = pd.read_excel(file_path, engine='openpyxl')
+        # Force case number column(s) to string so "26-000001" is not read as number/date
+        dtype_overrides = {}
+        head = pd.read_excel(file_path, engine='openpyxl', nrows=0)
+        for col in head.columns:
+            c = str(col).lower().replace(' ', '')
+            if c and 'report' in c and 'number' in c and 'new' in c:
+                dtype_overrides[col] = str
+                break
+        df = pd.read_excel(file_path, engine='openpyxl', dtype=dtype_overrides if dtype_overrides else None)
     elif suffix == '.csv':
         df = pd.read_csv(file_path)
     else:
@@ -187,7 +198,52 @@ def load_cad_export(file_path: Path) -> pd.DataFrame:
     if 'Report Number New' in df.columns:
         df = df.rename(columns={'Report Number New': 'ReportNumberNew'})
 
+    # Ensure ReportNumberNew is string and normalize (Excel numeric/date/quote artifacts)
+    if 'ReportNumberNew' in df.columns:
+        df['ReportNumberNew'] = (
+            df['ReportNumberNew']
+            .astype(str)
+            .apply(_normalize_case_number_for_display)
+        )
+
     return df
+
+
+# ============================================================================
+# CASE NUMBER NORMALIZATION (Excel dtype / display artifacts)
+# ============================================================================
+
+def _normalize_case_number_for_display(value) -> str:
+    """
+    Coerce ReportNumberNew to string and fix Excel artifacts.
+
+    Excel may read "26-000001" as number (26000001.0), date, or store as text
+    with a leading quote ('26-000001). Strip quotes and normalize to YY-NNNNNN.
+    """
+    if pd.isna(value):
+        return ''
+    s = str(value).strip().strip("'\"")  # Excel text-with-quote artifact
+    if not s:
+        return ''
+    # Already in YY-NNNNNN or YY-NNNNNNA form
+    if re.match(r'^\d{2}-\d{6}([A-Z])?$', s):
+        return s
+    # Float artifact: 26000001.0 -> 26-000001
+    if '.' in s:
+        s = s.split('.')[0]
+    # Integer or string without hyphen: 26000001 or 26000001A -> 26-000001 or 26-000001A
+    s = s.replace('-', '')
+    if len(s) >= 8 and s[:8].isdigit():
+        suffix = s[8:] if len(s) > 8 else ''
+        return s[:2] + '-' + s[2:8] + suffix
+    if len(s) == 7 and s.isdigit():
+        return s[:2] + '-' + s[2:]
+    return str(value).strip().strip("'\"")
+
+
+def _normalize_case_number_for_regex(value) -> str:
+    """Normalize value for regex match (same logic as display)."""
+    return _normalize_case_number_for_display(value)
 
 
 # ============================================================================
@@ -197,6 +253,9 @@ def load_cad_export(file_path: Path) -> pd.DataFrame:
 def validate_case_numbers(df: pd.DataFrame, pattern: str) -> pd.DataFrame:
     """
     Validate case number format using regex pattern.
+
+    Values are normalized before matching so Excel numeric/date coercion
+    (e.g. 26000001.0 or 26-000001 stored as number) is treated as YY-NNNNNN.
 
     Returns:
         DataFrame with validation results
@@ -210,7 +269,8 @@ def validate_case_numbers(df: pd.DataFrame, pattern: str) -> pd.DataFrame:
     results = []
     for idx, row in df.iterrows():
         value = row.get('ReportNumberNew', '')
-        if pd.isna(value) or not value:
+        normalized = _normalize_case_number_for_regex(value)
+        if pd.isna(value) or normalized == '':
             results.append({
                 'row_number': idx + 2,  # Excel row (1-indexed + header)
                 'ReportNumberNew': value,
@@ -222,7 +282,7 @@ def validate_case_numbers(df: pd.DataFrame, pattern: str) -> pd.DataFrame:
                 'category': 'Data Quality',
                 'priority': 1
             })
-        elif not regex.match(str(value)):
+        elif not regex.match(normalized):
             results.append({
                 'row_number': idx + 2,
                 'ReportNumberNew': value,
@@ -678,6 +738,9 @@ def run_validation(input_file: Path, output_dir: Optional[Path] = None) -> Dict:
     # Run validations
     logger.info("\n[STEP 1] Validating case numbers...")
     case_number_pattern = rules.get('case_number', {}).get('pattern', r'^\d{2}-\d{6}([A-Z])?$')
+    # Ensure pattern matches valid format (YAML may escape backslashes differently)
+    if not re.match(case_number_pattern, '26-000001'):
+        case_number_pattern = r'^\d{2}-\d{6}([A-Z])?$'
     case_issues = validate_case_numbers(df, case_number_pattern)
     logger.info(f"  Found {len(case_issues)} case number issues")
 

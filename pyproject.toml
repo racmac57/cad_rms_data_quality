@@ -5,7 +5,7 @@
 
 [project]
 name = "cad-rms-data-quality"
-version = "1.2.5"
+version = "1.2.6"
 description = "Unified CAD/RMS data quality system for validation and consolidation"
 readme = "README.md"
 license = {text = "Internal Use - City of Hackensack Police Department"}

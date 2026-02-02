@@ -71,9 +71,12 @@ sources:
     - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\monthly\\2025\\2025_11_CAD.xlsx'
     - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\monthly\\2025\\2025_12_CAD.xlsx'
     # 2026: Monthly exports
-    - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\monthly\\2026\\2026_01_01_to_2026_01_30_CAD_Export.xlsx'
+    - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\monthly\\2026\\2026_01_CAD.xlsx'
       month: '2026-01'
-      notes: 'January 2026 full month export'
+      notes: 'January 2026 - filter out records already in baseline'
+    - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\monthly\\2026\\2026_02_CAD.xlsx'
+      month: '2026-02'
+      notes: 'February 2026 - append records from 2026-02-01 onward'
 
 # ============================================================================
 # BASELINE CONFIGURATION (Added 2026-02-01)
@@ -176,6 +179,12 @@ monthly_processing:
     source_directory: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_RMS\\monthly'
     file_pattern: '{YYYY}_{MM}_RMS.xlsx'
     current_year_subdir: true
+    # Explicit paths for incremental backfill (PDZone/Grid)
+    incremental_2026:
+      - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_RMS\\monthly\\2026\\2026_01_RMS.xlsx'
+        month: '2026-01'
+      - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_RMS\\monthly\\2026\\2026_02_RMS.xlsx'
+        month: '2026-02'
 
   output:
     base_directory: 'monthly_validation'

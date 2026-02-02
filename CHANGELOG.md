@@ -11,6 +11,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Completed
 - All 6 Expansion Plan milestones complete
+- Incremental 2026 run (baseline + Jan/Feb CAD), copy script, ReportNumberNew validation fix (v1.2.6)
+
+---
+
+## [1.2.6] - 2026-02-02
+
+### Added - Incremental 2026 Run & Validation Fixes
+
+#### Incremental Consolidation (2026 Monthly Only)
+- **Config**: `sources.monthly` now includes `2026_01_CAD.xlsx` and `2026_02_CAD.xlsx`; incremental mode uses only 2026 monthly files (no 2025 files).
+- **January filter**: Records from `2026_01_CAD.xlsx` are excluded when `ReportNumberNew` is already in the baseline (avoids re-adding January rows).
+- **February filter**: Records from `2026_02_CAD.xlsx` with `TimeOfCall` ≥ 2026-02-01 are appended.
+- **RMS config**: `monthly_processing.rms.incremental_2026` added with paths for `2026_01_RMS.xlsx` and `2026_02_RMS.xlsx` for backfill.
+
+#### Copy Polished to 13_PROCESSED_DATA & Manifest
+- **New script**: `scripts/copy_polished_to_processed_and_update_manifest.py`
+  - Copies latest polished Excel from `CAD_Data_Cleaning_Engine/data/03_final/` (or `--source`) to `13_PROCESSED_DATA/ESRI_Polished/incremental/YYYY_MM_DD_append/`.
+  - Updates `13_PROCESSED_DATA/manifest.json` so `latest` points to the new file (for `copy_consolidated_dataset_to_server.ps1` and ArcGIS workflow).
+  - Supports `--dry-run` and `--source path`.
+
+#### Incremental Run Guide
+- **New doc**: `INCREMENTAL_RUN_GUIDE.md` – step-by-step: run consolidation (incremental), run cleaning engine, run copy script; January quality reports; config summary.
+
+### Fixed - CAD Monthly Validation (ReportNumberNew)
+
+#### Case Number Validation (validate_cad.py)
+- **Root cause**: Excel was providing numeric/other types or YAML-loaded regex did not match valid values (e.g. `26-000001`), so all rows were flagged as invalid format.
+- **Load**: ReportNumberNew column is detected by name and read with `dtype=str` so values are not coerced to number/date.
+- **Normalizer**: `_normalize_case_number_for_display()` strips leading/trailing quotes (`'`/`"`), converts Excel artifacts (e.g. `26000001.0` → `26-000001`), and normalizes to YY-NNNNNN or YY-NNNNNNA.
+- **After load**: Column is coerced with `.astype(str)` then normalized so every value is consistent before validation.
+- **Pattern fallback**: If the case-number pattern from `validation_rules.yaml` does not match `26-000001`, the script falls back to raw regex `r'^\d{2}-\d{6}([A-Z])?$'`.
+- **Result**: Valid case numbers (e.g. `26-000001`) no longer appear as invalid; quality score for January CAD export improved from 68.13 to 93.13/100.
 
 ---
 

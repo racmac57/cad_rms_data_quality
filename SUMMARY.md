@@ -1,8 +1,8 @@
 # Project Summary - CAD/RMS Data Quality System
 
-**Version:** 1.2.5
+**Version:** 1.2.6
 **Last Updated:** 2026-02-02
-**Status:** Expansion Plan Complete - All 6 Milestones Done
+**Status:** Expansion Plan Complete - Incremental 2026 Run & Validation Fixes
 
 ---
 
@@ -32,7 +32,8 @@ Enterprise data quality system for CAD (Computer-Aided Dispatch) and RMS (Record
 - `config/rms_sources.yaml` - RMS source files
 
 ### Scripts
-- `consolidate_cad_2019_2026.py` - Production consolidation script (operational)
+- `consolidate_cad_2019_2026.py` - Production consolidation script (baseline + incremental)
+- `scripts/copy_polished_to_processed_and_update_manifest.py` - Copy polished Excel to 13_PROCESSED_DATA, update manifest
 - `verify_record_counts.py` - Record count verification utility
 
 ### Shared Utilities
@@ -41,6 +42,7 @@ Enterprise data quality system for CAD (Computer-Aided Dispatch) and RMS (Record
 ### Documentation
 - `README.md` - Complete project documentation
 - `CHANGELOG.md` - Version history
+- `INCREMENTAL_RUN_GUIDE.md` - Incremental CAD run (baseline + Jan/Feb), copy script, January reports
 - `PLAN.md` - Implementation roadmap
 - `Claude.md` - AI context and rules
 - `outputs/consolidation/` - Execution guides and analysis reports (24 files)
@@ -83,6 +85,17 @@ python verify_record_counts.py
 - **Deduplication fix**: Resolved supplement/unit record preservation (165,592 maintained)
 
 See [CHANGELOG.md](CHANGELOG.md#111---2026-01-31) for complete details.
+
+---
+
+## What changed in v1.2.6
+
+- **Incremental 2026 run**: Config uses 2026_01/02 CAD and RMS monthly paths; incremental mode loads only 2026 monthly files; January records already in baseline are excluded; February from 2026-02-01 onward appended.
+- **Copy script**: `scripts/copy_polished_to_processed_and_update_manifest.py` copies latest polished Excel to 13_PROCESSED_DATA and updates manifest.json for server copy and ArcGIS workflow.
+- **ReportNumberNew validation fix**: CAD monthly validator forces case-number column to string and normalizes Excel artifacts (e.g. 26000001.0 → 26-000001); pattern fallback when YAML regex does not match; valid values like 26-000001 no longer flagged (quality score for Jan CAD improved 68 → 93).
+- **INCREMENTAL_RUN_GUIDE.md**: Step-by-step for consolidation → cleaning engine → copy script; January quality reports; config summary.
+
+See [CHANGELOG.md](CHANGELOG.md#126---2026-02-02) for full details.
 
 ---
 
@@ -182,6 +195,7 @@ All 6 milestones implemented. cad_rms_data_quality is the unified, production-re
 ## Documentation Index
 
 ### Execution Guides
+- `INCREMENTAL_RUN_GUIDE.md` - Incremental CAD run (baseline + Jan/Feb), copy to 13_PROCESSED_DATA, January reports
 - `outputs/consolidation/CAD_CONSOLIDATION_EXECUTION_GUIDE.txt` - Step-by-step instructions
 - `outputs/consolidation/EXECUTIVE_SUMMARY_2026_01_30.txt` - Quick overview
 - `outputs/consolidation/VERIFICATION_CHECKLIST.txt` - Quality assurance checklist
