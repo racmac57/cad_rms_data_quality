@@ -13,6 +13,309 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.2] - 2026-02-03
+
+[Compare v1.3.1...v1.3.2](https://github.com/racmac57/cad_rms_data_quality/compare/v1.3.1...v1.3.2)
+
+### Added - Complete Baseline Generation & Testing Suite
+
+#### Problem Solved
+After successfully including 2026 monthly data in consolidation (v1.3.1), the system lacked:
+1. A working ESRI output generator to convert consolidated CSV to polished Excel
+2. Proper baseline files in 13_PROCESSED_DATA for deployment
+3. Validation that the baseline met all requirements before ArcGIS deployment
+4. Tools to quickly check baseline metadata without opening large files
+
+#### ESRI Generator Restoration & Fix
+- **Found archived script**: Located `enhanced_esri_output_generator.py` (v3.0 COMPLETE, Dec 22 2025, 1,504 lines) in `_Archive/CAD_Data_Cleaning_Engine/scripts/`
+- **Restored to active location**: Copied to `CAD_Data_Cleaning_Engine/scripts/`
+- **Critical bug fix**: Added column renaming logic to convert consolidated CSV column names to ESRI expected names:
+  - `TimeOfCall` → `Time of Call`
+  - `TimeDispatched` → `Time Dispatched`
+  - `TimeOut` → `Time Out`, `TimeIn` → `Time In`
+  - `TimeSpent` → `Time Spent`, `TimeResponse` → `Time Response`
+  - `HowReported` → `How Reported`
+- **Result**: Generator now produces valid polished Excel with all dates intact (no more NaN values)
+
+#### Baseline Files Created
+- **Generic pointer**: `CAD_ESRI_Polished_Baseline.xlsx` (76.1 MB) - Always points to latest
+- **Versioned archive**: `CAD_ESRI_Polished_Baseline_20190101_20260203.xlsx` - Immutable historical reference
+- **Location**: `13_PROCESSED_DATA/ESRI_Polished/base/`
+- **Records**: 754,409 (2019-01-01 to 2026-02-03)
+- **Quality**: 100% valid dates, 100% valid case number format, includes Jan 1-9 gap data
+
+#### Testing & Verification Scripts
+- **`scripts/test_baseline.py`** (361 lines) - Comprehensive 7-test suite:
+  1. File integrity (exists, size, modified time)
+  2. Record count verification (754,409 expected)
+  3. Column structure (20 ESRI columns in correct order)
+  4. Date range verification (2019-01-01 to 2026-02-03)
+  5. January 1-9 gap check (3,101 records confirmed present)
+  6. Data quality checks (case number format, null fields)
+  7. Monthly distribution analysis (2026 Jan: 10,435, Feb: 846)
+
+- **`scripts/quick_test_baseline.py`** (68 lines) - Fast single-file-read test:
+  - Loads baseline once (212 seconds)
+  - Runs all checks in memory
+  - Perfect for quick validation
+
+- **`scripts/verify_baseline.py`** - Detailed metadata extraction
+- **`scripts/check_baseline_metadata.py`** - Date range verification without full load
+- **`scripts/backfill_gap_analysis.py`** (364 lines) - Gap analysis with duplicate detection:
+  - Unicode issues fixed (replaced ✓✗ with [OK][X] for PowerShell compatibility)
+  - Column name handling fixed (Time of Call vs TimeOfCall)
+  - Safe merge with automatic duplicate removal
+
+#### Test Results (Validated 2026-02-03)
+All 10 checks passed:
+- ✅ Total records: 754,409
+- ✅ Date range: 2019-01-01 00:04:21 to 2026-02-03 09:50:44
+- ✅ Zero null dates (100% valid)
+- ✅ Jan 1-9 gap filled: 3,101 records (2026-01-01 00:05:07 to 2026-01-09 23:59:31)
+- ✅ 2026 distribution: January 10,435, February 846
+- ✅ 194,377 duplicate case numbers (expected - supplements and unit records)
+- ✅ 100% valid case number format (YY-NNNNNN or YY-NNNNNNA)
+- ✅ All 20 ESRI columns present in correct order
+- ✅ File size 76.1 MB (expected ~75 MB)
+
+#### Documentation Created
+- **`MANUAL_COPY_GUIDE.md`** - Step-by-step for deploying to server (3 copy options)
+- **`EMERGENCY_BACKFILL_START_HERE.md`** - Quick start guide for urgent deployments
+- **`BASELINE_UPDATE_STRATEGY.md`** - Long-term baseline management (created in previous session)
+- **`BASELINE_QUICK_ANSWERS.md`** - FAQ for baseline questions (created in previous session)
+- **`BACKFILL_QUICK_GUIDE.md`** - Gap analysis and safe merge workflow (created in previous session)
+
+#### Helper Scripts
+- **`scripts/show_baseline_info.ps1`** - Display baseline metadata from manifest
+- **`scripts/list_baselines.ps1`** - List all baseline files with date ranges
+- **`scripts/check_january_file.py`** - Quick check for gap data in monthly files
+
+#### Workflow Execution (Today's Session)
+1. **Consolidation** (2 min): 754,409 records from 12 files (7 yearly + 5 monthly)
+2. **Generator restoration** (10 min): Found, copied, and fixed column naming bug
+3. **First generation attempt** (14 min): Generated file but had NaN dates
+4. **Bug diagnosis & fix** (5 min): Identified missing column rename, patched script
+5. **Second generation** (14 min): Successfully generated valid polished Excel
+6. **Baseline creation** (2 min): Copied to 13_PROCESSED_DATA with both generic and versioned files
+7. **Testing** (4 min): Ran quick_test_baseline.py - all checks passed
+8. **Total time**: ~51 minutes from start to deployment-ready baseline
+
+### Changed
+- ESRI output generator now handles consolidated CSV column names correctly
+- Baseline files use generic naming for automation compatibility
+- Test scripts use ASCII-only output for PowerShell compatibility
+
+### Fixed
+- Column name mismatch between consolidation output and ESRI generator (TimeOfCall vs Time of Call)
+- Unicode character issues in PowerShell output (✓✗ → [OK][X])
+- Time of Call column name handling in gap analysis script
+- Backfill gap analysis script now works with ESRI polished column names
+
+### Notes
+- Baseline is production-ready and tested
+- All 754,409 records validated
+- January 1-9 gap confirmed filled
+- Ready for ArcGIS deployment via RDP
+- Generator script restored and enhanced (v3.0 COMPLETE + column rename fix)
+
+---
+
+## [1.3.1] - 2026-02-02
+
+[Compare v1.3.0...v1.3.1](https://github.com/racmac57/cad_rms_data_quality/compare/v1.3.0...v1.3.1)
+
+### Fixed - 2026 Monthly Data Inclusion
+
+#### Problem
+Full consolidation (`python consolidate_cad_2019_2026.py --full`) was only loading yearly files (2019-2025) and not including 2026 monthly data, despite the files being configured in `config/consolidation_sources.yaml`. Two issues prevented February 2026 data from being included:
+
+1. **Monthly files not loaded**: The `run_full_consolidation()` function had a comment saying "Monthly files now loaded from config" but no code to actually load them
+2. **Date filter too restrictive**: `END_DATE` was hardcoded to `2026-01-30`, filtering out all February data
+
+#### Solution
+
+**File: `consolidate_cad_2019_2026.py`**
+
+1. **Added monthly file loading** (lines 622-636):
+   - Reads `sources.monthly` from config
+   - Checks if each path exists before adding to load queue
+   - Logs each monthly file added
+   - Supports both dict and string path formats
+
+2. **Extended date range** (line 71):
+   - Changed `END_DATE` from `2026-01-30 23:59:59` to `2026-02-28 23:59:59`
+   - Allows inclusion of all February 2026 data
+
+#### Results
+
+**Before fix:**
+- Total records: 714,689
+- Date range: 2019-01-01 to 2025-12-31
+- Missing: All 2026 data (January + February)
+
+**After fix:**
+- Total records: 753,903 (+39,214 records, +5.5%)
+- Date range: 2019-01-01 to 2026-02-01
+- 2026 data: 10,775 records
+  - January 2026: 10,435 records (330 filtered as pre-2019)
+  - February 2026: 340 records (through Feb 1)
+- Unique cases: 559,650
+- Processing time: 131.8 seconds (~2 minutes)
+
+#### Monthly Files Now Loaded
+The script now loads 5 additional monthly files:
+1. `2025_10_CAD.xlsx` - 9,713 records
+2. `2025_11_CAD.xlsx` - 9,054 records
+3. `2025_12_CAD.xlsx` - 9,672 records
+4. `2026_01_CAD.xlsx` - 10,435 records
+5. `2026_02_CAD.xlsx` - 340 records
+
+#### Incremental Mode Issue Identified
+Attempted to use incremental mode (baseline + append) but discovered the baseline file in `13_PROCESSED_DATA` is the **polished ESRI output** (already deduplicated), not the raw consolidated CSV. Incremental mode incorrectly deduplicated against this, losing data. Resolution: Use `--full` mode for complete consolidations.
+
+### Changed
+- Full consolidation now includes all monthly files from config
+- Date range extended to cover February 2026
+- Output file updated: `2019_to_2026_01_30_CAD.csv` (217.5 MB)
+
+### Notes
+- Full consolidation with 12 files (7 yearly + 5 monthly) completes in ~2 minutes
+- Parallel loading with 8 workers processes files efficiently
+- Memory optimization reduces footprint by 24.5% (469.9 MB → 354.7 MB)
+- Ready for ESRI polished output generation via `enhanced_esri_output_generator.py`
+
+---
+
+## [1.3.0] - 2026-02-02
+
+[Compare v1.2.6...v1.3.0](https://github.com/racmac57/cad_rms_data_quality/compare/v1.2.6...v1.3.0)
+
+### Added - ArcGIS Pro Backfill Automation Workflow
+
+#### Problem Solved
+Previously, backfilling the ArcGIS Pro dashboard with polished CAD data required manual steps over 5+ hours:
+- Manual RDP file copying
+- Manually editing ModelBuilder nodes for each backfill
+- ArcPy script errors
+- Disorganized verification
+- Risk of collision with scheduled daily publish job
+
+#### Solution: Staging File Pattern + Automated Orchestration
+**Core Strategy:** Configure ArcGIS Pro model to read from a fixed staging path, then swap file content programmatically instead of editing the model.
+
+#### Tool Discovery Scripts
+- **`docs/arcgis/discover_tool_info.py`** - Discovers exact ArcPy callable names from toolbox
+  - Confirmed tool: `TransformCallData_tbx1` (callable as `arcpy.TransformCallData_tbx1()`)
+  - Toolbox: `LawEnforcementDataManagement.atbx` with alias `tbx1`
+  - ArcGIS Pro version: 3.6.1
+  - Discovery date: 2026-02-02
+
+#### Configuration
+- **`docs/arcgis/config.json`** - Centralized configuration for backfill workflow
+  - Confirmed paths: ArcGIS project, toolbox, geodatabase
+  - Scheduled task names: `LawSoftESRICADExport`, `LawSoftESRINIBRSExport`
+  - Expected record counts from manifest (724,794 baseline)
+  - Safe hours, collision control, verification settings
+  - Tool callable: `arcpy.TransformCallData_tbx1()` (confirmed via discovery)
+
+#### Orchestration Scripts
+- **`docs/arcgis/Invoke-CADBackfillPublish.ps1`** - Main orchestrator for backfill workflow
+  - Pre-flight checks (lock files, scheduled tasks, geoprocessing workers, geodatabase locks)
+  - Atomic file swap with SHA256 hash verification for backfill data
+  - Calls ArcGIS Pro tool via Python runner script
+  - Automatic restore of default export to staging after publish
+  - Lock file with metadata (PID, user, timestamp) and stale lock detection (>2 hours)
+  - Emergency restore on error with cleanup in finally block
+  - Dry-run mode for safe testing
+
+- **`docs/arcgis/run_publish_call_data.py`** - Python runner for ArcGIS Pro tool
+  - Reads config.json for all settings
+  - Imports toolbox with confirmed alias (tbx1)
+  - Calls `arcpy.TransformCallData_tbx1()` directly
+  - Captures geoprocessing messages and exit codes
+  - Runs via ArcGIS Pro Python environment (propy.bat)
+
+- **`docs/arcgis/Test-PublishReadiness.ps1`** - Pre-flight validation
+  - Lock file check with stale detection and auto-cleanup
+  - Scheduled task status (checks for "Running" state)
+  - ArcGIS process check (geoprocessing workers only, not just Pro open)
+  - Geodatabase lock test (prevents concurrent writes)
+  - Excel sheet name validation (requires "Sheet1" for ArcGIS import)
+  - Disk space check (>5 GB free)
+
+- **`docs/arcgis/Copy-PolishedToServer.ps1`** - Robust file copy from local to server
+  - Reads latest polished file path from `13_PROCESSED_DATA/manifest.json`
+  - Robocopy with retry logic (3 retries, 5s wait)
+  - SMB share support (preferred) + admin share fallback
+  - File integrity verification (size comparison)
+  - Detailed logging
+
+#### Documentation
+- **`docs/arcgis/README_Backfill_Process.md`** - Complete user guide
+  - One-time setup instructions (staging directory, model update, scheduled task update)
+  - Step-by-step backfill workflow
+  - Troubleshooting guide
+  - Configuration reference
+  - Safety features explained
+
+#### Key Features
+1. **Staging Pattern**: Model reads fixed path, only file content swaps
+2. **Collision Control**: Lock files prevent concurrent publishes, blocks on scheduled task running
+3. **Atomic Swaps**: Temp file → rename pattern prevents partial reads
+4. **Hash Verification**: SHA256 check on backfill copies (size check on daily)
+5. **Auto-Restore**: Emergency restore of default export if backfill fails
+6. **Stale Lock Detection**: Auto-cleanup locks >2 hours with dead process
+7. **Smart Process Checks**: Blocks only on active geoprocessing, not just ArcGIS Pro open
+
+#### Server Directory Structure
+```
+C:\HPD ESRI\
+├── LawEnforcementDataManagement_New\
+│   ├── LawEnforcementDataManagement.aprx   # ArcGIS Pro project
+│   └── LawEnforcementDataManagement.atbx   # Toolbox with TransformCallData_tbx1
+├── 03_Data\CAD\Backfill\
+│   ├── _STAGING\
+│   │   ├── ESRI_CADExport.xlsx            # Model reads THIS file
+│   │   └── _LOCK.txt                       # Collision prevention
+│   └── CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx  # Source file (724,794 records)
+├── 04_Scripts\
+│   ├── config.json
+│   ├── discover_tool_info.py
+│   ├── run_publish_call_data.py
+│   ├── Test-PublishReadiness.ps1
+│   ├── Invoke-CADBackfillPublish.ps1
+│   ├── Copy-PolishedToServer.ps1
+│   └── README_Backfill_Process.md
+└── 05_Reports\  # Verification reports
+```
+
+#### Required Manual Setup (One-Time)
+1. **Create staging directory**: `C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\`
+2. **Copy 7 scripts to server**: All files from `docs/arcgis/` to `C:\HPD ESRI\04_Scripts\`
+3. **Update ArcGIS Pro model**: Change Input Spreadsheet to `_STAGING\ESRI_CADExport.xlsx`
+4. **Update scheduled task**: Add staging refresh as FIRST action in `LawSoftESRICADExport`
+
+#### Runtime (After Setup)
+Time reduced from **5+ hours** to **~30 minutes**:
+- 10 min: Copy polished to server (local machine)
+- 15 min: Run orchestrator (server) - includes publish + verification
+- 5 min: Dashboard verification
+
+### Changed
+- Workflow complexity: Reduced manual steps from 15+ to 3 (copy, run, verify)
+- Error handling: Comprehensive with automatic rollback
+- Collision risk: Eliminated with lock files and task status checks
+- File integrity: Guaranteed with hash verification
+- Recovery: Automatic emergency restore on failure
+
+### Notes
+- Dry-run testing completed successfully 2026-02-02
+- Tool discovery confirmed TransformCallData_tbx1 callable
+- All Unicode characters replaced with ASCII for PowerShell compatibility
+- Scripts ready for production use after manual setup steps
+
+---
+
 ## [1.2.6] - 2026-02-02
 
 [Compare v1.2.5...v1.2.6](https://github.com/racmac57/cad_rms_data_quality/compare/v1.2.5...v1.2.6)

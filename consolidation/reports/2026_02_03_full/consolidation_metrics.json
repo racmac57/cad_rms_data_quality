@@ -1,0 +1,13 @@
+{
+  "record_count": 754409,
+  "unique_cases": 560031,
+  "date_range": {
+    "start": "2019-01-01 00:04:21",
+    "end": "2026-02-03 09:50:44"
+  },
+  "output_file": "C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\02_ETL_Scripts\\CAD_Data_Cleaning_Engine\\data\\01_raw\\2019_to_2026_01_30_CAD.csv",
+  "file_size_mb": 217.62,
+  "mode": "full",
+  "processing_time_seconds": 121.3,
+  "generated": "2026-02-03T15:26:08.728128"
+}

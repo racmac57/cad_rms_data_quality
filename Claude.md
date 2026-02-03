@@ -57,6 +57,34 @@ This repository contains a unified data quality system for CAD (Computer-Aided D
 - Archived: CAD_Data_Cleaning_Engine, Combined_CAD_RMS, RMS_CAD_Combined_ETL, RMS_Data_ETL, RMS_Data_Processing
 - cad_rms_data_quality is now the single active project
 
+### v1.3.0 - ArcGIS Pro Backfill Automation (2026-02-02)
+- **Problem**: Manual backfill process took 5+ hours with manual RDP copying, model editing, ArcPy errors, disorganized verification
+- **Solution**: Staging file pattern + orchestration scripts reduce time to ~30 minutes
+- **Tool discovery**: Created `discover_tool_info.py`, confirmed callable `arcpy.TransformCallData_tbx1()`
+- **Configuration**: `config.json` with all paths, task names, expected counts (from manifest), tool callables
+- **Orchestration**: `Invoke-CADBackfillPublish.ps1` with atomic swaps (SHA256 verification), auto-restore on error, collision control
+- **Pre-flight checks**: `Test-PublishReadiness.ps1` - lock files, scheduled tasks, process check, geodatabase lock, Excel sheet validation
+- **Python runner**: `run_publish_call_data.py` reads config and calls `arcpy.TransformCallData_tbx1()` via propy.bat
+- **File copy**: `Copy-PolishedToServer.ps1` reads manifest.json, uses robocopy with retry, SMB share support
+- **Documentation**: `README_Backfill_Process.md` - complete user guide for backfill automation
+
+### v1.3.2 - Complete Baseline Generation & Testing (2026-02-03)
+- **ESRI Generator Restored**: Found archived `enhanced_esri_output_generator.py` (v3.0, Dec 2025) and copied to active CAD_Data_Cleaning_Engine
+- **Critical Bug Fixed**: Added column rename logic (TimeOfCall → Time of Call, etc.) so generator works with consolidated CSV format
+- **Baseline Files Created**: Both generic (`CAD_ESRI_Polished_Baseline.xlsx`) and versioned (`CAD_ESRI_Polished_Baseline_20190101_20260203.xlsx`) in 13_PROCESSED_DATA
+- **Record Count**: 754,409 records (2019-01-01 to 2026-02-03) with 100% valid dates
+- **Jan 1-9 Gap Filled**: Confirmed 3,101 records present for previously missing period
+- **Testing Suite**: Created comprehensive test scripts (test_baseline.py, quick_test_baseline.py, backfill_gap_analysis.py)
+- **All Tests Pass**: 10/10 validation checks passed - baseline is production-ready for ArcGIS deployment
+- **Processing Time**: Full pipeline (consolidation → generation → testing) completed in ~51 minutes
+
+### v1.3.1 - 2026 Monthly Data Fix (2026-02-02)
+- **Fixed monthly file loading**: `run_full_consolidation()` now reads and loads monthly files from `config/consolidation_sources.yaml`; was only loading yearly files despite config entries.
+- **Extended date range**: Changed `END_DATE` from `2026-01-30` to `2026-02-28` to allow February data inclusion.
+- **Result**: Full consolidation now includes 753,903 records (was 714,689), date range 2019-01-01 to 2026-02-01 (was 2025-12-31).
+- **Monthly files loaded**: 5 additional files (2025 Q4: Oct/Nov/Dec, 2026: Jan/Feb) plus 7 yearly files = 12 total files.
+- **Processing time**: ~2 minutes for 12-file consolidation with parallel loading (8 workers).
+
 ### v1.2.6 - Incremental 2026 Run & Validation Fixes (2026-02-02)
 - **Incremental consolidation**: Config uses 2026_01/02 CAD (and RMS) monthly paths; incremental mode uses only 2026 monthly files; January filtered by baseline IDs; February from 2026-02-01 onward. See `config/consolidation_sources.yaml` and `INCREMENTAL_RUN_GUIDE.md`.
 - **Copy script**: `scripts/copy_polished_to_processed_and_update_manifest.py` copies latest polished Excel to 13_PROCESSED_DATA and updates manifest.json (for `copy_consolidated_dataset_to_server.ps1` and ArcGIS).
@@ -100,7 +128,7 @@ This repository contains a unified data quality system for CAD (Computer-Aided D
 | `tests/` | Pytest test suite with fixtures | N/A |
 | `tests/fixtures/` | Sample data for testing | CSV/Excel samples |
 | `docs/` | Documentation (architecture, migration notes, user guides) | Markdown files |
-| `docs/arcgis/` | ArcGIS import scripts and documentation | Python scripts, README |
+| `docs/arcgis/` | ArcGIS import scripts, automation, and backfill documentation | Python scripts, PowerShell, README, config |
 
 ---
 
@@ -570,6 +598,82 @@ Source file paths for 2019-2026 CAD consolidation. **Updated 2026-02-01** with b
 
 ---
 
+## ArcGIS Pro Backfill Automation (v1.3.0)
+
+### Overview
+Automated workflow for backfilling ArcGIS Pro dashboard with polished CAD data, reducing manual process from 5+ hours to ~30 minutes.
+
+### Core Strategy: Staging File Pattern
+- ArcGIS Pro model reads from **fixed staging path**: `C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\ESRI_CADExport.xlsx`
+- For backfill: swap file content (not model nodes)
+- Daily publish: scheduled task copies default export → staging before running tool
+- Collision control: lock files prevent concurrent publishes
+
+### Key Scripts (docs/arcgis/)
+
+#### Tool Discovery
+- **discover_tool_info.py** - Discovers exact ArcPy callable from toolbox
+  - Confirmed: `arcpy.TransformCallData_tbx1()` from `LawEnforcementDataManagement.atbx`
+  - Toolbox alias: `tbx1`
+  - Run via: `propy.bat` (ArcGIS Pro Python environment)
+
+#### Configuration
+- **config.json** - Central configuration
+  - Paths: ArcGIS project, toolbox, geodatabase, staging, backfill sources
+  - Scheduled tasks: `LawSoftESRICADExport`, `LawSoftESRINIBRSExport`
+  - Expected counts: Read from `13_PROCESSED_DATA/manifest.json`
+  - Tool callable: `arcpy.TransformCallData_tbx1()`
+  - Safe hours: 8 AM - 11 PM (avoid midnight scheduled tasks)
+
+#### Orchestration
+- **Invoke-CADBackfillPublish.ps1** - Main orchestrator
+  - Pre-flight checks (lock, tasks, processes, geodatabase, sheet name)
+  - Atomic swap: backfill → staging (with SHA256 hash verification)
+  - Run publish: calls `run_publish_call_data.py` via propy.bat
+  - Auto-restore: default export → staging (with size verification)
+  - Lock file: metadata (PID, user, timestamp), stale detection (>2 hours)
+  - Emergency restore: cleanup in finally block
+
+- **run_publish_call_data.py** - Python runner
+  - Reads config.json
+  - Imports toolbox: `arcpy.ImportToolbox(toolbox_path, "tbx1")`
+  - Calls: `arcpy.TransformCallData_tbx1()`
+  - Captures geoprocessing messages
+  - Returns exit code (0=success, 1=warnings, 2=errors)
+
+#### Pre-Flight Checks
+- **Test-PublishReadiness.ps1**
+  - Lock file: Check existence + stale detection (auto-cleanup if process dead)
+  - Scheduled tasks: Check if `LawSoftESRICADExport` or `LawSoftESRINIBRSExport` are running
+  - Processes: Block if geoprocessing workers active (not just ArcGIS Pro open)
+  - Geodatabase lock: Ensure `CAD_Data.gdb` writable
+  - Excel validation: Verify "Sheet1" exists in backfill file
+  - Disk space: >5 GB free required
+
+#### File Copy
+- **Copy-PolishedToServer.ps1** - Local machine → server
+  - Reads `13_PROCESSED_DATA/manifest.json` for latest polished file
+  - Robocopy with retry (3 attempts, 5s wait)
+  - SMB share preferred (`\\HPD2022LAWSOFT\Share\`)
+  - Admin share fallback (`\\HPD2022LAWSOFT\c$\`)
+  - File integrity: size comparison after copy
+
+### Backfill Workflow
+1. **On local machine**: Run `Copy-PolishedToServer.ps1` to copy polished file to server
+2. **On server (RDP)**: Run `Invoke-CADBackfillPublish.ps1 -BackfillFile "path" [-DryRun]`
+3. **Verify**: Check dashboard date range and record counts
+
+### One-Time Setup (Manual)
+1. Create staging directory: `C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\`
+2. Copy 7 scripts from `docs/arcgis/` to `C:\HPD ESRI\04_Scripts\` on server
+3. Update ArcGIS Pro model: Change Input Spreadsheet to `_STAGING\ESRI_CADExport.xlsx`
+4. Update scheduled task: Add staging refresh (copy default → staging) as **FIRST** action in `LawSoftESRICADExport`
+
+### Documentation
+- **README_Backfill_Process.md** - Complete user guide with setup, workflow, troubleshooting
+
+---
+
 ## When Working on This Project (Original)
 
 1. **Read first** - Review `README.md`, `PLAN.md`, and `NEXT_STEPS.md` before making changes
@@ -614,8 +718,23 @@ See `_Archive/README.md` for detailed migration notes per project.
 
 ## Version Information
 
-**Current Version:** 1.2.6 (Incremental 2026 Run & Validation Fixes)
+**Current Version:** 1.3.1 (2026 Monthly Data Fix)
 **Created:** 2026-01-29
+**Last Updated:** 2026-02-02
+**Author:** R. A. Carucci
+**Status:** Expansion Plan Complete - ArcGIS Automation + February 2026 Data Included
+**Status:** Expansion Plan Complete + ArcGIS Automation Ready
+
+**Expansion Plan Implementation Complete:**
+- ✅ Milestone 1: Paths & Baseline (v1.2.0)
+- ✅ Milestone 2: Reports Reorganization (v1.2.1)
+- ✅ Milestone 3: Server Copy + ArcPy (v1.2.2)
+- ✅ Milestone 4: Speed Optimizations (v1.2.3)
+- ✅ Milestone 5: Monthly Processing (v1.2.4)
+- ✅ Milestone 6: Legacy Archive (v1.2.5)
+- v1.2.6: Incremental 2026 monthly (Jan/Feb), copy script, ReportNumberNew validation fix
+- v1.3.0: ArcGIS Pro backfill automation workflow (staging pattern + orchestration)
+- See `docs/Plan_Review_Package_For_Claude/CAD_RMS_Data_Quality_Expansion_Plan_ENHANCED.md`, `INCREMENTAL_RUN_GUIDE.md`, and `docs/arcgis/README_Backfill_Process.md`
 **Last Updated:** 2026-02-02
 **Author:** R. A. Carucci
 **Status:** Expansion Plan Complete - Incremental Run & ReportNumberNew Fix

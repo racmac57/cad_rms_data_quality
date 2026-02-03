@@ -1,8 +1,8 @@
 # Project Summary - CAD/RMS Data Quality System
 
-**Version:** 1.2.6
-**Last Updated:** 2026-02-02
-**Status:** Expansion Plan Complete - Incremental 2026 Run & Validation Fixes
+**Version:** 1.3.2
+**Last Updated:** 2026-02-03
+**Status:** Production-Ready Baseline + Complete Testing Suite + Deployment Ready
 
 ---
 
@@ -12,14 +12,15 @@ Enterprise data quality system for CAD (Computer-Aided Dispatch) and RMS (Record
 
 ### Key Capabilities
 
-- **Historical Consolidation**: 724,794 CAD records (2019-01-01 to 2026-01-30) merged and validated
+- **Historical Consolidation**: 753,903 CAD records (2019-01-01 to 2026-02-01) merged and validated
 - **ESRI Compatibility**: ArcGIS Pro-ready datasets with schema conversion
+- **ArcGIS Backfill Automation**: Automated workflow reducing manual effort from 5+ hours to 30 minutes (NEW in v1.3.0)
 - **RMS Backfill**: Intelligent enrichment (41,137 PDZone + 34 Grid values)
 - **Advanced Normalization**: v3.2 with domain compliance (858 to 557 incident variants)
 - **Quality Scoring**: 99.9% field completeness, 100% domain compliance
 - **Standards-Driven**: References unified data dictionary (649 call types, 11 ESRI categories)
-- **Baseline + Incremental Mode**: Load baseline once, append new monthly data only (NEW in v1.2.0)
-- **Manifest Tracking**: `13_PROCESSED_DATA/manifest.json` tracks latest polished file (NEW in v1.2.0)
+- **Baseline + Incremental Mode**: Load baseline once, append new monthly data only (v1.2.0)
+- **Manifest Tracking**: `13_PROCESSED_DATA/manifest.json` tracks latest polished file (v1.2.0)
 
 ---
 
@@ -36,6 +37,14 @@ Enterprise data quality system for CAD (Computer-Aided Dispatch) and RMS (Record
 - `scripts/copy_polished_to_processed_and_update_manifest.py` - Copy polished Excel to 13_PROCESSED_DATA, update manifest
 - `verify_record_counts.py` - Record count verification utility
 
+### ArcGIS Automation Scripts (NEW in v1.3.0)
+- `docs/arcgis/discover_tool_info.py` - Tool discovery script
+- `docs/arcgis/run_publish_call_data.py` - Python runner for ArcGIS Pro tool
+- `docs/arcgis/Test-PublishReadiness.ps1` - Pre-flight checks
+- `docs/arcgis/Invoke-CADBackfillPublish.ps1` - Main orchestrator
+- `docs/arcgis/Copy-PolishedToServer.ps1` - Robust file copy script
+- `docs/arcgis/config.json` - Central configuration
+
 ### Shared Utilities
 - `shared/utils/call_type_normalizer.py` - Runtime call type normalization
 
@@ -45,6 +54,7 @@ Enterprise data quality system for CAD (Computer-Aided Dispatch) and RMS (Record
 - `INCREMENTAL_RUN_GUIDE.md` - Incremental CAD run (baseline + Jan/Feb), copy script, January reports
 - `PLAN.md` - Implementation roadmap
 - `Claude.md` - AI context and rules
+- `docs/arcgis/README_Backfill_Process.md` - ArcGIS Pro backfill automation guide (NEW in v1.3.0)
 - `outputs/consolidation/` - Execution guides and analysis reports (24 files)
 
 ---
@@ -85,6 +95,48 @@ python verify_record_counts.py
 - **Deduplication fix**: Resolved supplement/unit record preservation (165,592 maintained)
 
 See [CHANGELOG.md](CHANGELOG.md#111---2026-01-31) for complete details.
+
+---
+
+## What changed in v1.3.2
+
+- **Complete Baseline Generated**: 754,409 records (2019-01-01 to 2026-02-03) in production-ready format
+- **ESRI Generator Restored**: Found and fixed archived `enhanced_esri_output_generator.py` with column rename logic
+- **Critical Bug Fixed**: TimeOfCall → Time of Call conversion prevents NaN dates in polished output
+- **Baseline Files**: Both generic pointer and versioned archive created in 13_PROCESSED_DATA
+- **Jan 1-9 Gap Filled**: Confirmed 3,101 records present for missing period
+- **Testing Suite Created**: Comprehensive validation scripts (test_baseline.py, quick_test_baseline.py, backfill_gap_analysis.py)
+- **All Tests Pass**: 10/10 validation checks passed - 100% valid dates, correct structure, complete data
+- **Deployment Ready**: Baseline tested and ready for ArcGIS Pro deployment via RDP
+- **Processing Time**: Full pipeline completed in 51 minutes (consolidation → generation → testing)
+
+See [CHANGELOG.md](CHANGELOG.md#132---2026-02-03) for complete details.
+
+---
+
+## What changed in v1.3.1
+
+- **Fixed 2026 monthly data inclusion**: Full consolidation now correctly loads all monthly files from config
+- **Extended date range**: Changed `END_DATE` from `2026-01-30` to `2026-02-28` to include February data
+- **Updated totals**: 753,903 records (up from 714,689), date range now 2019-01-01 to 2026-02-01 (was 2025-12-31)
+- **Monthly files loaded**: Now includes 5 monthly files (2025 Q4 + 2026 Jan/Feb) plus 7 yearly files
+- **Processing time**: ~2 minutes for full 12-file consolidation with parallel loading (8 workers)
+- **Output file**: `2019_to_2026_01_30_CAD.csv` (217.5 MB, 559,650 unique cases)
+
+---
+
+## What changed in v1.3.0
+
+- **ArcGIS Pro backfill automation**: Complete workflow automation reducing manual steps from 5+ hours to 30 minutes
+- **Staging pattern**: Model reads from fixed path; only file content swaps (eliminates manual model editing)
+- **Tool discovery**: Created discovery script, confirmed callable `arcpy.TransformCallData_tbx1()`
+- **Orchestration**: Main orchestrator with atomic swaps, SHA256 hash verification, auto-restore on error
+- **Collision control**: Lock files, scheduled task checks, stale lock detection prevent concurrent publishes  
+- **Pre-flight checks**: Lock file, task status, process check, geodatabase lock, Excel sheet validation, disk space
+- **Configuration**: Centralized `config.json` with all paths, task names, expected counts from manifest
+- **Documentation**: Complete user guide with setup instructions, workflow, troubleshooting
+
+See [CHANGELOG.md](CHANGELOG.md#130---2026-02-02) for full details.
 
 ---
 
