@@ -13,6 +13,136 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.0] - 2026-02-02
+
+[Compare v1.2.6...v1.3.0](https://github.com/racmac57/cad_rms_data_quality/compare/v1.2.6...v1.3.0)
+
+### Added - ArcGIS Pro Backfill Automation Workflow
+
+#### Problem Solved
+Previously, backfilling the ArcGIS Pro dashboard with polished CAD data required manual steps over 5+ hours:
+- Manual RDP file copying
+- Manually editing ModelBuilder nodes for each backfill
+- ArcPy script errors
+- Disorganized verification
+- Risk of collision with scheduled daily publish job
+
+#### Solution: Staging File Pattern + Automated Orchestration
+**Core Strategy:** Configure ArcGIS Pro model to read from a fixed staging path, then swap file content programmatically instead of editing the model.
+
+#### Tool Discovery Scripts
+- **`docs/arcgis/discover_tool_info.py`** - Discovers exact ArcPy callable names from toolbox
+  - Confirmed tool: `TransformCallData_tbx1` (callable as `arcpy.TransformCallData_tbx1()`)
+  - Toolbox: `LawEnforcementDataManagement.atbx` with alias `tbx1`
+  - ArcGIS Pro version: 3.6.1
+  - Discovery date: 2026-02-02
+
+#### Configuration
+- **`docs/arcgis/config.json`** - Centralized configuration for backfill workflow
+  - Confirmed paths: ArcGIS project, toolbox, geodatabase
+  - Scheduled task names: `LawSoftESRICADExport`, `LawSoftESRINIBRSExport`
+  - Expected record counts from manifest (724,794 baseline)
+  - Safe hours, collision control, verification settings
+  - Tool callable: `arcpy.TransformCallData_tbx1()` (confirmed via discovery)
+
+#### Orchestration Scripts
+- **`docs/arcgis/Invoke-CADBackfillPublish.ps1`** - Main orchestrator for backfill workflow
+  - Pre-flight checks (lock files, scheduled tasks, geoprocessing workers, geodatabase locks)
+  - Atomic file swap with SHA256 hash verification for backfill data
+  - Calls ArcGIS Pro tool via Python runner script
+  - Automatic restore of default export to staging after publish
+  - Lock file with metadata (PID, user, timestamp) and stale lock detection (>2 hours)
+  - Emergency restore on error with cleanup in finally block
+  - Dry-run mode for safe testing
+
+- **`docs/arcgis/run_publish_call_data.py`** - Python runner for ArcGIS Pro tool
+  - Reads config.json for all settings
+  - Imports toolbox with confirmed alias (tbx1)
+  - Calls `arcpy.TransformCallData_tbx1()` directly
+  - Captures geoprocessing messages and exit codes
+  - Runs via ArcGIS Pro Python environment (propy.bat)
+
+- **`docs/arcgis/Test-PublishReadiness.ps1`** - Pre-flight validation
+  - Lock file check with stale detection and auto-cleanup
+  - Scheduled task status (checks for "Running" state)
+  - ArcGIS process check (geoprocessing workers only, not just Pro open)
+  - Geodatabase lock test (prevents concurrent writes)
+  - Excel sheet name validation (requires "Sheet1" for ArcGIS import)
+  - Disk space check (>5 GB free)
+
+- **`docs/arcgis/Copy-PolishedToServer.ps1`** - Robust file copy from local to server
+  - Reads latest polished file path from `13_PROCESSED_DATA/manifest.json`
+  - Robocopy with retry logic (3 retries, 5s wait)
+  - SMB share support (preferred) + admin share fallback
+  - File integrity verification (size comparison)
+  - Detailed logging
+
+#### Documentation
+- **`docs/arcgis/README_Backfill_Process.md`** - Complete user guide
+  - One-time setup instructions (staging directory, model update, scheduled task update)
+  - Step-by-step backfill workflow
+  - Troubleshooting guide
+  - Configuration reference
+  - Safety features explained
+
+#### Key Features
+1. **Staging Pattern**: Model reads fixed path, only file content swaps
+2. **Collision Control**: Lock files prevent concurrent publishes, blocks on scheduled task running
+3. **Atomic Swaps**: Temp file → rename pattern prevents partial reads
+4. **Hash Verification**: SHA256 check on backfill copies (size check on daily)
+5. **Auto-Restore**: Emergency restore of default export if backfill fails
+6. **Stale Lock Detection**: Auto-cleanup locks >2 hours with dead process
+7. **Smart Process Checks**: Blocks only on active geoprocessing, not just ArcGIS Pro open
+
+#### Server Directory Structure
+```
+C:\HPD ESRI\
+├── LawEnforcementDataManagement_New\
+│   ├── LawEnforcementDataManagement.aprx   # ArcGIS Pro project
+│   └── LawEnforcementDataManagement.atbx   # Toolbox with TransformCallData_tbx1
+├── 03_Data\CAD\Backfill\
+│   ├── _STAGING\
+│   │   ├── ESRI_CADExport.xlsx            # Model reads THIS file
+│   │   └── _LOCK.txt                       # Collision prevention
+│   └── CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx  # Source file (724,794 records)
+├── 04_Scripts\
+│   ├── config.json
+│   ├── discover_tool_info.py
+│   ├── run_publish_call_data.py
+│   ├── Test-PublishReadiness.ps1
+│   ├── Invoke-CADBackfillPublish.ps1
+│   ├── Copy-PolishedToServer.ps1
+│   └── README_Backfill_Process.md
+└── 05_Reports\  # Verification reports
+```
+
+#### Required Manual Setup (One-Time)
+1. **Create staging directory**: `C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\`
+2. **Copy 7 scripts to server**: All files from `docs/arcgis/` to `C:\HPD ESRI\04_Scripts\`
+3. **Update ArcGIS Pro model**: Change Input Spreadsheet to `_STAGING\ESRI_CADExport.xlsx`
+4. **Update scheduled task**: Add staging refresh as FIRST action in `LawSoftESRICADExport`
+
+#### Runtime (After Setup)
+Time reduced from **5+ hours** to **~30 minutes**:
+- 10 min: Copy polished to server (local machine)
+- 15 min: Run orchestrator (server) - includes publish + verification
+- 5 min: Dashboard verification
+
+### Changed
+- Workflow complexity: Reduced manual steps from 15+ to 3 (copy, run, verify)
+- Error handling: Comprehensive with automatic rollback
+- Collision risk: Eliminated with lock files and task status checks
+- File integrity: Guaranteed with hash verification
+- Recovery: Automatic emergency restore on failure
+
+### Notes
+- Dry-run testing completed successfully 2026-02-02
+- Tool discovery confirmed TransformCallData_tbx1 callable
+- All Unicode characters replaced with ASCII for PowerShell compatibility
+- Scripts ready for production use after manual setup steps
+
+---
+
 ## [1.2.6] - 2026-02-02
 
 [Compare v1.2.5...v1.2.6](https://github.com/racmac57/cad_rms_data_quality/compare/v1.2.5...v1.2.6)

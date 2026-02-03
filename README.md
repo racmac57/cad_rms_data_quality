@@ -1,10 +1,10 @@
 # CAD/RMS Data Quality System
 
-**Version:** 1.2.6 (Incremental 2026 Run & Validation Fixes)
+**Version:** 1.3.0 (ArcGIS Pro Backfill Automation)
 **Created:** 2026-01-29
 **Updated:** 2026-02-02
 **Author:** R. A. Carucci
-**Status:** ✅ Expansion Plan Complete - Incremental Run & ReportNumberNew Fix
+**Status:** ✅ Expansion Plan Complete + ArcGIS Automation Ready
 
 ---
 
@@ -88,9 +88,16 @@ cad_rms_data_quality/
 │   └── fixtures/                      # Test data (empty)
 │
 └── docs/                       # Documentation
-    ├── arcgis/                        # ArcGIS import documentation ✅
+    ├── arcgis/                        # ArcGIS import and automation ✅
     │   ├── README.md                  # Workflow guide for geodatabase import ✅
-    │   └── import_cad_polished_to_geodatabase.py  # arcpy import script ✅
+    │   ├── README_Backfill_Process.md # User guide for backfill automation ✅
+    │   ├── config.json                # Central configuration for backfill workflow ✅
+    │   ├── discover_tool_info.py      # Tool discovery script ✅
+    │   ├── run_publish_call_data.py   # Python runner for ArcGIS Pro tool ✅
+    │   ├── Test-PublishReadiness.ps1  # Pre-flight checks ✅
+    │   ├── Invoke-CADBackfillPublish.ps1  # Main orchestrator ✅
+    │   ├── Copy-PolishedToServer.ps1  # Robust file copy script ✅
+    │   └── import_cad_polished_to_geodatabase.py  # Legacy arcpy import script
     ├── ARCHITECTURE.md                # System design (TO DO)
     ├── MIGRATION_NOTES.md             # What came from legacy projects (TO DO)
     ├── CONSOLIDATION_GUIDE.md         # How to run consolidation (TO DO)
@@ -218,6 +225,20 @@ cad_rms_data_quality/
 - Address quality: 20 points
 - Domain compliance: 15 points
 - Consistency checks: 10 points
+
+---
+
+## What changed in v1.3.0
+
+- **ArcGIS Pro backfill automation**: Complete workflow automation reducing manual steps from 5+ hours to 30 minutes
+- **Staging pattern implemented**: Model reads from fixed path; only file content swaps (no more model editing)
+- **Collision control**: Lock files, scheduled task checks, stale lock detection prevent concurrent publishes
+- **Tool discovery**: Created discovery script, confirmed callable `arcpy.TransformCallData_tbx1()` 
+- **Orchestration scripts**: Main orchestrator with atomic swaps, SHA256 verification, auto-restore on error
+- **Pre-flight checks**: Lock files, task status, process check, geodatabase lock, Excel sheet validation
+- **Documentation**: Complete user guide with setup, workflow, troubleshooting, configuration reference
+
+See [CHANGELOG.md](CHANGELOG.md#130---2026-02-02) for full details.
 
 ---
 
