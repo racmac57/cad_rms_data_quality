@@ -52,10 +52,15 @@ class CallTypeDriftDetector:
         """Load reference call types from file."""
         if self.reference_file and Path(self.reference_file).exists():
             try:
-                self.reference_df = pd.read_csv(self.reference_file)
+                # Read CSV with explicit dtype for Incident column
+                self.reference_df = pd.read_csv(self.reference_file, dtype={'Incident': str})
                 if 'Incident' in self.reference_df.columns:
+                    # Filter out rows where Incident is numeric (like bare "1")
+                    valid_incidents = self.reference_df['Incident'].dropna()
+                    # Remove rows that are just numbers
+                    valid_incidents = valid_incidents[~valid_incidents.str.match(r'^\d+$')]
                     self.reference_call_types = set(
-                        self.reference_df['Incident'].dropna().str.strip().str.upper()
+                        valid_incidents.str.strip().str.upper()
                     )
             except Exception as e:
                 print(f"Warning: Could not load reference file: {e}")

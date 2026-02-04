@@ -49,33 +49,38 @@ class PersonnelDriftDetector:
         """Load reference personnel from file."""
         if self.reference_file and Path(self.reference_file).exists():
             try:
-                self.reference_df = pd.read_csv(self.reference_file)
+                # Read CSV with explicit dtypes for all columns as string
+                self.reference_df = pd.read_csv(self.reference_file, dtype=str, keep_default_na=False)
                 
-                # Load all personnel identifiers
-                name_fields = ['FULL_NAME', 'BADGE_NUMBER', 'PADDED_BADGE_NUMBER']
-                for field in name_fields:
-                    if field in self.reference_df.columns:
-                        values = self.reference_df[field].dropna().str.strip().str.upper()
-                        self.all_personnel.update(values)
-                
-                # Separate active/inactive
-                if 'STATUS' in self.reference_df.columns:
-                    active_df = self.reference_df[
-                        self.reference_df['STATUS'].str.upper() == 'ACTIVE'
-                    ]
-                    inactive_df = self.reference_df[
-                        self.reference_df['STATUS'].str.upper() == 'INACTIVE'
-                    ]
+                # The actual data is in the last 3 columns: FullName, Status, Badge, Notes
+                # Check for these columns (they may have different names)
+                if 'FullName' in self.reference_df.columns:
+                    # Filter out empty rows
+                    valid_rows = self.reference_df['FullName'].str.strip() != ''
+                    self.reference_df = self.reference_df[valid_rows]
                     
-                    for field in name_fields:
-                        if field in active_df.columns:
-                            self.active_personnel.update(
-                                active_df[field].dropna().str.strip().str.upper()
-                            )
-                        if field in inactive_df.columns:
-                            self.inactive_personnel.update(
-                                inactive_df[field].dropna().str.strip().str.upper()
-                            )
+                    # Load all personnel identifiers from FullName
+                    values = self.reference_df['FullName'].dropna().str.strip().str.upper()
+                    # Filter out empty strings
+                    values = values[values != '']
+                    self.all_personnel.update(values)
+                    
+                    # Separate active/inactive using Status column
+                    if 'Status' in self.reference_df.columns:
+                        active_df = self.reference_df[
+                            self.reference_df['Status'].str.upper().str.strip() == 'ACTIVE'
+                        ]
+                        inactive_df = self.reference_df[
+                            self.reference_df['Status'].str.upper().str.strip() == 'INACTIVE'
+                        ]
+                        
+                        active_values = active_df['FullName'].dropna().str.strip().str.upper()
+                        active_values = active_values[active_values != '']
+                        self.active_personnel.update(active_values)
+                        
+                        inactive_values = inactive_df['FullName'].dropna().str.strip().str.upper()
+                        inactive_values = inactive_values[inactive_values != '']
+                        self.inactive_personnel.update(inactive_values)
                             
             except Exception as e:
                 print(f"Warning: Could not load reference file: {e}")
