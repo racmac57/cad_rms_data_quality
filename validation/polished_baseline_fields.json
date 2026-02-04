@@ -1,0 +1,215 @@
+{
+  "ReportNumberNew": {
+    "dtype": "str",
+    "completeness_pct": 100.0,
+    "unique_count": 3805,
+    "sample_values": [
+      "19-000001",
+      "19-000002",
+      "19-000003",
+      "19-000004",
+      "19-000005"
+    ]
+  },
+  "Incident": {
+    "dtype": "str",
+    "completeness_pct": 100.0,
+    "unique_count": 192,
+    "sample_values": [
+      "Blocked Driveway",
+      "Meal Break",
+      "Medical Call ",
+      "Noise Complaint ",
+      "Suspicious Incident "
+    ]
+  },
+  "How Reported": {
+    "dtype": "str",
+    "completeness_pct": 100.0,
+    "unique_count": 8,
+    "sample_values": [
+      "Phone",
+      "Radio",
+      "9-1-1",
+      "Walk-In",
+      "Other - See Notes"
+    ]
+  },
+  "FullAddress2": {
+    "dtype": "str",
+    "completeness_pct": 100.0,
+    "unique_count": 1140,
+    "sample_values": [
+      "198 Central Avenue, Hackensack, NJ, 07601",
+      "225 State Street, Hackensack, NJ, 07601",
+      "30 Shafer Place, Hackensack, NJ, 07601",
+      "177 Bonhomme Avenue, Hackensack, NJ, 07601",
+      "279 Sutton Avenue, Hackensack, NJ, 07601"
+    ]
+  },
+  "Grid": {
+    "dtype": "str",
+    "completeness_pct": 1.0,
+    "unique_count": 2,
+    "sample_values": [
+      "4a4",
+      "Nj"
+    ]
+  },
+  "ZoneCalc": {
+    "dtype": "float64",
+    "completeness_pct": 0.0,
+    "unique_count": 0,
+    "sample_values": []
+  },
+  "Time of Call": {
+    "dtype": "str",
+    "completeness_pct": 100.0,
+    "unique_count": 4992,
+    "sample_values": [
+      "2019-01-01 00:04:21",
+      "2019-01-01 00:11:16",
+      "2019-01-01 00:13:31",
+      "2019-01-01 00:19:41",
+      "2019-01-01 00:21:43"
+    ]
+  },
+  "cYear": {
+    "dtype": "int64",
+    "completeness_pct": 100.0,
+    "unique_count": 2,
+    "sample_values": [
+      "2019",
+      "2018"
+    ]
+  },
+  "cMonth": {
+    "dtype": "str",
+    "completeness_pct": 100.0,
+    "unique_count": 2,
+    "sample_values": [
+      "January",
+      "December"
+    ]
+  },
+  "Hour_Calc": {
+    "dtype": "int64",
+    "completeness_pct": 100.0,
+    "unique_count": 24,
+    "sample_values": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4"
+    ]
+  },
+  "DayofWeek": {
+    "dtype": "str",
+    "completeness_pct": 100.0,
+    "unique_count": 7,
+    "sample_values": [
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday"
+    ]
+  },
+  "Time Dispatched": {
+    "dtype": "str",
+    "completeness_pct": 100.0,
+    "unique_count": 4983,
+    "sample_values": [
+      "2019-01-01 01:15:47",
+      "2019-01-01 00:11:31",
+      "2019-01-01 00:15:00",
+      "2019-01-01 00:41:05",
+      "2019-01-01 00:25:00"
+    ]
+  },
+  "Time Out": {
+    "dtype": "str",
+    "completeness_pct": 100.0,
+    "unique_count": 4994,
+    "sample_values": [
+      "2019-01-01 00:15:12",
+      "2019-01-01 00:11:49",
+      "2019-01-01 00:22:53",
+      "2019-01-01 00:44:23",
+      "2019-01-01 00:27:52"
+    ]
+  },
+  "Time In": {
+    "dtype": "str",
+    "completeness_pct": 100.0,
+    "unique_count": 4998,
+    "sample_values": [
+      "2019-01-01 01:19:13",
+      "2019-01-01 00:57:03",
+      "2019-01-01 00:34:54",
+      "2019-01-01 00:47:37",
+      "2019-01-01 00:39:53"
+    ]
+  },
+  "Time Spent": {
+    "dtype": "str",
+    "completeness_pct": 100.0,
+    "unique_count": 2175,
+    "sample_values": [
+      "1:04:01",
+      "0:45:14",
+      "0:12:01",
+      "0:03:14",
+      "0:12:13"
+    ]
+  },
+  "Time Response": {
+    "dtype": "str",
+    "completeness_pct": 100.0,
+    "unique_count": 1020,
+    "sample_values": [
+      "0:10:51",
+      "0:00:33",
+      "0:09:22",
+      "0:24:42",
+      "0:06:09"
+    ]
+  },
+  "Officer": {
+    "dtype": "str",
+    "completeness_pct": 99.8,
+    "unique_count": 102,
+    "sample_values": [
+      "P.O. Aaron Rios 337",
+      "P.O. Evelyn Reyes 336",
+      "P.O. Michael Reo 339",
+      "P.O. Frank Caneja 346",
+      "P.O. Matthew DeBonis 325"
+    ]
+  },
+  "Disposition": {
+    "dtype": "str",
+    "completeness_pct": 100.0,
+    "unique_count": 15,
+    "sample_values": [
+      "Other - See Notes",
+      "Complete",
+      "Advised",
+      "Checked OK",
+      "Assisted"
+    ]
+  },
+  "latitude": {
+    "dtype": "float64",
+    "completeness_pct": 0.0,
+    "unique_count": 0,
+    "sample_values": []
+  },
+  "longitude": {
+    "dtype": "float64",
+    "completeness_pct": 0.0,
+    "unique_count": 0,
+    "sample_values": []
+  }
+}
