@@ -633,17 +633,25 @@ def run_full_consolidation(config: Dict = None) -> Tuple[pd.DataFrame, str]:
     # Config is guaranteed to be non-empty dict by check above
     if config.get('sources', {}).get('monthly'):
         monthly_configs = config.get('sources', {}).get('monthly', [])
-        for item in monthly_configs:
+        for idx, item in enumerate(monthly_configs):
+            # Extract path based on item type
             if isinstance(item, dict):
                 path = item.get('path', '')
+                if not path:
+                    logger.warning(f"  Monthly config item {idx}: Empty or missing 'path' key - skipping")
+                    continue
             else:
                 path = item
+                if not path:
+                    logger.warning(f"  Monthly config item {idx}: Empty path value - skipping")
+                    continue
             
-            if path and Path(path).exists():
+            # Check if file exists
+            if Path(path).exists():
                 # Use 2026 as year for monthly files
                 file_configs.append((path, 2026, None))
                 logger.info(f"  Added monthly file: {Path(path).name}")
-            elif path:
+            else:
                 logger.warning(f"  Monthly file not found: {path}")
 
     # Load files (parallel or sequential based on config)
