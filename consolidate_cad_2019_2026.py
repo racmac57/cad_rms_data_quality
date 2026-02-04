@@ -602,16 +602,25 @@ def run_incremental_consolidation(config: Dict) -> Tuple[pd.DataFrame, str]:
 # FULL CONSOLIDATION (ORIGINAL MODE)
 # ============================================================================
 
-def run_full_consolidation(config: Dict = None) -> Tuple[pd.DataFrame, str]:
+def run_full_consolidation(config: Dict) -> Tuple[pd.DataFrame, str]:
     """
     Run full consolidation: load all yearly + monthly files.
 
     Args:
-        config: Configuration dictionary
+        config: Configuration dictionary (REQUIRED - contains monthly file paths)
 
     Returns:
         Tuple of (consolidated DataFrame, run_type string)
+        
+    Raises:
+        ValueError: If config is None or missing required structure
     """
+    if config is None:
+        raise ValueError(
+            "Configuration is required for full consolidation. "
+            "Monthly files from config.yaml are needed to include 2026 data."
+        )
+    
     logger.info("=" * 80)
     logger.info("FULL MODE: Loading all source files")
     logger.info("=" * 80)
@@ -619,7 +628,7 @@ def run_full_consolidation(config: Dict = None) -> Tuple[pd.DataFrame, str]:
     # Create file configs list
     file_configs = [(path, year, expected) for path, year, expected in YEARLY_FILES]
     
-    # Load monthly files from config (2026 monthly exports)
+    # Load monthly files from config (2026 monthly exports) - REQUIRED for 2026 data
     if config:
         monthly_configs = config.get('sources', {}).get('monthly', [])
         for item in monthly_configs:
