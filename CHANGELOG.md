@@ -13,6 +13,95 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.0] - 2026-02-04
+
+### Added - Comprehensive Data Quality Validation System
+
+#### Validation Framework (6 commits over 2 sessions)
+Built a complete data quality validation system for 754,409 CAD records:
+
+**9 Field Validators (`validation/validators/`):**
+1. **HowReportedValidator** - Call source domain validation (100% pass)
+2. **DispositionValidator** - Outcome domain validation (100% after fix)
+3. **CaseNumberValidator** - Format validation YY-NNNNNN (99.99% pass)
+4. **IncidentValidator** - Call type validation against 823 reference types
+5. **DateTimeValidator** - Date/time validation across 4 fields
+6. **DurationValidator** - Response time and duration validation
+7. **OfficerValidator** - Personnel validation against 387 reference personnel
+8. **GeographyValidator** - Address and zone validation
+9. **DerivedFieldValidator** - Calculated field consistency
+
+**2 Drift Detectors (`validation/sync/`):**
+- **CallTypeDriftDetector** - Identifies new/unused call types
+- **PersonnelDriftDetector** - Identifies new/inactive personnel
+
+**Master Orchestrator (`validation/run_all_validations.py`):**
+- Single command runs all validators and drift detectors
+- Multiple output formats: JSON, Excel (row-level issues), Markdown
+- Quality scoring with configurable weights
+- Performance: ~6 minutes for 754k records
+
+#### Drift Sync Automation Tools
+- **extract_drift_reports.py** - Export drift to reviewable CSV files
+- **extract_all_drift.py** - Full extraction bypassing 50-item limit
+- **apply_drift_sync.py** - Apply approved changes with automatic backups
+- **batch_mark_add.py** - Bulk mark items for addition
+
+#### First Production Run Results
+- **Quality Score:** 98.3% (Grade A)
+- **Records Validated:** 754,409
+- **Date Range:** 2019-01-01 to 2026-02-04
+- **Processing Time:** ~6 minutes
+
+#### Issues Found and Fixed
+1. **Disposition Field:** 87,896 false positives (11.7%)
+   - Root cause: Validator missing 5 valid values (See Report, See Supplement, Field Contact, Curbside Warning, Cleared)
+   - Fix: Updated `validation/validators/disposition_validator.py`
+   
+2. **Call Type Drift:** 174 new types not in reference
+   - Fix: Added to CallTypes_Master.csv (649 → 823 types)
+   
+3. **Personnel Drift:** 219 new officers not in reference
+   - Fix: Added to Assignment_Master_V2.csv (168 → 387 personnel)
+
+#### Reference Data Updates
+- **CallTypes_Master.csv:** 649 → 823 entries (+174)
+- **Assignment_Master_V2.csv:** 168 → 387 entries (+219)
+- Backups created automatically before updates
+
+#### Documentation Created
+- `validation/FIRST_PRODUCTION_RUN_SUMMARY.md` - Complete first run results
+- `validation/DRIFT_SYNC_GUIDE.md` - Reference data sync workflow
+- `validation/DRIFT_TOOLS_COMPLETE.md` - Automation tools documentation
+- `validation/DRIFT_DATA_ANALYSIS.md` - Data analysis and recommendations
+- `validation/NEXT_STEPS.md` - Action items and next phases
+- `validation/README.md` - Validation system overview
+
+#### Git History (6 commits)
+```
+2f088cb Post-Validation Cleanup: Disposition Fix & Reference Data Sync
+96454fb Phase 5 Complete: Master Validation Orchestrator
+e8a114f Phase 4 Complete: Drift Detectors Implementation
+3952bff Phase 3 Complete: Field Validators Implementation
+621d6d5 Phase 2 Complete: Data Dictionary & Validator Planning
+b1ea6b7 Phase 1 Complete: Discovery & Reference Data Consolidation
+```
+
+### Changed
+- README.md updated with validation system status
+- Project version: 1.3.3 → 1.4.0
+- Reference data files expanded significantly
+
+### Fixed
+- Disposition validator now recognizes all valid values from normalizer
+- Reference data drift resolved through automated sync
+
+### Impact
+**Before:** No systematic field validation, unknown data quality
+**After:** 98.3% quality score, automated validation in 6 minutes, reference data current
+
+---
+
 ## [1.3.3] - 2026-02-04
 
 ### Fixed - Phone/911 Dashboard Data Quality Issue
