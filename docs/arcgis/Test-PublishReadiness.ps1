@@ -30,10 +30,10 @@
 #>
 
 param(
-    [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory = $true)]
     [string]$ConfigPath,
     
-    [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory = $true)]
     [string]$BackfillFile,
     
     [switch]$SkipSheetCheck
@@ -52,7 +52,8 @@ Write-Host "[1] Loading configuration..." -ForegroundColor Yellow
 try {
     $config = Get-Content $ConfigPath | ConvertFrom-Json
     Write-Host "    ✓ Config loaded from: $ConfigPath" -ForegroundColor Green
-} catch {
+}
+catch {
     Write-Host "    ✗ ERROR: Failed to load config: $_" -ForegroundColor Red
     exit 1
 }
@@ -87,7 +88,8 @@ if (Test-Path $lockFile) {
         if ($processAlive) {
             Write-Host "    ✗ Process is still running - lock is ACTIVE" -ForegroundColor Red
             $checksFailed += "Lock file is active (process running)"
-        } else {
+        }
+        else {
             Write-Host "    ⚠ Process is dead - checking if lock is stale..." -ForegroundColor Yellow
             
             $lockTimeoutHours = $config.collision_control.lock_timeout_hours
@@ -97,18 +99,21 @@ if (Test-Path $lockFile) {
                 Remove-Item $lockFile -Force
                 Write-Host "    ✓ Stale lock removed" -ForegroundColor Green
                 $checksPassed++
-            } else {
-                Write-Host "    ✗ Lock age is <$lockTimeoutHours hours but process is dead - manual investigation required" -ForegroundColor Red
+            }
+            else {
+                Write-Host "    [X] Lock age is less than $lockTimeoutHours hours but process is dead - manual investigation required" -ForegroundColor Red
                 $checksFailed += "Lock file exists but process is dead (age: $([int]$lockAgeHours)h)"
             }
         }
         
-    } catch {
+    }
+    catch {
         Write-Host "    ✗ ERROR reading lock file: $_" -ForegroundColor Red
         Write-Host "    Manual cleanup required: Remove $lockFile" -ForegroundColor Red
         $checksFailed += "Lock file exists but cannot be read"
     }
-} else {
+}
+else {
     Write-Host "    ✓ No lock file present" -ForegroundColor Green
     $checksPassed++
 }
@@ -129,10 +134,12 @@ foreach ($taskName in $config.scheduled_tasks) {
             if ($taskState -eq "Running") {
                 $tasksRunning += $taskName
             }
-        } else {
+        }
+        else {
             Write-Host "    Task: $taskName - Not found" -ForegroundColor Yellow
         }
-    } catch {
+    }
+    catch {
         Write-Host "    ⚠ Could not check task: $taskName" -ForegroundColor Yellow
     }
 }
@@ -140,7 +147,8 @@ foreach ($taskName in $config.scheduled_tasks) {
 if ($tasksRunning.Count -gt 0) {
     Write-Host "    ✗ Running tasks detected: $($tasksRunning -join ', ')" -ForegroundColor Red
     $checksFailed += "Scheduled tasks are running"
-} else {
+}
+else {
     Write-Host "    ✓ No scheduled tasks running" -ForegroundColor Green
     $checksPassed++
 }
@@ -169,11 +177,13 @@ if ($arcProcesses) {
     if ($gpWorkers) {
         Write-Host "    ✗ Active geoprocessing workers detected - BLOCKING" -ForegroundColor Red
         $checksFailed += "Geoprocessing workers are active"
-    } else {
+    }
+    else {
         Write-Host "    ✓ ArcGIS Pro is open but no active geoprocessing" -ForegroundColor Green
         $checksPassed++
     }
-} else {
+}
+else {
     Write-Host "    ✓ No ArcGIS processes running" -ForegroundColor Green
     $checksPassed++
 }
@@ -189,7 +199,8 @@ try {
     Remove-Item $testFile -Force
     Write-Host "    ✓ Geodatabase is accessible (not locked)" -ForegroundColor Green
     $checksPassed++
-} catch {
+}
+catch {
     Write-Host "    ✗ Geodatabase appears to be locked: $_" -ForegroundColor Red
     $checksFailed += "Geodatabase is locked"
 }
@@ -201,7 +212,8 @@ Write-Host "[6] Validating backfill file..." -ForegroundColor Yellow
 if (-not (Test-Path $BackfillFile)) {
     Write-Host "    ✗ Backfill file not found: $BackfillFile" -ForegroundColor Red
     $checksFailed += "Backfill file not found"
-} else {
+}
+else {
     $fileSize = (Get-Item $BackfillFile).Length / 1MB
     Write-Host "    ✓ File exists: $BackfillFile" -ForegroundColor Green
     Write-Host "    File size: $([int]$fileSize) MB" -ForegroundColor Cyan
@@ -229,7 +241,8 @@ if (-not (Test-Path $BackfillFile)) {
             if ($sheetNames -contains $requiredSheet) {
                 Write-Host "    ✓ Required sheet '$requiredSheet' found" -ForegroundColor Green
                 $checksPassed++
-            } else {
+            }
+            else {
                 Write-Host "    ✗ Required sheet '$requiredSheet' NOT found" -ForegroundColor Red
                 Write-Host "    Action required: Rename sheet to '$requiredSheet' before staging" -ForegroundColor Red
                 $checksFailed += "Backfill file missing required sheet name: $requiredSheet"
@@ -244,12 +257,14 @@ if (-not (Test-Path $BackfillFile)) {
             [System.GC]::Collect()
             [System.GC]::WaitForPendingFinalizers()
             
-        } catch {
+        }
+        catch {
             Write-Host "    ⚠ WARNING: Could not validate sheet name: $_" -ForegroundColor Yellow
             Write-Host "    Assuming sheet name is correct..." -ForegroundColor Yellow
             $checksPassed++
         }
-    } else {
+    }
+    else {
         Write-Host "    ⚠ Sheet name check skipped" -ForegroundColor Yellow
         $checksPassed++
     }
@@ -268,7 +283,8 @@ Write-Host "    Free space: $freeSpaceGB GB" -ForegroundColor Cyan
 if ($freeSpaceGB -lt 5) {
     Write-Host "    ✗ Low disk space (< 5 GB)" -ForegroundColor Red
     $checksFailed += "Low disk space: ${freeSpaceGB}GB"
-} else {
+}
+else {
     Write-Host "    ✓ Sufficient disk space" -ForegroundColor Green
     $checksPassed++
 }
@@ -290,7 +306,8 @@ if ($checksFailed.Count -gt 0) {
     Write-Host "RECOMMENDATION: Do not proceed with backfill publish" -ForegroundColor Red
     Write-Host ("=" * 70) -ForegroundColor Cyan
     exit 1
-} else {
+}
+else {
     Write-Host ""
     Write-Host "✓ ALL CHECKS PASSED - Ready for backfill publish" -ForegroundColor Green
     Write-Host ("=" * 70) -ForegroundColor Cyan

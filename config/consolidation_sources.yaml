@@ -9,62 +9,62 @@ sources:
     # Note: Expected counts not specified for historical years
     - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\yearly\\2012\\2012_CAD_ALL.xlsx'
       year: 2012
-      expected_records: null  # Historical - verify actual
-      
+      expected_records: null # Historical - verify actual
+
     - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\yearly\\2013\\2013_CAD_ALL.xlsx'
       year: 2013
-      expected_records: null  # Historical - verify actual
-      
+      expected_records: null # Historical - verify actual
+
     - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\yearly\\2014\\2014_CAD_ALL.xlsx'
       year: 2014
-      expected_records: null  # Historical - verify actual
-      
+      expected_records: null # Historical - verify actual
+
     - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\yearly\\2015\\2015_CAD_ALL.xlsx'
       year: 2015
-      expected_records: null  # Historical - verify actual
-      
+      expected_records: null # Historical - verify actual
+
     - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\yearly\\2016\\2016_CAD_ALL.xlsx'
       year: 2016
-      expected_records: null  # Historical - verify actual
-      
+      expected_records: null # Historical - verify actual
+
     - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\yearly\\2017\\2017_CAD_ALL.xlsx'
       year: 2017
-      expected_records: null  # Historical - verify actual
-      
+      expected_records: null # Historical - verify actual
+
     - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\yearly\\2018\\2018_CAD_ALL.xlsx'
       year: 2018
-      expected_records: null  # Historical - verify actual
-    
+      expected_records: null # Historical - verify actual
+
     # 2019-2025: Consolidated yearly exports (canonical source for quality project)
     # Expected counts from Claude chat (Pipeline Workflow section)
     - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\yearly\\2019\\2019_CAD_ALL.xlsx'
       year: 2019
-      expected_records: 26000  # Per Claude chat consolidation target
-      
+      expected_records: 26000 # Per Claude chat consolidation target
+
     - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\yearly\\2020\\2020_CAD_ALL.xlsx'
       year: 2020
       expected_records: 28000
-      
+
     - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\yearly\\2021\\2021_CAD_ALL.xlsx'
       year: 2021
       expected_records: 30000
-      
+
     - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\yearly\\2022\\2022_CAD_ALL.xlsx'
       year: 2022
       expected_records: 31000
-      
+
     - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\yearly\\2023\\2023_CAD_ALL.xlsx'
       year: 2023
       expected_records: 32000
-      
+
     - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\yearly\\2024\\2024_CAD_ALL.xlsx'
       year: 2024
       expected_records: 33000
-      
+
     - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\yearly\\2025\\2025_CAD_ALL.xlsx'
       year: 2025
       expected_records: 34000
-  
+
   monthly:
     # 2025 Q4: Monthly exports
     - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\monthly\\2025\\2025_10_CAD.xlsx'
@@ -72,38 +72,44 @@ sources:
     - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\monthly\\2025\\2025_12_CAD.xlsx'
     # 2026: Monthly exports
     - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\monthly\\2026\\2026_01_CAD.xlsx'
-      month: '2026-01'
-      notes: 'January 2026 - filter out records already in baseline'
+      month: "2026-01"
+      notes: "January 2026 - filter out records already in baseline"
     - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\monthly\\2026\\2026_02_CAD.xlsx'
-      month: '2026-02'
-      notes: 'February 2026 - append records from 2026-02-01 onward'
+      month: "2026-02"
+      notes: "February 2026 - append records from 2026-02-01 onward"
 
 # ============================================================================
-# BASELINE CONFIGURATION (Added 2026-02-01)
+# BASELINE CONFIGURATION (Added 2026-02-01, Updated 2026-02-03)
 # ============================================================================
-# Enables incremental mode: load baseline once, append new monthly data only
+# NOTE: Use generic baseline pointer for scripts (automatically updated by update_baseline_from_polished.py)
 baseline:
   enabled: true
-  path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\13_PROCESSED_DATA\\ESRI_Polished\\base\\CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx'
+  # Generic pointer (always latest) - USE THIS PATH IN SCRIPTS
+  path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\13_PROCESSED_DATA\\ESRI_Polished\\base\\CAD_ESRI_Polished_Baseline.xlsx'
+  # Versioned archive (for reference/rollback)
+  versioned_path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\13_PROCESSED_DATA\\ESRI_Polished\\base\\CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx'
   date_range:
-    start: '2019-01-01'
-    end: '2026-01-30'
+    start: "2019-01-01"
+    end: "2026-01-30"
   record_count: 724794
   unique_cases: 559202
-  checksum_sha256: null  # Populate after verification if needed
-  created: '2026-01-31'
-  source_file: 'CAD_ESRI_POLISHED_20260131_014644.xlsx'
+  checksum_sha256: null # Populate after verification if needed
+  created: "2026-01-31"
+  source_file: "CAD_ESRI_POLISHED_20260131_014644.xlsx"
+  notes: "WARNING: Incremental mode NOT recommended. Baseline is already processed/deduplicated. Use --full mode instead."
 
 # ============================================================================
-# INCREMENTAL MODE CONFIGURATION (Added 2026-02-01)
+# INCREMENTAL MODE CONFIGURATION (Added 2026-02-01, Deprecated 2026-02-03)
 # ============================================================================
-# Controls how consolidation handles existing data vs new monthly data
+# ⚠️ DEPRECATED: Incremental mode caused data loss on 2026-02-02 because baseline is already processed
+# Recommendation: Always use --full mode (only takes 2-3 minutes with parallel loading)
 incremental:
-  enabled: true
-  mode: 'append'  # Options: 'append' (add new records), 'full' (rebuild from scratch)
-  last_run_date: '2026-01-31'
-  last_run_record_count: 724794
-  dedup_strategy: 'keep_latest'  # Options: 'keep_latest', 'keep_first', 'keep_all_supplements'
+  enabled: false # Disabled due to baseline being already deduplicated
+  mode: "full" # Force full mode always
+  last_run_date: "2026-02-02"
+  last_run_record_count: 753903
+  dedup_strategy: "keep_latest" # Options: 'keep_latest', 'keep_first', 'keep_all_supplements'
+  deprecation_note: "Use --full mode instead. Incremental mode with ESRI polished baseline causes data loss."
 
 # ============================================================================
 # PERFORMANCE CONFIGURATION (Added 2026-02-01)
@@ -112,21 +118,21 @@ incremental:
 performance:
   parallel_loading:
     enabled: true
-    max_workers: 8  # Cap at 8 to avoid memory issues; adjust based on system
+    max_workers: 8 # Cap at 8 to avoid memory issues; adjust based on system
 
   chunked_reading:
     enabled: true
-    threshold_mb: 50  # Use chunked reading for files over this size
-    chunk_size: 100000  # Rows per chunk
+    threshold_mb: 50 # Use chunked reading for files over this size
+    chunk_size: 100000 # Rows per chunk
 
   memory_optimization:
-    use_categories: true  # Convert low-cardinality strings to categorical
-    downcast_numeric: true  # Downcast int64/float64 to smaller types
+    use_categories: true # Convert low-cardinality strings to categorical
+    downcast_numeric: true # Downcast int64/float64 to smaller types
 
   esri_generation:
-    n_workers: 4  # Workers for enhanced_esri_output_generator.py
+    n_workers: 4 # Workers for enhanced_esri_output_generator.py
     enable_parallel: true
-    chunk_size: 10000  # Normalization chunk size
+    chunk_size: 10000 # Normalization chunk size
 
 # ============================================================================
 # PROCESSED DATA PATHS (Added 2026-02-01)
@@ -143,25 +149,25 @@ processed_data:
   manifest_path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\13_PROCESSED_DATA\\manifest.json'
 
   naming:
-    base_pattern: 'CAD_ESRI_Polished_Baseline_{start_date}_{end_date}.xlsx'
-    incremental_pattern: 'CAD_ESRI_Polished_{run_date}.xlsx'
-    folder_pattern: '{YYYY}_{MM}_{DD}_{run_type}'  # e.g., 2026_02_01_append
+    base_pattern: "CAD_ESRI_Polished_Baseline_{start_date}_{end_date}.xlsx"
+    incremental_pattern: "CAD_ESRI_Polished_{run_date}.xlsx"
+    folder_pattern: "{YYYY}_{MM}_{DD}_{run_type}" # e.g., 2026_02_01_append
 
 # ============================================================================
 # OUTPUT CONFIGURATION
 # ============================================================================
 output:
-  base_directory: 'consolidation/output'
-  consolidated_filename: '2019_2026_CAD_Consolidated.csv'
-  report_directory: 'consolidation/reports'
-  log_directory: 'consolidation/logs'
+  base_directory: "consolidation/output"
+  consolidated_filename: "2019_2026_CAD_Consolidated.csv"
+  report_directory: "consolidation/reports"
+  log_directory: "consolidation/logs"
 
 # ============================================================================
 # VALIDATION THRESHOLDS
 # ============================================================================
 validation:
   min_quality_score: 95
-  max_duplicate_rate: 0.01  # 1% max
+  max_duplicate_rate: 0.01 # 1% max
   expected_total_records_min: 700000
   expected_total_records_max: 800000
 
@@ -172,53 +178,53 @@ validation:
 monthly_processing:
   cad:
     source_directory: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\monthly'
-    file_pattern: '{YYYY}_{MM}_CAD.xlsx'
-    current_year_subdir: true  # Files organized as monthly/YYYY/file.xlsx
+    file_pattern: "{YYYY}_{MM}_CAD.xlsx"
+    current_year_subdir: true # Files organized as monthly/YYYY/file.xlsx
 
   rms:
     source_directory: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_RMS\\monthly'
-    file_pattern: '{YYYY}_{MM}_RMS.xlsx'
+    file_pattern: "{YYYY}_{MM}_RMS.xlsx"
     current_year_subdir: true
     # Explicit paths for incremental backfill (PDZone/Grid)
     incremental_2026:
       - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_RMS\\monthly\\2026\\2026_01_RMS.xlsx'
-        month: '2026-01'
+        month: "2026-01"
       - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_RMS\\monthly\\2026\\2026_02_RMS.xlsx'
-        month: '2026-02'
+        month: "2026-02"
 
   output:
-    base_directory: 'monthly_validation'
-    processed_dir: 'monthly_validation/processed'
-    reports_dir: 'monthly_validation/reports'
-    logs_dir: 'monthly_validation/logs'
+    base_directory: "monthly_validation"
+    processed_dir: "monthly_validation/processed"
+    reports_dir: "monthly_validation/reports"
+    logs_dir: "monthly_validation/logs"
 
   naming:
-    cad_report_folder: '{YYYY}_{MM}_{DD}_cad'
-    rms_report_folder: '{YYYY}_{MM}_{DD}_rms'
-    action_items_file: 'action_items.xlsx'
-    validation_summary: 'validation_summary.html'
-    metrics_file: 'metrics.json'
+    cad_report_folder: "{YYYY}_{MM}_{DD}_cad"
+    rms_report_folder: "{YYYY}_{MM}_{DD}_rms"
+    action_items_file: "action_items.xlsx"
+    validation_summary: "validation_summary.html"
+    metrics_file: "metrics.json"
 
   validation:
-    parallel_validation: true  # Use vectorized validation from CAD_Data_Cleaning_Engine
+    parallel_validation: true # Use vectorized validation from CAD_Data_Cleaning_Engine
     min_quality_score: 80
     expected_record_range:
       min: 2000
       max: 5000
 
   action_items:
-    priority_1_label: 'Critical Issues'
-    priority_2_label: 'Warnings'
-    priority_3_label: 'Info'
-    export_format: 'xlsx'  # xlsx or csv
+    priority_1_label: "Critical Issues"
+    priority_2_label: "Warnings"
+    priority_3_label: "Info"
+    export_format: "xlsx" # xlsx or csv
 
 # ============================================================================
 # METADATA
 # ============================================================================
 metadata:
-  config_version: '2.1.0'
-  standards_version: 'v2.3.0'
-  last_updated: '2026-02-02'
+  config_version: "2.1.0"
+  standards_version: "v2.3.0"
+  last_updated: "2026-02-02"
   total_years_consolidated: 7
-  canonical_source: '05_EXPORTS/_CAD/yearly'
-  schema_reference: '09_Reference/Standards/unified_data_dictionary/schemas/cad_fields_schema_latest.json'
+  canonical_source: "05_EXPORTS/_CAD/yearly"
+  schema_reference: "09_Reference/Standards/unified_data_dictionary/schemas/cad_fields_schema_latest.json"

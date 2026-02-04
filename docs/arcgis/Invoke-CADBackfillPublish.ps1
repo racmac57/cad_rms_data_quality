@@ -122,7 +122,7 @@ if (-not $SkipPreFlightChecks) {
             Write-Host "    [OK] Pre-flight checks passed" -ForegroundColor Green
         }
         else {
-            Write-Host "    ⚠ Pre-flight script not found, skipping checks" -ForegroundColor Yellow
+            Write-Host "    WARNING: Pre-flight script not found, skipping checks" -ForegroundColor Yellow
         }
     }
 }

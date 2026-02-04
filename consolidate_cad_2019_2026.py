@@ -63,11 +63,12 @@ YEARLY_FILES = [
     ("yearly/2025/2025_CAD_ALL.xlsx", 2025, 114065),
 ]
 
-MONTHLY_FILE = ("monthly/2026/2026_01_01_to_2026_01_30_CAD_Export.xlsx", 2026, None)
+# MONTHLY_FILE = ("monthly/2026/2026_01_01_to_2026_01_30_CAD_Export.xlsx", 2026, None)
+# NOTE: Monthly files now loaded from config (2026_01_CAD.xlsx, 2026_02_CAD.xlsx)
 
 # Date range filter
 START_DATE = pd.Timestamp("2019-01-01")
-END_DATE = pd.Timestamp("2026-01-30 23:59:59")
+END_DATE = pd.Timestamp("2026-02-28 23:59:59")  # Extended to include all of February 2026
 
 
 # ============================================================================
@@ -519,7 +520,8 @@ def run_incremental_consolidation(config: Dict) -> Tuple[pd.DataFrame, str]:
                 logger.warning(f"  Config monthly file not found: {p}")
     if not new_monthly_files and (CAD_ROOT / "monthly" / "2026").exists():
         for f in (CAD_ROOT / "monthly" / "2026").glob("*.xlsx"):
-            if "2026_01_01_to_2026_01_30" in f.name:
+            # Skip legacy filename pattern if it exists
+            if "2026_01_01_to" in f.name or "CAD_Export" in f.name:
                 continue
             new_monthly_files.append((f, ''))
 
@@ -616,7 +618,22 @@ def run_full_consolidation(config: Dict = None) -> Tuple[pd.DataFrame, str]:
 
     # Create file configs list
     file_configs = [(path, year, expected) for path, year, expected in YEARLY_FILES]
-    file_configs.append(MONTHLY_FILE)
+    
+    # Load monthly files from config (2026 monthly exports)
+    if config:
+        monthly_configs = config.get('sources', {}).get('monthly', [])
+        for item in monthly_configs:
+            if isinstance(item, dict):
+                path = item.get('path', '')
+            else:
+                path = item
+            
+            if path and Path(path).exists():
+                # Use 2026 as year for monthly files
+                file_configs.append((path, 2026, None))
+                logger.info(f"  Added monthly file: {Path(path).name}")
+            elif path:
+                logger.warning(f"  Monthly file not found: {path}")
 
     # Load files (parallel or sequential based on config)
     logger.info(f"\n[Step 1] Loading {len(file_configs)} source files...")
@@ -818,8 +835,8 @@ def consolidate_cad_data(force_full: bool = False):
         for file_rel_path, year, expected_count in YEARLY_FILES:
             f.write(f"  {year}: {file_rel_path}\n")
 
-        file_rel_path, year, _ = MONTHLY_FILE
-        f.write(f"  {year}: {file_rel_path}\n")
+        # Monthly files loaded from config
+        f.write(f"  2026: Monthly files from config (2026_01_CAD.xlsx, 2026_02_CAD.xlsx)\n")
 
         f.write("\n" + "=" * 80 + "\n")
         f.write("NEXT STEPS:\n")
