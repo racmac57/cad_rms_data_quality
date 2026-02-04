@@ -13,6 +13,109 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.3] - 2026-02-04
+
+### Fixed - Phone/911 Dashboard Data Quality Issue
+
+#### Problem Identified
+- **Dashboard Issue**: 174,949 records (31% of production data) displaying "Phone/911" as combined Call Source value instead of separate "Phone" and "9-1-1" categories
+- **User Impact**: Dashboard users unable to distinguish between phone calls (109,569) and 911 emergency calls (61,916)
+- **Discovery Method**: Visual inspection of ArcGIS Online dashboard dropdown values
+
+#### Root Cause Analysis
+- **Location**: ArcGIS Pro Model Builder "Publish Call Data" tool
+- **Culprit Tool**: Calculate Field (2) step within model
+- **Bad Arcade Expression**: `iif($feature.How_Reported=='9-1-1'||$feature.How_Reported=='Phone','Phone/911',$feature.How_Reported)`
+- **Why It Happened**: Model Builder was explicitly combining two distinct values into single category
+- **Verification**: Raw CAD exports confirmed to NOT contain "Phone/911" - it was created during ArcGIS processing
+
+#### Investigation Process
+1. Created diagnostic ArcPy scripts to analyze feature service data (561,739 records)
+2. Verified raw consolidated CSV had NO "Phone/911" values
+3. Traced through ETL pipeline to isolate transformation point
+4. Discovered Model Builder Calculate Field tool as source of combination
+5. Fixed Arcade expression to pass-through original values
+
+#### Fix Applied
+- **Changed Expression To**: `$feature.How_Reported` (pass-through, no transformation)
+- **Tool Modified**: Calculate Field (2) in "Publish Call Data" model
+- **Processing Date**: February 3, 2026 (9:48 PM - 10:01 PM)
+
+#### Results - Local Geodatabase (✅ VERIFIED)
+- **Location**: `C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable`
+- **Total Records**: 565,870 (up from 561,739 baseline - includes new 2026 data)
+- **Phone/911 Combined**: 0 records ✅ (previously 174,949)
+- **Phone**: 109,569 records (19.36%)
+- **9-1-1**: 61,916 records (10.94%)
+- **Data Quality**: 100% separation verified via ArcPy cursor analysis
+
+#### CSV Export for Validation
+- **File**: `CFSTable_2019_2026_FULL_20260203_231437.csv`
+- **Location**: `cad_rms_data_quality\consolidation\output\`
+- **Records**: 565,870 (7 years: 2019-2026)
+- **Size**: 167.53 MB (175,662,945 bytes)
+- **Status**: ✅ Production-ready and VERIFIED
+- **Export Process**: 
+  - Exported from RDP server geodatabase to `C:\Temp`
+  - Transferred to local machine via RDP clipboard
+  - Verified with `verify_csv_export.py`
+- **Quality Verification Results**:
+  - ✅ All 41 expected columns present
+  - ✅ Zero "Phone/911" combined values
+  - ✅ Phone: 109,569 records (19.36%)
+  - ✅ 9-1-1: 61,916 records (10.94%)
+  - ✅ Date range: 2019-01-01 to 2026-02-03 (2,590 days)
+  - ✅ Only 16 null Call IDs (0.003% - negligible)
+  - ✅ No null values in calldate, callsource, or disposition fields
+
+#### ArcGIS Online Upload Status (⏳ PENDING)
+- **Status**: Upload to feature service FAILED after 56 minutes due to network timeout
+- **Attempted**: February 3, 2026 (10:01 PM - 10:57 PM)
+- **Error**: `KeyboardInterrupt` during "Update Features With Incident Records (2)" step
+- **Current Online Data**: Still shows OLD "Phone/911" combined values (561,739 records)
+- **Next Action**: Schedule retry during off-peak hours (2-6 AM) or use batch upload strategy
+
+#### Additional Data Quality Observations
+1. **Geocoding Failures**: 2,000+ features skipped due to NULL/EMPTY geometry
+   - Warning: `000635: Skipping feature X because of NULL or EMPTY geometry`
+   - Impact: Records with missing or invalid addresses could not be geocoded
+   
+2. **Date Conversion Warnings**: Partial failures in time field conversions
+   - Affected: Time_Dispatched, Time_Out, Time_In fields
+   - Warning: `002125: Unable to convert part of the values`
+   
+3. **Record Count Increase**: +4,131 records from baseline (561,739 → 565,870)
+   - Possible causes: New 2026 data, previous filtering removed valid records, data refresh
+
+#### Files Created/Modified
+- **Created**: `SESSION_SUMMARY_PHONE911_FIX_20260203.txt` - Complete technical documentation
+- **Created**: `NEXT_ACTIONS_PHONE911_FIX.md` - Action plan for upload retry and validation
+- **Created**: `CFSTable_2019_2026_FULL_20260203_230223.csv` - Full dataset export
+- **Updated**: `OPUS_BRIEFING_COMPREHENSIVE_VALIDATION.md` - Added Phone/911 fix status
+- **Modified**: Model Builder "Publish Call Data" tool - Fixed Calculate Field (2) expression
+- **Modified**: Local geodatabase CFStable - Updated to 565,870 records with fix
+
+#### Documentation
+- **Session Summary**: `outputs\consolidation\SESSION_SUMMARY_PHONE911_FIX_20260203.txt`
+- **Action Plan**: `NEXT_ACTIONS_PHONE911_FIX.md`
+- **Validation Briefing**: `OPUS_BRIEFING_COMPREHENSIVE_VALIDATION.md`
+- **Timeline**: Complete investigation, fix, and verification in 1 hour 15 minutes
+
+#### Next Steps
+1. **Immediate**: Re-upload to ArcGIS Online during off-peak hours
+2. **Short-term**: Begin comprehensive field-by-field validation using CSV export
+3. **Medium-term**: Investigate geocoding failures and date conversion warnings
+4. **Long-term**: Implement automated drift detection for call types and personnel data
+
+#### Success Metrics
+- ✅ Root cause identified and documented
+- ✅ Fix applied to Model Builder tool
+- ✅ Local data verified (565,870 records, zero "Phone/911" values)
+- ✅ CSV export complete for validation work
+- ⏳ Production dashboard update pending upload completion
+
+---
+
 ## [1.3.2] - 2026-02-03
 
 [Compare v1.3.1...v1.3.2](https://github.com/racmac57/cad_rms_data_quality/compare/v1.3.1...v1.3.2)

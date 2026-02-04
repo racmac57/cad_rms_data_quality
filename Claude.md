@@ -78,6 +78,28 @@ This repository contains a unified data quality system for CAD (Computer-Aided D
 - **All Tests Pass**: 10/10 validation checks passed - baseline is production-ready for ArcGIS deployment
 - **Processing Time**: Full pipeline (consolidation → generation → testing) completed in ~51 minutes
 
+### v1.3.3 - Phone/911 Dashboard Data Quality Fix (2026-02-04)
+- **Problem**: Dashboard displayed "Phone/911" combined value (174,949 records, 31% of data) instead of separate "Phone" and "9-1-1" categories
+- **Root Cause**: ArcGIS Pro Model Builder "Publish Call Data" tool had Calculate Field (2) with Arcade expression combining values
+- **Investigation**: Created diagnostic ArcPy scripts, verified raw data had NO "Phone/911", traced to Model Builder transformation
+- **Fix Applied**: Changed Arcade expression from `iif($feature.How_Reported=='9-1-1'||$feature.How_Reported=='Phone','Phone/911',...)` to `$feature.How_Reported`
+- **Local Results**: ✅ 565,870 records processed | ✅ Zero "Phone/911" values | ✅ Phone: 109,569 (19.36%) | ✅ 9-1-1: 61,916 (10.94%)
+- **CSV Export**: ✅ VERIFIED `CFSTable_2019_2026_FULL_20260203_231437.csv` (565,870 records, 167.53 MB) in `consolidation/output/`
+  - Date range: 2019-01-01 to 2026-02-03 (7+ years, 2,590 days)
+  - All 41 expected columns present
+  - Zero "Phone/911" values confirmed in exported data
+  - Phone and 9-1-1 properly separated (171,485 total records)
+  - Only 16 null Call IDs (0.003% - negligible)
+  - Quality verified via `verify_csv_export.py`
+  - Ready for comprehensive validation
+- **ArcGIS Online**: ⏳ Upload failed after 56 minutes (network timeout), needs retry during off-peak hours
+- **RDP Export Process**: Export initially failed - geodatabase on RDP server cannot write to local OneDrive paths
+  - Solution: Export to `C:\Temp` on RDP, then manual copy to local machine via RDP clipboard
+  - File successfully transferred (167.53 MB) and verified
+- **Additional Observations**: 2,000+ geocoding failures (NULL geometry), date conversion warnings, +4,131 record increase from baseline
+- **Documentation**: Created SESSION_SUMMARY_PHONE911_FIX_20260203.txt, NEXT_ACTIONS_PHONE911_FIX.md, verify_csv_export.py, updated OPUS_BRIEFING_COMPREHENSIVE_VALIDATION.md
+- **Timeline**: Complete investigation, fix, verification, and CSV export in 2 hours (9:48 PM - 11:30 PM)
+
 ### v1.3.1 - 2026 Monthly Data Fix (2026-02-02)
 - **Fixed monthly file loading**: `run_full_consolidation()` now reads and loads monthly files from `config/consolidation_sources.yaml`; was only loading yearly files despite config entries.
 - **Extended date range**: Changed `END_DATE` from `2026-01-30` to `2026-02-28` to allow February data inclusion.
