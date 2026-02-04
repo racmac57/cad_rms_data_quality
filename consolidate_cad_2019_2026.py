@@ -602,7 +602,7 @@ def run_incremental_consolidation(config: Dict) -> Tuple[pd.DataFrame, str]:
 # FULL CONSOLIDATION (ORIGINAL MODE)
 # ============================================================================
 
-def run_full_consolidation(config: Dict) -> Tuple[pd.DataFrame, str]:
+def run_full_consolidation(config: Dict = None) -> Tuple[pd.DataFrame, str]:
     """
     Run full consolidation: load all yearly + monthly files.
 
