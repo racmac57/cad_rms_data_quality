@@ -615,10 +615,11 @@ def run_full_consolidation(config: Dict) -> Tuple[pd.DataFrame, str]:
     Raises:
         ValueError: If config is None or missing required structure
     """
-    if config is None:
+    if config is None or not config:
         raise ValueError(
             "Configuration is required for full consolidation. "
-            "Monthly files from config.yaml are needed to include 2026 data."
+            "Monthly files from config.yaml are needed to include 2026 data. "
+            f"Config file must exist at: {CONFIG_PATH}"
         )
     
     logger.info("=" * 80)
@@ -629,7 +630,8 @@ def run_full_consolidation(config: Dict) -> Tuple[pd.DataFrame, str]:
     file_configs = [(path, year, expected) for path, year, expected in YEARLY_FILES]
     
     # Load monthly files from config (2026 monthly exports) - REQUIRED for 2026 data
-    if config:
+    # Config is guaranteed to be non-empty dict by check above
+    if config.get('sources', {}).get('monthly'):
         monthly_configs = config.get('sources', {}).get('monthly', [])
         for item in monthly_configs:
             if isinstance(item, dict):
