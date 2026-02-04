@@ -1,0 +1,1048 @@
+{
+  "quality_score": {
+    "overall_score": 98.3,
+    "total_validators": 9,
+    "failed_validators": 0,
+    "grade": "A",
+    "timestamp": "2026-02-04T00:31:31.204013"
+  },
+  "validation_results": [
+    {
+      "validator": "HowReportedValidator",
+      "field": "How Reported",
+      "weight": 0.15,
+      "total_records": 754409,
+      "valid_records": 754409,
+      "error_count": 0,
+      "warning_count": 0,
+      "pass_rate": 100.0,
+      "timestamp": "2026-02-04T00:28:25.903851",
+      "valid_values_count": 12,
+      "invalid_values_found": [],
+      "value_distribution": {
+        "Radio": 297305,
+        "Phone": 186290,
+        "Self-Initiated": 107677,
+        "9-1-1": 101930,
+        "Walk-In": 24864,
+        "Other - See Notes": 19931,
+        "eMail": 9283,
+        "Fax": 4754,
+        "Canceled Call": 1350,
+        "Mail": 658,
+        "Teletype": 292,
+        "Virtual Patrol": 75
+      },
+      "potentially_fixable": [],
+      "reference": "enhanced_esri_output_generator.py HOW_REPORTED_MAPPING"
+    },
+    {
+      "validator": "DispositionValidator",
+      "field": "Disposition",
+      "weight": 0.15,
+      "total_records": 754409,
+      "valid_records": 666513,
+      "error_count": 87896,
+      "warning_count": 0,
+      "pass_rate": 88.35,
+      "timestamp": "2026-02-04T00:28:45.287792",
+      "valid_values_count": 20,
+      "invalid_values_found": [
+        "Curbside Warning",
+        "Field Contact",
+        "See Report",
+        "See Supplement"
+      ],
+      "value_distribution": {
+        "Complete": 351021,
+        "Assisted": 123276,
+        "See Report": 86777,
+        "Record Only": 45416,
+        "Advised": 27484,
+        "TOT - See Notes": 25228,
+        "Checked OK": 22223,
+        "Issued": 17271,
+        "Canceled": 11866,
+        "G.O.A.": 10032,
+        "Dispersed": 9735,
+        "Other - See Notes": 8960,
+        "Temp. Settled": 7271,
+        "Unable to Locate": 3868,
+        "Unfounded": 2629,
+        "See Supplement": 1024,
+        "Transported": 151,
+        "Field Contact": 86,
+        "Arrest": 82,
+        "Curbside Warning": 9
+      },
+      "potentially_fixable": [
+        [
+          "See Report",
+          "May be Report variant"
+        ]
+      ],
+      "reference": "enhanced_esri_output_generator.py DISPOSITION_MAPPING"
+    },
+    {
+      "validator": "CaseNumberValidator",
+      "field": "ReportNumberNew",
+      "weight": 0.2,
+      "total_records": 754409,
+      "valid_records": 754369,
+      "error_count": 40,
+      "warning_count": 12,
+      "pass_rate": 99.99,
+      "timestamp": "2026-02-04T00:29:07.219639",
+      "duplicate_case_numbers": "144731",
+      "max_records_per_case": "28",
+      "year_distribution": {
+        "19": 91215,
+        "18": 1,
+        "20": 89400,
+        "15": 2,
+        "21": 91475,
+        "10": 1,
+        "22": 105038,
+        "23": 113179,
+        "24": 110311,
+        "5": 1,
+        "c": 1,
+        "25": 142480,
+        "\n": 1,
+        "26": 11278
+      },
+      "note": "Duplicates may be valid (multi-officer calls)",
+      "invalid_samples": [
+        "\n",
+        "10-16275",
+        "15-022247",
+        "15-098235",
+        "18-098659",
+        "20-000350",
+        "20-026911",
+        "23-0698",
+        "23-083088\n\n",
+        "24-",
+        "24-00053",
+        "24-00059",
+        "24-00226",
+        "24-055730",
+        "24-058314q",
+        "24-080946",
+        "24-10672",
+        "24ol.-065242",
+        "25-\n020525",
+        "25-114080"
+      ]
+    },
+    {
+      "validator": "IncidentValidator",
+      "field": "Incident",
+      "weight": 0.15,
+      "total_records": 754409,
+      "valid_records": 754135,
+      "error_count": 274,
+      "warning_count": 2454,
+      "pass_rate": 99.96,
+      "timestamp": "2026-02-04T00:29:25.579846",
+      "reference_file": "C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\09_Reference\\Classifications\\CallTypes\\CallTypes_Master.csv",
+      "reference_count": 639,
+      "unknown_call_types": [],
+      "whitespace_issues": 2395,
+      "statute_format_issues": 59,
+      "unique_values": 860
+    },
+    {
+      "validator": "DateTimeValidator",
+      "field": "DateTime Fields",
+      "weight": 0.15,
+      "total_records": 754409,
+      "valid_records": 754078,
+      "error_count": 331,
+      "warning_count": 13421,
+      "pass_rate": 99.96,
+      "timestamp": "2026-02-04T00:30:10.466815",
+      "fields_validated": [
+        "Time of Call",
+        "Time Dispatched",
+        "Time Out",
+        "Time In"
+      ],
+      "null_counts": {
+        "Time of Call": 0,
+        "Time Dispatched": 6,
+        "Time Out": 1,
+        "Time In": 6
+      },
+      "format_errors": {
+        "Time of Call": 0,
+        "Time Dispatched": 34,
+        "Time Out": 146,
+        "Time In": 151
+      },
+      "range_errors": {
+        "Time of Call": 0,
+        "Time Dispatched": 1,
+        "Time Out": 0,
+        "Time In": 0
+      },
+      "future_dates": 0,
+      "sequence_errors": 13420,
+      "date_range": "2019-01-01 to 2026-02-04"
+    },
+    {
+      "validator": "DurationValidator",
+      "field": "Duration Fields",
+      "weight": 0.05,
+      "total_records": 754409,
+      "valid_records": 751342,
+      "error_count": 3067,
+      "warning_count": 3845,
+      "pass_rate": 99.59,
+      "timestamp": "2026-02-04T00:30:33.932982",
+      "fields_validated": [
+        "Time Spent",
+        "Time Response"
+      ],
+      "null_counts": {
+        "Time Spent": 0,
+        "Time Response": 0
+      },
+      "format_errors": {
+        "Time Spent": 2252,
+        "Time Response": 815
+      },
+      "outliers": {
+        "Time Spent": 2012,
+        "Time Response": 1833
+      },
+      "thresholds": {
+        "max_response_minutes": 120,
+        "max_spent_hours": 12
+      }
+    },
+    {
+      "validator": "OfficerValidator",
+      "field": "Officer",
+      "weight": 0.1,
+      "total_records": 754409,
+      "valid_records": 754409,
+      "error_count": 0,
+      "warning_count": 0,
+      "pass_rate": 100.0,
+      "timestamp": "2026-02-04T00:30:49.337090",
+      "reference_file": "C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\09_Reference\\Personnel\\Assignment_Master_V2.csv",
+      "reference_count": 166,
+      "active_count": 0,
+      "inactive_count": 0,
+      "null_count": 130,
+      "unknown_officers": [
+        "P.O. Carmine Maceri 378",
+        "P.O. John Mora 257",
+        "Det. Nart Marza 321",
+        "Det. Matthew Antista 135",
+        "SPO. Tyler DeMott 830",
+        "H-COP Joseph Fisco 792",
+        "P.O. William Moyano 304",
+        "Lt. James Smith 158",
+        "HCOP Steven Yoon 715",
+        "SPO. Dean Mattalian 717",
+        "Det. Reuven Lyak 318",
+        "PEO Richard Poshkus 2011",
+        "C.O. Richard Pometti 528",
+        "P.O. Frank Scarpa 348",
+        "SPO. Tyler Iozia 831",
+        "P.O. Allen Borntrager 243",
+        "P.O. Manuel Tavera 315",
+        "H-COP John Monaco 707",
+        "P.O. Panagiotis Seretis 334",
+        "SPO. Aster Abueg 817"
+      ],
+      "inactive_officers_found": [],
+      "unique_values": 376
+    },
+    {
+      "validator": "GeographyValidator",
+      "field": "FullAddress2",
+      "weight": 0.05,
+      "total_records": 754409,
+      "valid_records": 754409,
+      "error_count": 0,
+      "warning_count": 12,
+      "pass_rate": 100.0,
+      "timestamp": "2026-02-04T00:31:06.117622",
+      "null_count": 0,
+      "not_hackensack": 0,
+      "invalid_zip": 12,
+      "police_hq_count": 84194,
+      "valid_zips": [
+        "07601",
+        "07606",
+        "07602"
+      ],
+      "unique_addresses": 17855
+    },
+    {
+      "validator": "DerivedFieldValidator",
+      "field": "Derived Fields",
+      "weight": 0.05,
+      "total_records": 754409,
+      "valid_records": 754409,
+      "error_count": 0,
+      "warning_count": 176,
+      "pass_rate": 100.0,
+      "timestamp": "2026-02-04T00:31:28.178695",
+      "source_field": "Time of Call",
+      "derived_fields_checked": [
+        "cYear",
+        "cMonth",
+        "Hour_Calc",
+        "DayofWeek"
+      ],
+      "mismatch_counts": {
+        "cYear": 6,
+        "cMonth": 20,
+        "Hour_Calc": 0,
+        "DayofWeek": 150
+      },
+      "null_source_count": 0
+    }
+  ],
+  "drift_results": [
+    {
+      "detector": "CallTypeDriftDetector",
+      "field": "Incident",
+      "reference_file": "C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\09_Reference\\Classifications\\CallTypes\\CallTypes_Master.csv",
+      "timestamp": "2026-02-04T00:31:30.263175",
+      "statistics": {
+        "total_records": 754409,
+        "unique_call_types": 860,
+        "reference_count": 639,
+        "coverage_pct": 59.0,
+        "new_call_types_count": 184,
+        "unused_call_types_count": 262
+      },
+      "drift_detected": true,
+      "new_call_types": [
+        {
+          "value": "Motor Vehicle Violation \u2013 Private Property",
+          "normalized": "MOTOR VEHICLE VIOLATION \u2013 PRIVATE PROPERTY",
+          "count": 4447
+        },
+        {
+          "value": "Medical Call \u2013Oxygen",
+          "normalized": "MEDICAL CALL \u2013OXYGEN",
+          "count": 4434
+        },
+        {
+          "value": "Applicant Firearm",
+          "normalized": "APPLICANT FIREARM",
+          "count": 2341
+        },
+        {
+          "value": "Motor Vehicle Crash \u2013 Hit and Run",
+          "normalized": "MOTOR VEHICLE CRASH \u2013 HIT AND RUN",
+          "count": 2177
+        },
+        {
+          "value": "Property \u2013 Lost",
+          "normalized": "PROPERTY \u2013 LOST",
+          "count": 1294
+        },
+        {
+          "value": "Relief/Personal",
+          "normalized": "RELIEF/PERSONAL",
+          "count": 1147
+        },
+        {
+          "value": "Property \u2013 Found",
+          "normalized": "PROPERTY \u2013 FOUND",
+          "count": 897
+        },
+        {
+          "value": "Fight -Unarmed",
+          "normalized": "FIGHT -UNARMED",
+          "count": 597
+        },
+        {
+          "value": "Shoplifting - 2C:20-11",
+          "normalized": "SHOPLIFTING",
+          "count": 442
+        },
+        {
+          "value": "Applicant Landscaper/Snow Rem",
+          "normalized": "APPLICANT LANDSCAPER/SNOW REM",
+          "count": 367
+        },
+        {
+          "value": "Motor Vehicle Crash \u2013 Pedestrian Struck",
+          "normalized": "MOTOR VEHICLE CRASH \u2013 PEDESTRIAN STRUCK",
+          "count": 353
+        },
+        {
+          "value": "Simple Assault - 2C:12-1a",
+          "normalized": "SIMPLE ASSAULT",
+          "count": 301
+        },
+        {
+          "value": "Domestic Violence - 2C:25-21",
+          "normalized": "DOMESTIC VIOLENCE",
+          "count": 275
+        },
+        {
+          "value": "Hazardous Condition -Sewer Call",
+          "normalized": "HAZARDOUS CONDITION -SEWER CALL",
+          "count": 245
+        },
+        {
+          "value": "Discovery-Motor Vehicle",
+          "normalized": "DISCOVERY-MOTOR VEHICLE",
+          "count": 234
+        },
+        {
+          "value": "ESU-Targeted Patrol",
+          "normalized": "ESU-TARGETED PATROL",
+          "count": 230
+        },
+        {
+          "value": "Violation: TRO/ FRO  2C:25-31",
+          "normalized": "VIOLATION: TRO/ FRO 2C:25-31",
+          "count": 215
+        },
+        {
+          "value": "Criminal Mischief - 2C:17-3",
+          "normalized": "CRIMINAL MISCHIEF",
+          "count": 205
+        },
+        {
+          "value": "Motor Vehicle Violation \u2013 Commercial Vehicle",
+          "normalized": "MOTOR VEHICLE VIOLATION \u2013 COMMERCIAL VEHICLE",
+          "count": 200
+        },
+        {
+          "value": "On-Duty Fitness",
+          "normalized": "ON-DUTY FITNESS",
+          "count": 184
+        },
+        {
+          "value": "Hazardous Road Condition \u2013Flooding",
+          "normalized": "HAZARDOUS ROAD CONDITION \u2013FLOODING",
+          "count": 153
+        },
+        {
+          "value": "Discovery-Non Specific",
+          "normalized": "DISCOVERY-NON SPECIFIC",
+          "count": 133
+        },
+        {
+          "value": "Hazard-Pothole",
+          "normalized": "HAZARD-POTHOLE",
+          "count": 125
+        },
+        {
+          "value": "Terroristic Threats - 2C:12-3",
+          "normalized": "TERRORISTIC THREATS",
+          "count": 120
+        },
+        {
+          "value": "Hazardous Road Condition -General",
+          "normalized": "HAZARDOUS ROAD CONDITION -GENERAL",
+          "count": 109
+        },
+        {
+          "value": "Criminal Mischief - Vehicle - 2C:17-3",
+          "normalized": "CRIMINAL MISCHIEF - VEHICLE",
+          "count": 104
+        },
+        {
+          "value": "Violation: TRO/ FRO - 2C:29-9b",
+          "normalized": "VIOLATION: TRO/ FRO",
+          "count": 99
+        },
+        {
+          "value": "Discovery-MotorVehicle",
+          "normalized": "DISCOVERY-MOTORVEHICLE",
+          "count": 95
+        },
+        {
+          "value": "Hazardous Condition -Health / Welfare",
+          "normalized": "HAZARDOUS CONDITION -HEALTH / WELFARE",
+          "count": 93
+        },
+        {
+          "value": "Burglary - Auto - 2C:18-2",
+          "normalized": "BURGLARY - AUTO",
+          "count": 93
+        },
+        {
+          "value": "Burglary - Residence - 2C:18-2",
+          "normalized": "BURGLARY - RESIDENCE",
+          "count": 92
+        },
+        {
+          "value": "Fight -Armed",
+          "normalized": "FIGHT -ARMED",
+          "count": 79
+        },
+        {
+          "value": "Applicant Taxi / Limo",
+          "normalized": "APPLICANT TAXI / LIMO",
+          "count": 78
+        },
+        {
+          "value": "Sexual Assault - 2C:14-2b",
+          "normalized": "SEXUAL ASSAULT",
+          "count": 65
+        },
+        {
+          "value": "Service of Warrant",
+          "normalized": "SERVICE OF WARRANT",
+          "count": 58
+        },
+        {
+          "value": "Motor Vehicle Crash-Police Vehicle",
+          "normalized": "MOTOR VEHICLE CRASH-POLICE VEHICLE",
+          "count": 51
+        },
+        {
+          "value": "Sex Offender-Intent to Move",
+          "normalized": "SEX OFFENDER-INTENT TO MOVE",
+          "count": 49
+        },
+        {
+          "value": "Theft of Lost/Mislaid Property - 2C:20-6",
+          "normalized": "THEFT OF LOST/MISLAID PROPERTY",
+          "count": 48
+        },
+        {
+          "value": "Unlawful Taking - 2C:20-10",
+          "normalized": "UNLAWFUL TAKING",
+          "count": 44
+        },
+        {
+          "value": "Assault (use **Simple Assault)",
+          "normalized": "ASSAULT (USE **SIMPLE ASSAULT)",
+          "count": 43
+        },
+        {
+          "value": "Motor Vehicle Crash-Bicyclist Struck",
+          "normalized": "MOTOR VEHICLE CRASH-BICYCLIST STRUCK",
+          "count": 37
+        },
+        {
+          "value": "Unregistered Vehicle - 39:3-4",
+          "normalized": "UNREGISTERED VEHICLE",
+          "count": 37
+        },
+        {
+          "value": "Theft of Services - 2C:20-8",
+          "normalized": "THEFT OF SERVICES",
+          "count": 36
+        },
+        {
+          "value": "Burglary - Auto - 2C: 18-2",
+          "normalized": "BURGLARY - AUTO",
+          "count": 34
+        },
+        {
+          "value": "Discovery-Criminal",
+          "normalized": "DISCOVERY-CRIMINAL",
+          "count": 31
+        },
+        {
+          "value": "Burglary - Commercial - 2C:18-2",
+          "normalized": "BURGLARY - COMMERCIAL",
+          "count": 29
+        },
+        {
+          "value": "Hazardous Road Condition \u2013Ice",
+          "normalized": "HAZARDOUS ROAD CONDITION \u2013ICE",
+          "count": 28
+        },
+        {
+          "value": "Weapons/Unlawful Purposes  2C:39-4",
+          "normalized": "WEAPONS/UNLAWFUL PURPOSES 2C:39-4",
+          "count": 28
+        },
+        {
+          "value": "Aggravated Assault - 2C:12-1b",
+          "normalized": "AGGRAVATED ASSAULT",
+          "count": 27
+        },
+        {
+          "value": "Lewdness - 2C:14-4",
+          "normalized": "LEWDNESS",
+          "count": 25
+        }
+      ],
+      "unused_call_types": [
+        {
+          "value": "Cooperative Arrest - Maywood",
+          "normalized": "COOPERATIVE ARREST - MAYWOOD",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Weapons Seizure - 2C:25-21d.",
+          "normalized": "WEAPONS SEIZURE - 2C:25-21D.",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Shoplifting - 2C:20-11",
+          "normalized": "SHOPLIFTING - 2C:20-11",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Prohibited Weapons - 2C:39-3",
+          "normalized": "PROHIBITED WEAPONS - 2C:39-3",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Public Works Assist",
+          "normalized": "PUBLIC WORKS ASSIST",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Fencing - 2C:20-7.1",
+          "normalized": "FENCING - 2C:20-7.1",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Trespassing",
+          "normalized": "TRESPASSING",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Theft by Deception - 2C:20-4",
+          "normalized": "THEFT BY DECEPTION - 2C:20-4",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Unregistered Vehicle - 39:3-4",
+          "normalized": "UNREGISTERED VEHICLE - 39:3-4",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Weapons - Unlawful Purposes - 2C:39-4",
+          "normalized": "WEAPONS - UNLAWFUL PURPOSES - 2C:39-4",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Paging Device/Student - 2C:33-19",
+          "normalized": "PAGING DEVICE/STUDENT - 2C:33-19",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Controlled CDS Purchase",
+          "normalized": "CONTROLLED CDS PURCHASE",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "TOT DCP&P",
+          "normalized": "TOT DCP&P",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Evidence Tampering - 2C:28-6",
+          "normalized": "EVIDENCE TAMPERING - 2C:28-6",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Fear of Bodily Violence - 2C:33-10",
+          "normalized": "FEAR OF BODILY VIOLENCE - 2C:33-10",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Maintaining a Nuisance - 2C:33-12",
+          "normalized": "MAINTAINING A NUISANCE - 2C:33-12",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Bad Checks - 2C:21-5",
+          "normalized": "BAD CHECKS - 2C:21-5",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "CDS/Possession: Influence - 2C:35-10",
+          "normalized": "CDS/POSSESSION: INFLUENCE - 2C:35-10",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Road Job/Outside Assignment",
+          "normalized": "ROAD JOB/OUTSIDE ASSIGNMENT",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Credit Cards - Unlawful Use - 2C:21-6",
+          "normalized": "CREDIT CARDS - UNLAWFUL USE - 2C:21-6",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Arrest and JV Complaints",
+          "normalized": "ARREST AND JV COMPLAINTS",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Criminal Mischief - School - 2C:17-3",
+          "normalized": "CRIMINAL MISCHIEF - SCHOOL - 2C:17-3",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Evidence Retrieval",
+          "normalized": "EVIDENCE RETRIEVAL",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Traffic Violation",
+          "normalized": "TRAFFIC VIOLATION",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Compounding - 2C:29-4",
+          "normalized": "COMPOUNDING - 2C:29-4",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Unfounded/Closed",
+          "normalized": "UNFOUNDED/CLOSED",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Alcohol/School Property - 2C:33-16",
+          "normalized": "ALCOHOL/SCHOOL PROPERTY - 2C:33-16",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Alcoholic Beverage - New Years Day Hours of Sale",
+          "normalized": "ALCOHOLIC BEVERAGE - NEW YEARS DAY HOURS OF SALE",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Suspicious Activity Submission",
+          "normalized": "SUSPICIOUS ACTIVITY SUBMISSION",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Attempted Burglary - Commercial - 2C:18-2",
+          "normalized": "ATTEMPTED BURGLARY - COMMERCIAL - 2C:18-2",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "CDS/Employing Juvenile - 2C:35-6",
+          "normalized": "CDS/EMPLOYING JUVENILE - 2C:35-6",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Suicide Threat",
+          "normalized": "SUICIDE THREAT",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Hindering Apprehension - 2C:29-3",
+          "normalized": "HINDERING APPREHENSION - 2C:29-3",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Overdose",
+          "normalized": "OVERDOSE",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Aiding Suicide - 2C:11-6",
+          "normalized": "AIDING SUICIDE - 2C:11-6",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "EMS Call",
+          "normalized": "EMS CALL",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "ICE Notification",
+          "normalized": "ICE NOTIFICATION",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Sex Offender - Serve Tier Papers",
+          "normalized": "SEX OFFENDER - SERVE TIER PAPERS",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Credit Practices - 2C:21-19",
+          "normalized": "CREDIT PRACTICES - 2C:21-19",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Aggravated Assault - 2C:12-1b",
+          "normalized": "AGGRAVATED ASSAULT - 2C:12-1B",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Poss. CDS in MV - 39:4-49.1",
+          "normalized": "POSS. CDS IN MV - 39:4-49.1",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Obstruction of Governmental Function",
+          "normalized": "OBSTRUCTION OF GOVERNMENTAL FUNCTION",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Interception/Emerg. Comm. - 2C:33-21",
+          "normalized": "INTERCEPTION/EMERG. COMM. - 2C:33-21",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Unfounded Incident",
+          "normalized": "UNFOUNDED INCIDENT",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Property Recovered - Stolen",
+          "normalized": "PROPERTY RECOVERED - STOLEN",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Serving Alcohol to Minors - 2C:33-17",
+          "normalized": "SERVING ALCOHOL TO MINORS - 2C:33-17",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Driving While Intoxicated - 39:4-50",
+          "normalized": "DRIVING WHILE INTOXICATED - 39:4-50",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Criminal Mischief - Vehicle - 2C:17-3",
+          "normalized": "CRIMINAL MISCHIEF - VEHICLE - 2C:17-3",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "False Reports - 2C:28-4",
+          "normalized": "FALSE REPORTS - 2C:28-4",
+          "note": "Not seen in data (threshold: 90 days)"
+        },
+        {
+          "value": "Unintentional Discharge",
+          "normalized": "UNINTENTIONAL DISCHARGE",
+          "note": "Not seen in data (threshold: 90 days)"
+        }
+      ],
+      "top_call_types": {
+        "Assist Own Agency (Backup)": 160708,
+        "Task Assignment": 135111,
+        "Meal Break": 41214,
+        "Medical Call": 28546,
+        "Targeted Area Patrol": 21991,
+        "Patrol Check": 20767,
+        "Relief / Personal": 19875,
+        "Motor Vehicle Stop": 18908,
+        "Traffic Detail": 17976,
+        "Administrative Assignment": 15253,
+        "Motor Vehicle Crash": 15153,
+        "Alarm - Burglar": 14030,
+        "Dispute": 10146,
+        "Welfare Check": 9541,
+        "Noise Complaint": 7883,
+        "Overnight Parking": 7568,
+        "HQ Assignment": 6469,
+        "Desk Coverage": 5766,
+        "Unwanted Person": 5729,
+        "Suspicious Person": 5559
+      }
+    },
+    {
+      "detector": "PersonnelDriftDetector",
+      "field": "Officer",
+      "reference_file": "C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\09_Reference\\Personnel\\Assignment_Master_V2.csv",
+      "timestamp": "2026-02-04T00:31:31.202848",
+      "statistics": {
+        "total_records": 754409,
+        "unique_officers": 376,
+        "reference_count": 166,
+        "active_in_reference": 0,
+        "inactive_in_reference": 0,
+        "new_personnel_count": 219,
+        "inactive_appearing_count": 0,
+        "missing_active_count": 0
+      },
+      "drift_detected": true,
+      "new_personnel": [
+        {
+          "value": "P.O. Matthew Tedesco 316",
+          "normalized": "P.O. MATTHEW TEDESCO 316",
+          "count": 11971
+        },
+        {
+          "value": "SPO. Aster Abueg 817",
+          "normalized": "SPO. ASTER ABUEG 817",
+          "count": 11740
+        },
+        {
+          "value": "P.O. Benjamin Farhi 309",
+          "normalized": "P.O. BENJAMIN FARHI 309",
+          "count": 10188
+        },
+        {
+          "value": "P.O. Panagiotis Seretis 334",
+          "normalized": "P.O. PANAGIOTIS SERETIS 334",
+          "count": 9756
+        },
+        {
+          "value": "P.O. Frank Scarpa 348",
+          "normalized": "P.O. FRANK SCARPA 348",
+          "count": 9552
+        },
+        {
+          "value": "P.O. Aaron Rios 337",
+          "normalized": "P.O. AARON RIOS 337",
+          "count": 9412
+        },
+        {
+          "value": "P.O. Jason Butler 330",
+          "normalized": "P.O. JASON BUTLER 330",
+          "count": 9251
+        },
+        {
+          "value": "P.O. Matthew Dogali 338",
+          "normalized": "P.O. MATTHEW DOGALI 338",
+          "count": 9194
+        },
+        {
+          "value": "P.O. John Tanucilli 335",
+          "normalized": "P.O. JOHN TANUCILLI 335",
+          "count": 9089
+        },
+        {
+          "value": "P.O. Matthew DeBonis 325",
+          "normalized": "P.O. MATTHEW DEBONIS 325",
+          "count": 8886
+        },
+        {
+          "value": "P.O. Gunther Lara-Nunez 351",
+          "normalized": "P.O. GUNTHER LARA-NUNEZ 351",
+          "count": 8501
+        },
+        {
+          "value": "P.O. Maximiliano Anguizaca 368",
+          "normalized": "P.O. MAXIMILIANO ANGUIZACA 368",
+          "count": 8467
+        },
+        {
+          "value": "P.O. Jason Gretkowski 345",
+          "normalized": "P.O. JASON GRETKOWSKI 345",
+          "count": 8131
+        },
+        {
+          "value": "P.O. Frank Competiello Jr. 226",
+          "normalized": "P.O. FRANK COMPETIELLO JR. 226",
+          "count": 7501
+        },
+        {
+          "value": "P.O. Mark Carrillo 331",
+          "normalized": "P.O. MARK CARRILLO 331",
+          "count": 7460
+        },
+        {
+          "value": "P.O. Felix Katsaroans 326",
+          "normalized": "P.O. FELIX KATSAROANS 326",
+          "count": 7274
+        },
+        {
+          "value": "P.O. Raymond Donnerstag 333",
+          "normalized": "P.O. RAYMOND DONNERSTAG 333",
+          "count": 7131
+        },
+        {
+          "value": "P.O. Michael Reo 339",
+          "normalized": "P.O. MICHAEL REO 339",
+          "count": 7127
+        },
+        {
+          "value": "P.O. Michael O'Neill 327",
+          "normalized": "P.O. MICHAEL O'NEILL 327",
+          "count": 6422
+        },
+        {
+          "value": "P.O. Evelyn Reyes 336",
+          "normalized": "P.O. EVELYN REYES 336",
+          "count": 5942
+        },
+        {
+          "value": "P.O. Stanislav Tovbin 344",
+          "normalized": "P.O. STANISLAV TOVBIN 344",
+          "count": 5585
+        },
+        {
+          "value": "P.O. Patrick Williams 143",
+          "normalized": "P.O. PATRICK WILLIAMS 143",
+          "count": 5388
+        },
+        {
+          "value": "P.O. Peter Bongiovanni 343",
+          "normalized": "P.O. PETER BONGIOVANNI 343",
+          "count": 5015
+        },
+        {
+          "value": "P.O. Mohamad Sheikh 360",
+          "normalized": "P.O. MOHAMAD SHEIKH 360",
+          "count": 4979
+        },
+        {
+          "value": "P.O. Caitlin O'Neill 327",
+          "normalized": "P.O. CAITLIN O'NEILL 327",
+          "count": 4858
+        },
+        {
+          "value": "P.O. Cristobal Lara-Nunez 341",
+          "normalized": "P.O. CRISTOBAL LARA-NUNEZ 341",
+          "count": 4689
+        },
+        {
+          "value": "P.O. Jessica DeJesus 340",
+          "normalized": "P.O. JESSICA DEJESUS 340",
+          "count": 4666
+        },
+        {
+          "value": "P.O. William Moyano 304",
+          "normalized": "P.O. WILLIAM MOYANO 304",
+          "count": 4334
+        },
+        {
+          "value": "C.O. Sosa 514",
+          "normalized": "C.O. SOSA 514",
+          "count": 4139
+        },
+        {
+          "value": "P.O. Carmine Maceri 378",
+          "normalized": "P.O. CARMINE MACERI 378",
+          "count": 3788
+        }
+      ],
+      "inactive_appearing": [],
+      "missing_active": [],
+      "top_officers": {
+        "P.O. Daniel Francavilla 329": 15642,
+        "P.O. Frank Caneja 346": 14273,
+        "P.O. Kevin Small 328": 13681,
+        "P.O. Micah Gibson 365": 12981,
+        "P.O. Benjamin Estrada 350": 12627,
+        "P.O. Matthew Tedesco 316": 11971,
+        "P.O. Steven Lemanowicz 347": 11959,
+        "SPO. Aster Abueg 817": 11740,
+        "P.O. Anzour Marza 356": 11392,
+        "P.O. Aziah Miller 357": 11359,
+        "P.O. Ryan Conlon 354": 10978,
+        "P.O. Bobby Rivera 361": 10943,
+        "P.O. Ruben Almonte 359": 10501,
+        "P.O. Benjamin Farhi 309": 10188,
+        "P.O. Michael Scangarella 349": 10156,
+        "P.O. Brett McCarthy 164": 10121,
+        "P.O. Christian Alvarez 364": 10082,
+        "P.O. Alexander Reyes 355": 10054,
+        "P.O. Jacob Price 366": 9860,
+        "P.O. Panagiotis Seretis 334": 9756
+      }
+    }
+  ],
+  "generated_at": "2026-02-04T00:31:31.204017"
+}

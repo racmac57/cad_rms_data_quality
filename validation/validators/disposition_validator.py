@@ -10,24 +10,32 @@ from typing import Dict, Any, Optional, Tuple
 from .base_validator import DomainValidator
 
 
-# Valid values after normalization (from enhanced_esri_output_generator.py)
+# Valid values after normalization (synced with enhanced_esri_output_generator.py valid_dispositions)
+# Updated 2026-02-04: Added missing values that caused 87,896 false positives
 VALID_DISPOSITIONS = [
-    'Complete',
-    'Assisted',
-    'Other - See Notes',
+    # Standard dispositions
     'Advised',
-    'Issued',
-    'Record Only',
-    'Checked OK',
+    'Arrest',
+    'Assisted',
     'Canceled',
-    'G.O.A.',  # Gone on Arrival
-    'TOT - See Notes',  # Turned Over To
+    'Checked OK',
+    'Cleared',
+    'Complete',
+    'Curbside Warning',  # Added - was flagging 9 records as invalid
     'Dispersed',
+    'Field Contact',     # Added - was flagging 86 records as invalid
+    'G.O.A.',            # Gone on Arrival
+    'Issued',
+    'Other - See Notes',
+    'Record Only',
+    'See Report',        # Added - was flagging 86,777 records as invalid
+    'See Supplement',    # Added - was flagging 1,024 records as invalid
     'Temp. Settled',
+    'TOT - See Notes',   # Turned Over To
+    'Transported',
     'Unable to Locate',
     'Unfounded',
-    'Transported',
-    'Arrest',
+    # Legacy values kept for backwards compatibility
     'Report',
     'No Action Needed',
     'Referred',
