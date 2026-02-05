@@ -1,0 +1,42 @@
+{
+  "tags": [
+    "ai",
+    "code",
+    "data",
+    "docs",
+    "excel",
+    "finance",
+    "it-ops",
+    "json",
+    "markdown",
+    "police",
+    "powershell",
+    "python",
+    "sql",
+    "training"
+  ],
+  "metadata_enrichment": {
+    "metadata": {
+      "project_name": "02_data",
+      "source_type": "documentation",
+      "language": "en",
+      "department": "admin",
+      "key_terms": [
+        "esri",
+        "hpd",
+        "2026-02-02",
+        "info",
+        "file",
+        "xlsx"
+      ],
+      "enrichment_version": "1.0.0"
+    },
+    "summaries": {
+      "file_summary": "# CAD data server update process\n_Exported on 2/2/2026 at 23:45:41 EST from Cursor (2.4.27)_\n\n---\n\n**User**\n\nplease read C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\02_ETL_Scripts\\cad_rms_data_quality\\config\\schemas.yaml\nC:\\Users\\ca...",
+      "first_line": "# CAD data server update process"
+    },
+    "enrichment_version": "1.0.0"
+  },
+  "last_processed_at": "2026-02-02T23:46:05.140657",
+  "department": "admin"
+}

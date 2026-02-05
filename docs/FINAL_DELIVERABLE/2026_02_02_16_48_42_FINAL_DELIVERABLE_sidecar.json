@@ -1,0 +1,72 @@
+{
+  "source_file": "FINAL_DELIVERABLE.txt",
+  "source_path": "C:\\_chunker\\02_data\\FINAL_DELIVERABLE.txt",
+  "manifest_path": "C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\KB_Shared\\04_output\\FINAL_DELIVERABLE\\2026_02_02_16_48_42_FINAL_DELIVERABLE.origin.json",
+  "created_at": "2026_02_02_16_48_42",
+  "tags": [
+    "ai",
+    "conversation",
+    "data",
+    "docs",
+    "excel",
+    "it-ops",
+    "json",
+    "markdown",
+    "police",
+    "python",
+    "sql"
+  ],
+  "metadata": {
+    "project_name": "02_data",
+    "source_type": "notes",
+    "language": "en",
+    "department": "admin",
+    "key_terms": [
+      "cad",
+      "lines",
+      "files",
+      "txt",
+      "rms",
+      "data"
+    ],
+    "enrichment_version": "1.0.0"
+  },
+  "summaries": {
+    "file_summary": "=============================================================================\nFINAL DELIVERABLE - COMPLETE SESSION SUMMARY\n=============================================================================\nDate: 2026-01-30 23:15:00 EST\nProjec...",
+    "first_line": "============================================================================="
+  },
+  "chunks": [
+    {
+      "chunk_id": "2026-02-02T16:48:42+00:00_FINAL_DELIVERABLE_chunk1",
+      "chunk_index": 1,
+      "file": "chunk_00000.txt",
+      "tags": [
+        "ai",
+        "conversation",
+        "data",
+        "docs",
+        "excel",
+        "files",
+        "it-ops",
+        "json",
+        "lines",
+        "markdown",
+        "police",
+        "python",
+        "sql"
+      ],
+      "key_terms": [
+        "cad",
+        "lines",
+        "files",
+        "txt",
+        "rms",
+        "data"
+      ],
+      "summary": "=============================================================================\nFINAL DELIVERABLE - COMPLETE SESSION SUMMARY\n=============================================================================\nDate: 2026-01-30 23:15:00 EST\nProjec...",
+      "char_length": 16395,
+      "byte_length": 17093
+    }
+  ],
+  "enrichment_version": "1.0.0"
+}

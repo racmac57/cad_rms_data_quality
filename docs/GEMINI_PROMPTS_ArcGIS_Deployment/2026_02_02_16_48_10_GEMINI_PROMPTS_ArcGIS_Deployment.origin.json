@@ -1,0 +1,39 @@
+{
+  "tags": [
+    "ai",
+    "code",
+    "conversation",
+    "data",
+    "excel",
+    "it-ops",
+    "legal",
+    "markdown",
+    "police",
+    "python",
+    "sql"
+  ],
+  "metadata_enrichment": {
+    "metadata": {
+      "project_name": "02_data",
+      "source_type": "notes",
+      "language": "en",
+      "department": "admin",
+      "key_terms": [
+        "data",
+        "prompt",
+        "verify",
+        "dataset",
+        "records",
+        "file"
+      ],
+      "enrichment_version": "1.0.0"
+    },
+    "summaries": {
+      "file_summary": "# ================================================================\n# GEMINI AI PROMPTS - ArcGIS Pro Consolidated Dataset Deployment\n# ================================================================\n# Purpose: Expert prompts for Gemini A...",
+      "first_line": "# ================================================================"
+    },
+    "enrichment_version": "1.0.0"
+  },
+  "last_processed_at": "2026-02-02T16:48:10.596207",
+  "department": "admin"
+}

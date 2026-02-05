@@ -1,0 +1,45 @@
+================================================================================
+CAD DATA CONSOLIDATION SUMMARY
+================================================================================
+Generated: 2026-02-02 00:16:01
+Report Directory: consolidation\reports\2026_02_02_baseline_only
+Mode: baseline_only
+
+Total Records: 724,794
+Date Range: nan to nan
+Output File: C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine\data\01_raw\2019_to_2026_01_30_CAD.csv
+File Size: 152.4 MB
+Processing Time: 172.8 seconds
+Unique Cases: 559,202
+
+--------------------------------------------------------------------------------
+PERFORMANCE SETTINGS:
+--------------------------------------------------------------------------------
+  Parallel Loading: True
+  Max Workers: 8
+  Chunked Reading: True
+  Memory Optimization: True
+
+--------------------------------------------------------------------------------
+SOURCE FILES:
+--------------------------------------------------------------------------------
+  2019: yearly/2019/2019_CAD_ALL.xlsx
+  2020: yearly/2020/2020_CAD_ALL.xlsx
+  2021: yearly/2021/2021_CAD_ALL.xlsx
+  2022: yearly/2022/2022_CAD_ALL.xlsx
+  2023: yearly/2023/2023_CAD_ALL.xlsx
+  2024: yearly/2024/2024_CAD_ALL.xlsx
+  2025: yearly/2025/2025_CAD_ALL.xlsx
+  2026: monthly/2026/2026_01_01_to_2026_01_30_CAD_Export.xlsx
+
+================================================================================
+NEXT STEPS:
+================================================================================
+1. Run CAD_Data_Cleaning_Engine pipeline:
+   cd C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine
+   python scripts/enhanced_esri_output_generator.py
+
+2. Validate output:
+   python scripts/validation/validate_esri_polished_dataset.py
+
+3. Copy results to cad_rms_data_quality project

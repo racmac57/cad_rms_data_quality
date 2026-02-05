@@ -1,0 +1,79 @@
+{
+  "source_file": "GEMINI_COLLABORATION_SUMMARY.txt",
+  "source_path": "C:\\_chunker\\02_data\\GEMINI_COLLABORATION_SUMMARY.txt",
+  "manifest_path": "C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\KB_Shared\\04_output\\GEMINI_COLLABORATION_SUMMARY\\2026_02_02_16_48_10_GEMINI_COLLABORATION_SUMMARY.origin.json",
+  "created_at": "2026_02_02_16_48_10",
+  "tags": [
+    "ai",
+    "code",
+    "conversation",
+    "data",
+    "docs",
+    "excel",
+    "it-ops",
+    "json",
+    "markdown",
+    "police",
+    "python",
+    "sql",
+    "training"
+  ],
+  "metadata": {
+    "project_name": "02_data",
+    "source_type": "notes",
+    "language": "en",
+    "department": "admin",
+    "key_terms": [
+      "gemini",
+      "task",
+      "data",
+      "txt",
+      "prompt",
+      "file"
+    ],
+    "enrichment_version": "1.0.0"
+  },
+  "summaries": {
+    "file_summary": "# ================================================================\n# GEMINI AI COLLABORATION - DOCUMENTATION SUMMARY\n# ================================================================\n# Created: 2026-01-31\n# Purpose: Gemini AI prompts fo...",
+    "first_line": "# ================================================================"
+  },
+  "chunks": [
+    {
+      "chunk_id": "2026-02-02T16:48:10+00:00_GEMINI_COLLABORATION_SUMMARY_chunk1",
+      "chunk_index": 1,
+      "file": "chunk_00000.txt",
+      "tags": [
+        "ai",
+        "ai-chat",
+        "code",
+        "conversation",
+        "data",
+        "docs",
+        "excel",
+        "file",
+        "gemini",
+        "it-ops",
+        "json",
+        "markdown",
+        "police",
+        "prompt",
+        "python",
+        "sql",
+        "task",
+        "training"
+      ],
+      "key_terms": [
+        "gemini",
+        "task",
+        "data",
+        "txt",
+        "prompt",
+        "file"
+      ],
+      "summary": "# ================================================================\n# GEMINI AI COLLABORATION - DOCUMENTATION SUMMARY\n# ================================================================\n# Created: 2026-01-31\n# Purpose: Gemini AI prompts fo...",
+      "char_length": 12735,
+      "byte_length": 13265
+    }
+  ],
+  "enrichment_version": "1.0.0"
+}

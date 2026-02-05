@@ -1,0 +1,209 @@
+# ================================================================
+# CAD CONSOLIDATED DATASET - SERVER QUICK REFERENCE
+# ================================================================
+# HPD2022LAWSOFT (10.0.0.157) - ArcGIS Pro Integration
+# Date: 2026-01-31
+# ================================================================
+
+## DATASET INFORMATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+File: CAD_ESRI_POLISHED_20260131_004142.xlsx
+Friendly Name: CAD_Consolidated_2019_2026.xlsx
+
+Records: 716,420
+Unique Cases: 553,624
+Date Range: 2019-01-01 to 2026-01-16
+Size: 73.9 MB
+Schema: 20 ESRI columns
+Quality: EXCELLENT (99.9%+ completeness)
+
+⚠ Note: Missing data from 01-17 to 01-30 (monthly file limitation)
+✅ Tomorrow (01-31): Full January data will be available
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+## FILE LOCATIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📁 LOCAL MACHINE (SOURCE):
+C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine\data\03_final\CAD_ESRI_POLISHED_20260131_004142.xlsx
+
+📁 NETWORK SHARE (DESTINATION):
+\\10.0.0.157\esri\CAD_Consolidated_2019_2026.xlsx
+
+📁 SERVER LOCAL (via RDP):
+C:\ESRIExport\LawEnforcementDataManagement_New\CAD_Consolidated_2019_2026.xlsx
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+## QUICK START: COPY TO SERVER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 AUTOMATED (RECOMMENDED):
+
+cd "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality"
+powershell -ExecutionPolicy Bypass -File .\copy_consolidated_dataset_to_server.ps1
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔧 MANUAL (ALTERNATIVE):
+
+# Copy to network share
+Copy-Item "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine\data\03_final\CAD_ESRI_POLISHED_20260131_004142.xlsx" `
+          -Destination "\\10.0.0.157\esri\CAD_Consolidated_2019_2026.xlsx" -Force
+
+# Verify
+Get-Item "\\10.0.0.157\esri\CAD_Consolidated_2019_2026.xlsx" | 
+    Select-Object Name, Length, LastWriteTime
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+## QUICK START: IMPORT TO ARCGIS PRO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Connect to server: Remote Desktop → HPD2022LAWSOFT (10.0.0.157)
+
+2. Open ArcGIS Pro project
+
+3. Add folder connection:
+   - Catalog pane → Folders → Add Folder Connection
+   - Browse: C:\ESRIExport\LawEnforcementDataManagement_New\
+
+4. Import table:
+   - Right-click geodatabase → Import → Table
+   - Input: CAD_Consolidated_2019_2026.xlsx
+   - Output: CAD_Consolidated_2019_2026
+   - Run
+
+5. Verify:
+   - Record count: 716,420 ✓
+   - Date range: 2019-01-01 to 2026-01-16 ✓
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+## VERIFICATION COMMANDS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Check server connectivity
+Test-Connection -ComputerName 10.0.0.157 -Count 2
+
+# Verify file exists on server
+Test-Path "\\10.0.0.157\esri\CAD_Consolidated_2019_2026.xlsx"
+
+# Get file info
+Get-Item "\\10.0.0.157\esri\CAD_Consolidated_2019_2026.xlsx" | 
+    Select-Object Name, @{N='Size (MB)';E={[math]::Round($_.Length/1MB,2)}}, LastWriteTime
+
+# List all files in ESRI share
+Get-ChildItem "\\10.0.0.157\esri" -Filter "*.xlsx" | 
+    Select-Object Name, @{N='Size (MB)';E={[math]::Round($_.Length/1MB,2)}}, LastWriteTime
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+## DATA QUALITY CHECKS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Expected Values:
+✓ Total Records: 716,420
+✓ Unique Cases: 553,624
+✓ ReportNumberNew nulls: 22 (0.003%)
+✓ Incident nulls: 272 (0.04%)
+✓ How Reported nulls: 0 (0.00%)
+✓ Disposition nulls: 0 (0.00%)
+✓ Min Date: 2019-01-01
+✓ Max Date: 2026-01-16
+
+Schema (20 columns):
+- ReportNumberNew, Incident, How Reported, Disposition
+- TimeOfCall, TimeDispatched, TimeEnroute, TimeOnScene, TimeCallComplete
+- Officer, PDZone, Grid
+- Address, Apt, City, State, ZIP, Cross
+- CADNotes, ResponseType
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+## TROUBLESHOOTING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Issue: Cannot access \\10.0.0.157\esri
+Solution: 
+- Check VPN/network connection
+- Verify ESRI share exists: Get-ChildItem "\\10.0.0.157\esri"
+- Try admin share: \\HPD2022LAWSOFT\c$\ESRIExport
+
+Issue: ArcGIS Pro import fails
+Solution:
+- Use local path (C:\...) not UNC path (\\...)
+- Verify file is .xlsx format
+- Try importing as CSV instead
+
+Issue: Record count mismatch
+Solution:
+- Expected: 716,420 records
+- Check import filters
+- Verify complete file copied (73.9 MB)
+
+Issue: Broken data sources
+Solution:
+- Right-click layer → Properties → Source → Set Data Source
+- Browse to new consolidated dataset
+- Or run repair script: 04_Fix_Broken_References\02_Repair-BrokenReferences.ps1
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+## TOMORROW'S UPDATE (01-31)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Download full January export (2026_01_01_to_2026_01_31_CAD_Export.xlsx)
+
+2. Run consolidation:
+   cd "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality"
+   python consolidate_cad_2019_2026.py
+
+3. Copy new file to server:
+   powershell -ExecutionPolicy Bypass -File .\copy_consolidated_dataset_to_server.ps1
+
+4. Update ArcGIS Pro data source to new file
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+## KEY DOCUMENTATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📄 REMOTE_SERVER_GUIDE.md - Comprehensive guide (this file)
+📄 outputs/consolidation/CONSOLIDATION_RUN_2026_01_30_SUMMARY.txt
+📄 outputs/consolidation/EXECUTIVE_SUMMARY_2026_01_30.txt
+📄 10_Projects/ESRI/2026_dashboards/README.md
+📄 10_Projects/ESRI/2026_dashboards/CHANGELOG.md
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+## SERVER INFORMATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Server Name: HPD2022LAWSOFT
+IP Address: 10.0.0.157
+Network Share: \\10.0.0.157\esri
+Admin Share: \\HPD2022LAWSOFT\c$
+
+Daily Exports (for reference):
+- CAD: C:\ESRIExport\LawEnforcementDataManagement_New\CADdata.xlsx
+- NIBRS: C:\ESRIExport\LawEnforcementDataManagement_New\NIBRSExport.xlsx
+
+Daily Export Schedule:
+- CAD: 00:30 daily (LawSoftESRICADExport task)
+- NIBRS: 01:00 daily (LawSoftESRINIBRSExport task)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+## CONTACT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+For support: R. A. Carucci
+Date Created: 2026-01-31
+Status: Active ✅
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+END OF QUICK REFERENCE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

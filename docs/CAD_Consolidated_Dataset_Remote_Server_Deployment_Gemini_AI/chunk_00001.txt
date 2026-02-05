@@ -1,0 +1,516 @@
+Specifically, I need to see if the search found the file anywhere else on the server. However, if the search found nothing, here's how to transfer the file from your local machine to the server:
+
+---
+
+## **TRANSFER FILE FROM LOCAL MACHINE TO SERVER**
+
+Since you're connected via RDP, here's the easiest method:
+
+### **Option 1: RDP Clipboard Transfer (Recommended)**
+
+**On your local machine (not in RDP):**
+
+1. Navigate to the file:
+   ```
+   C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine\data\03_final\CAD_ESRI_POLISHED_20260131_004142.xlsx
+   ```
+
+2. **Copy the file** (Ctrl+C or right-click → Copy)
+
+3. **Switch to RDP session** (server window)
+
+4. **Paste in server File Explorer** at this location:
+   ```
+   C:\ESRIExport\LawEnforcementDataManagement_New\
+   ```
+
+5. **Rename** to: `CAD_Consolidated_2019_2026.xlsx`
+
+---
+
+### **Option 2: Via Network Share (If RDP Clipboard Doesn't Work)**
+
+**On your local machine, run this PowerShell:**
+
+```powershell
+# Copy from local machine to network share
+$source = "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine\data\03_final\CAD_ESRI_POLISHED_20260131_004142.xlsx"
+$dest = "\\10.0.0.157\c$\ESRIExport\LawEnforcementDataManagement_New\CAD_Consolidated_2019_2026.xlsx"
+
+Copy-Item -Path $source -Destination $dest -Force
+Write-Host "File copied successfully!" -ForegroundColor Green
+```
+
+---
+
+### **After File Transfer - Verify on Server:**
+
+**Run this in your RDP PowerShell session:**
+
+```powershell
+# Verify file exists and check properties
+$ExportPath = "C:\ESRIExport\LawEnforcementDataManagement_New\CAD_Consolidated_2019_2026.xlsx"
+
+if (Test-Path $ExportPath) {
+    $Item = Get-Item $ExportPath
+    $SizeMB = [math]::Round($Item.Length / 1MB, 2)
+    
+    Write-Host "`n✓ FILE SUCCESSFULLY COPIED!" -ForegroundColor Green
+    Write-Host "  Name: $($Item.Name)" -ForegroundColor White
+    Write-Host "  Size: $SizeMB MB" -ForegroundColor White
+    Write-Host "  Date: $($Item.LastWriteTime)" -ForegroundColor White
+    Write-Host ""
+    
+    # Verify expected size
+    if ($SizeMB -ge 70 -and $SizeMB -le 75) {
+        Write-Host "✓ Size looks correct (70-74 MB expected)" -ForegroundColor Green
+    } else {
+        Write-Host "⚠ Size unexpected (expected 70-74 MB, got $SizeMB MB)" -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "✗ File still not found at: $ExportPath" -ForegroundColor Red
+}
+```
+
+---
+
+**Which transfer method would you like to try first? ** RDP clipboard is usually fastest for a single file. ---
+
+**User**
+
+
+PS C:\WINDOWS\system32>    C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine\data\03_final\CAD_ESRI_POLISHED_20260131_004142.xlsx
+C:\Users\carucci_r\OneDrive : The term 'C:\Users\carucci_r\OneDrive' is not recognized as the name of a cmdlet,
+function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the
+path is correct and try again. At line:1 char:4
++    C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CA ...
++    ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (C:\Users\carucci_r\OneDrive:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+PS C:\WINDOWS\system32>
+
+---
+
+**Cursor**
+
+You're trying to access the OneDrive path directly - that won't work in PowerShell like that. Let me help you properly check if the file exists and copy it. **First, let's check if OneDrive is synced on the server:**
+
+```powershell
+# Check if the OneDrive folder exists on server
+Test-Path "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine\data\03_final\CAD_ESRI_POLISHED_20260131_004142.xlsx"
+```
+
+**If that returns `False`, the file is NOT on the server. ** You'll need to transfer it from your local machine. ---
+
+## **EASIEST METHOD: Transfer via File Explorer**
+
+Since OneDrive isn't synced on the server, use this approach:
+
+### **Step 1: On Your LOCAL Machine (Outside RDP)**
+
+1. Open File Explorer
+2. Navigate to:
+   ```
+   C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine\data\03_final\
+   ```
+3. Find file: `CAD_ESRI_POLISHED_20260131_004142.xlsx`
+4. **Right-click → Copy** (or press Ctrl+C)
+
+### **Step 2: In Your RDP Session (Server)**
+
+1. Open File Explorer on the server
+2. Navigate to:
+   ```
+   C:\ESRIExport\LawEnforcementDataManagement_New\
+   ```
+3. **Right-click → Paste** (or press Ctrl+V)
+4. Wait for the ~70 MB file to copy
+5. **Right-click the file → Rename** to: `CAD_Consolidated_2019_2026.xlsx`
+
+---
+
+### **Step 3: Verify the Copy (Run in Server PowerShell)**
+
+```powershell
+# Verify file copied successfully
+$file = "C:\ESRIExport\LawEnforcementDataManagement_New\CAD_Consolidated_2019_2026.xlsx"
+
+if (Test-Path $file) {
+    $item = Get-Item $file
+    Write-Host "`n✓ SUCCESS! File copied to server" -ForegroundColor Green
+    Write-Host "  Name: $($item.Name)"
+    Write-Host "  Size: $([math]::Round($item.Length/1MB,2)) MB"
+    Write-Host "  Date: $($item.LastWriteTime)`n"
+} else {
+    Write-Host "`n✗ File not found - copy may have failed" -ForegroundColor Red
+}
+```
+
+---
+
+**Try the copy/paste method in File Explorer - it should work through RDP. Let me know once you've copied the file and we'll verify it! **
+
+---
+
+**User**
+
+PS C:\WINDOWS\system32>    C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine\data\03_final\
+C:\Users\carucci_r\OneDrive : The term 'C:\Users\carucci_r\OneDrive' is not recognized as the name of a cmdlet,
+function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the
+path is correct and try again. At line:1 char:4
++    C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CA ...
++    ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (C:\Users\carucci_r\OneDrive:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+PS C:\WINDOWS\system32>
+
+
+---
+
+**Cursor**
+
+You can't just type a path in PowerShell like that. **The path with spaces needs to be quoted and used with a command. **
+
+But more importantly - **that OneDrive folder does NOT exist on the server. ** You need to copy the file FROM YOUR LOCAL MACHINE. ---
+
+## **STOP - Use File Explorer, Not PowerShell**
+
+You're in an RDP session on the server. **Don't use PowerShell to navigate. ** Use the **File Explorer GUI** method I described:
+
+### **HERE'S WHAT TO DO:**
+
+**1. On YOUR LOCAL COMPUTER (minimize or exit the RDP window temporarily):**
+   - Open File Explorer on your LOCAL machine
+   - Navigate to your OneDrive folder
+   - Copy the Excel file
+
+**2. Back in RDP on the SERVER:**
+   - Open File Explorer (Windows key + E)
+   - Navigate to `C:\ESRIExport\LawEnforcementDataManagement_New\`
+   - Paste the file
+
+---
+
+### **OR - Try This PowerShell Command to Access from Local Machine:**
+
+If you want to use PowerShell from your LOCAL machine (not in RDP), run this:
+
+```powershell
+# RUN THIS ON YOUR LOCAL MACHINE (not in RDP)
+$source = "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine\data\03_final\CAD_ESRI_POLISHED_20260131_004142.xlsx"
+
+# Check if file exists locally
+if (Test-Path $source) {
+    Write-Host "✓ File found locally" -ForegroundColor Green
+    
+    # Copy to server via UNC path
+    $dest = "\\HPD2022LAWSOFT\c$\ESRIExport\LawEnforcementDataManagement_New\CAD_Consolidated_2019_2026.xlsx"
+    
+    Write-Host "Copying to server..." -ForegroundColor Yellow
+    Copy-Item -Path $source -Destination $dest -Force
+    Write-Host "✓ Copy complete!" -ForegroundColor Green
+} else {
+    Write-Host "✗ File not found locally" -ForegroundColor Red
+}
+```
+
+---
+
+**Which method do you want to use? **
+1. **File Explorer copy/paste** (easiest)
+2. **PowerShell from your local machine** (command above)
+
+---
+
+**User**
+
+✓ File found locally
+Copying to server...
+Copy-Item : Access is denied
+At line:8 char:5
++     Copy-Item -Path $source -Destination $dest -Force
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [Copy-Item], UnauthorizedAccessException
+    + FullyQualifiedErrorId : System.UnauthorizedAccessException,Microsoft.PowerShell.Commands.CopyItemCommand
+
+✓ Copy complete! PS U:\>
+
+---
+
+**Cursor**
+
+**Access denied on the admin share** - same permission issue we had earlier. The "Copy complete!" message is misleading because the copy actually failed. ---
+
+## **USE FILE EXPLORER METHOD INSTEAD**
+
+Since network copy failed, use the RDP clipboard transfer:
+
+### **Step-by-Step Instructions:**
+
+**1. On your LOCAL machine (where you just ran that PowerShell):**
+   - Open File Explorer
+   - Navigate to: 
+     ```
+     C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine\data\03_final\
+     ```
+   - Find file: `CAD_ESRI_POLISHED_20260131_004142.xlsx` (~70 MB)
+   - **Right-click → Copy** (or select it and press Ctrl+C)
+
+**2. Switch to your RDP window (server):**
+   - Press **Windows Key + E** to open File Explorer
+   - Navigate to: `C:\ESRIExport\LawEnforcementDataManagement_New\`
+   - **Right-click in empty space → Paste** (or press Ctrl+V)
+   - **Wait** for the file to transfer (~70 MB, may take 30-60 seconds)
+
+**3. After paste completes:**
+   - **Right-click the file → Rename**
+   - Change name to: `CAD_Consolidated_2019_2026.xlsx`
+
+**4. Verify in PowerShell (on server):**
+   ```powershell
+   Get-Item "C:\ESRIExport\LawEnforcementDataManagement_New\CAD_Consolidated_2019_2026.xlsx" | 
+       Select-Object Name, @{N='Size (MB)';E={[math]::Round($_.Length/1MB,2)}}, LastWriteTime
+   ```
+
+---
+
+**Try the File Explorer copy/paste method now. Let me know if the paste works or if you get any errors! **
+
+---
+
+**User**
+
+i am signed in as an admin in powershell what command do i run
+
+---
+
+**Cursor**
+
+Since you're admin on the server in RDP, your **local drives should be mapped** as `\\tsclient\`. Try this:
+
+```powershell
+# Check if your local C: drive is accessible via RDP mapping
+Get-ChildItem "\\tsclient\c\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine\data\03_final\" -Filter "CAD_ESRI*.xlsx"
+```
+
+**If that works**, then copy with this command:
+
+```powershell
+# Copy from local machine (via RDP mapping) to server
+$source = "\\tsclient\c\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine\data\03_final\CAD_ESRI_POLISHED_20260131_004142.xlsx"
+$dest = "C:\ESRIExport\LawEnforcementDataManagement_New\CAD_Consolidated_2019_2026.xlsx"
+
+Write-Host "Copying file from local machine to server..." -ForegroundColor Yellow
+Copy-Item -Path $source -Destination $dest -Force
+Write-Host "✓ Copy complete!" -ForegroundColor Green
+
+# Verify
+Get-Item $dest | Select-Object Name, @{N='Size (MB)';E={[math]::Round($_.Length/1MB,2)}}, LastWriteTime
+```
+
+---
+
+**If `\\tsclient\c\` doesn't work**, you'll need to enable local drive mapping in RDP. But try the command above first and let me know what happens! ---
+
+**User**
+
+I am signed in as an admin on the remote and local. what command do i run and what machine do i run it in
+
+---
+
+**Cursor**
+
+## **RUN THIS COMMAND ON THE SERVER (in your RDP PowerShell window):**
+
+```powershell
+# Copy from your local machine to server (via RDP drive mapping)
+$source = "\\tsclient\c\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine\data\03_final\CAD_ESRI_POLISHED_20260131_004142.xlsx"
+$dest = "C:\ESRIExport\LawEnforcementDataManagement_New\CAD_Consolidated_2019_2026.xlsx"
+
+# Create destination folder if it doesn't exist
+$destFolder = Split-Path $dest
+if (! (Test-Path $destFolder)) {
+    New-Item -ItemType Directory -Path $destFolder -Force
+}
+
+Write-Host "Copying from local machine to server..." -ForegroundColor Yellow
+Copy-Item -Path $source -Destination $dest -Force
+
+# Verify
+if (Test-Path $dest) {
+    $item = Get-Item $dest
+    Write-Host "`n✓ SUCCESS!" -ForegroundColor Green
+    Write-Host "  File: $($item.Name)"
+    Write-Host "  Size: $([math]::Round($item.Length/1MB,2)) MB"
+    Write-Host "  Date: $($item.LastWriteTime)`n"
+} else {
+    Write-Host "`n✗ FAILED - file not found at destination" -ForegroundColor Red
+}
+```
+
+**WHERE:** Run this in your **RDP PowerShell session (on the server)**
+
+**WHY:** `\\tsclient\c\` is how RDP maps your local drives to the remote server
+
+---
+
+**Run that command and tell me what happens! **
+
+---
+
+**User**
+
+server: PS C:\Users\administrator.HPD> # Check ESRI Export Destination
+PS C:\Users\administrator.HPD> if (Test-Path $ExportPath) {
+>>     $Item = Get-Item $ExportPath
+>>     $SizeMB = [math]::Round($Item.Length / 1MB, 2)
+>>     Write-Host "FOUND (ESRI Export): $($Item.Name)" -ForegroundColor Green
+>>     Write-Host "   Size: $SizeMB MB"
+>> } else {
+>>     Write-Host "MISSING (ESRI Export): $ExportPath" -ForegroundColor Yellow
+>> }
+MISSING (ESRI Export): C:\ESRIExport\LawEnforcementDataManagement_New\CAD_Consolidated_2019_2026.xlsx
+PS C:\Users\administrator.HPD> }
+>>     Write-Host "`n✗ FAILED - file not found at destination" -ForegroundColor Red
+>> } else {
+>>     Write-Host "  Date: $($item.LastWriteTime)`n"
+>>     Write-Host "  Size: $([math]::Round($item.Length/1MB,2)) MB"
+>>     Write-Host "  File: $($item.Name)"                                     w
+>>     Write-Host "`n✓ SUCCESS!" -ForegroundColor Green
+>>     $item = Get-Item $dest
+>> if (Test-Path $dest) {
+>> # Verify
+>>
+>> Copy-Item -Path $source -Destination $dest -Force
+>> Write-Host "Copying from local machine to server..." -ForegroundColor Yellow
+>>
+>> }
+>>     New-Item -ItemType Directory -Path $destFolder -Force
+>> if (! (Test-Path $destFolder)) {
+>> $destFolder = Split-Path $dest
+>> # Create destination folder if it doesn't exist
+>>
+>> $dest = "C:\ESRIExport\LawEnforcementDataManagement_New\CAD_Consolidated_2019_2026.xlsx"
+>> $source = "\\tsclient\c\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine\data\03_final\CAD_ESRI_POLISHED_20260131_004142.xlsx"
+>> # Copy from your local machine to server (via RDP drive mapping)
+
+---
+
+**Cursor**
+
+I see the commands got entered in reverse order. Let me give you a clean version to copy/paste all at once:
+
+## **Copy and Paste This ENTIRE Block into PowerShell on the Server:**
+
+```powershell
+# Copy from local machine to server via RDP mapping
+$source = "\\tsclient\c\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine\data\03_final\CAD_ESRI_POLISHED_20260131_004142.xlsx"
+$dest = "C:\ESRIExport\LawEnforcementDataManagement_New\CAD_Consolidated_2019_2026.xlsx"
+
+Write-Host "`n--- COPYING FILE ---" -ForegroundColor Cyan
+
+# Check if source accessible
+if (Test-Path $source) {
+    Write-Host "✓ Source found on local machine" -ForegroundColor Green
+    
+    # Create destination folder
+    $destFolder = Split-Path $dest
+    if (! (Test-Path $destFolder)) {
+        New-Item -ItemType Directory -Path $destFolder -Force | Out-Null
+    }
+    
+    # Copy file
+    Copy-Item -Path $source -Destination $dest -Force
+    
+    # Verify
+    if (Test-Path $dest) {
+        $item = Get-Item $dest
+        Write-Host "✓ SUCCESS! File copied to server" -ForegroundColor Green
+        Write-Host "  File: $($item.Name)"
+        Write-Host "  Size: $([math]::Round($item.Length/1MB,2)) MB"
+        Write-Host "  Date: $($item.LastWriteTime)`n"
+    } else {
+        Write-Host "✗ Copy failed" -ForegroundColor Red
+    }
+} else {
+    Write-Host "✗ Source not accessible via \\tsclient\" -ForegroundColor Red
+    Write-Host "  Local drives may not be mapped in RDP" -ForegroundColor Yellow
+    Write-Host "  Use File Explorer copy/paste instead" -ForegroundColor Yellow
+}
+```
+
+**Paste that entire block and press Enter. ** It will tell you if `\\tsclient\` works or if you need to use File Explorer instead. ---
+
+**User**
+
+--- COPYING FILE ---
+✗ Source not accessible via \\tsclient\
+  Local drives may not be mapped in RDP
+  Use File Explorer copy/paste instead
+PS C:\Users\administrator.HPD>
+
+
+---
+
+**Cursor**
+
+**RDP drive mapping is not enabled. ** Use File Explorer instead:
+
+---
+
+## **FILE EXPLORER COPY/PASTE METHOD:**
+
+### **Step 1: On Your LOCAL Computer**
+1. **Minimize the RDP window** (don't close it)
+2. Open **File Explorer** on your local machine
+3. Navigate to:
+   ```
+   C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine\data\03_final\
+   ```
+4. Find: `CAD_ESRI_POLISHED_20260131_004142.xlsx`
+5. **Right-click → Copy** (or press **Ctrl+C**)
+
+### **Step 2: Back in the Server (RDP window)**
+1. **Maximize the RDP window** to go back to the server
+2. Press **Windows Key + E** to open File Explorer
+3. Navigate to: `C:\ESRIExport\LawEnforcementDataManagement_New\`
+4. **Right-click in empty space → Paste** (or press **Ctrl+V**)
+5. **Wait** for the ~70 MB file to copy (30-60 seconds)
+6. Once copied, **rename it** to: `CAD_Consolidated_2019_2026.xlsx`
+
+### **Step 3: Verify (in Server PowerShell)**
+```powershell
+Get-Item "C:\ESRIExport\LawEnforcementDataManagement_New\CAD_Consolidated_2019_2026.xlsx" | Select-Object Name, @{N='Size (MB)';E={[math]::Round($_.Length/1MB,2)}}, LastWriteTime
+```
+
+---
+
+**Start with Step 1 - copy the file on your local machine, then paste it in the RDP File Explorer. Let me know when it's done! **
+
+---
+
+**User**
+
+pasted in C:\HPD ESRI\03_Data\CAD\Backfill on the server CAD_ESRI_DRAFT_20260131_004142.xlsx
+
+---
+
+**Cursor**
+
+**Wait - you copied the WRONG file! ** You pasted `CAD_ESRI_DRAFT_20260131_004142.xlsx` but we need `CAD_ESRI_POLISHED_20260131_004142.xlsx`. The **DRAFT** file doesn't have the final ESRI formatting. We need the **POLISHED** file. ---
+
+## **Copy the CORRECT File:**
+
+### **On Your Local Machine:**
+1. Go back to your local File Explorer
+2. Navigate to:
+   ```
+   C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine\data\03_final\
+   ```
+3. Find the file: **`CAD_ESRI_POLISHED_20260131_004142.xlsx`** (NOT DRAFT)
+4. **Copy it** (Ctrl+C)
+
+### **On the Server (in RDP):**
+1.

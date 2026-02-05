@@ -1,0 +1,582 @@
+**Single Source of Truth**: Replace fragmented legacy projects with unified, maintainable system
+
+---
+
+## Project Structure
+
+```
+cad_rms_data_quality/
+â”œâ”€â”€ README.md                    # This file
+â”œâ”€â”€ CHANGELOG.md                 # Version history
+â”œâ”€â”€ INCREMENTAL_RUN_GUIDE.md    # Incremental CAD run + copy to 13_PROCESSED_DATA âœ…
+â”œâ”€â”€ PLAN.md                      # Detailed implementation plan
+â”œâ”€â”€ NEXT_STEPS.md               # Roadmap for next session
+â”œâ”€â”€ requirements.txt            # Python dependencies âœ…
+â”œâ”€â”€ pyproject.toml              # Project configuration âœ…
+â”œâ”€â”€ Makefile                    # Automation commands (TO DO - in chunk_00010.txt)
+â”œâ”€â”€ .gitignore                  # Git ignore rules âœ…
+â”œâ”€â”€ consolidate_cad_2019_2026.py # Production consolidation (baseline + incremental) âœ…
+â”œâ”€â”€ scripts/                    # Post-consolidation utilities âœ…
+â”‚   â””â”€â”€ copy_polished_to_processed_and_update_manifest.py  # Copy to 13_PROCESSED_DATA, update manifest
+â”‚
+â”œâ”€â”€ config/                     # Configuration files âœ…
+â”‚   â”œâ”€â”€ schemas.yaml            # Paths to 09_Reference/Standards schemas âœ…
+â”‚   â”œâ”€â”€ validation_rules.yaml  # Validation configuration âœ…
+â”‚   â””â”€â”€ consolidation_sources.yaml  # 2019-2025 CAD file paths (actual: 714K records) âœ…
+â”‚
+â”œâ”€â”€ consolidation/              # Component 1: Historical data consolidation
+â”‚   â”œâ”€â”€ scripts/
+â”‚   â”‚   â”œâ”€â”€ consolidate_cad.py         # Merge 2019-2025 CAD files (714K records) (TO DO)
+â”‚   â”‚   â””â”€â”€ prepare_arcgis.py          # Create ArcGIS-ready output (TO DO)
+â”‚   â”œâ”€â”€ output/                        # Consolidated datasets (empty)
+â”‚   â”œâ”€â”€ reports/                       # Validation reports (empty)
+â”‚   â””â”€â”€ logs/                          # Processing logs (empty)
+â”‚
+â”œâ”€â”€ monthly_validation/         # Component 2: Ongoing validation âœ…
+â”‚   â”œâ”€â”€ scripts/
+â”‚   â”‚   â”œâ”€â”€ validate_cad.py            # Monthly CAD validator âœ…
+â”‚   â”‚   â””â”€â”€ validate_rms.py            # Monthly RMS validator âœ…
+â”‚   â”œâ”€â”€ templates/
+â”‚   â”‚   â””â”€â”€ validation_report_template.html  # Report template (TO DO)
+â”‚   â”œâ”€â”€ processed/                     # Processed monthly outputs âœ…
+â”‚   â”œâ”€â”€ reports/                       # Monthly reports (YYYY_MM_cad/, YYYY_MM_rms/) âœ…
+â”‚   â””â”€â”€ logs/                          # Validation logs
+â”‚
+â”œâ”€â”€ shared/                     # Shared utilities (refactored from legacy projects)
+â”‚   â”œâ”€â”€ validators/
+â”‚   â”‚   â”œâ”€â”€ validation_engine.py       # Core validation framework (TO DO)
+â”‚   â”‚   â”œâ”€â”€ pre_run_checks.py          # Pre-run environment checks (TO DO)
+â”‚   â”‚   â”œâ”€â”€ post_run_checks.py         # Post-run quality checks (TO DO)
+â”‚   â”‚   â”œâ”€â”€ address_validator.py       # Address validation (TO DO)
+â”‚   â”‚   â”œâ”€â”€ case_number_validator.py   # Case number validation (TO DO)
+â”‚   â”‚   â””â”€â”€ quality_scorer.py          # 0-100 quality scoring (TO DO)
+â”‚   â”œâ”€â”€ processors/
+â”‚   â”‚   â”œâ”€â”€ field_normalizer.py        # Advanced Normalization v3.2 (TO DO)
+â”‚   â”‚   â”œâ”€â”€ datetime_processor.py      # Time artifact fixes (TO DO)
+â”‚   â”‚   â””â”€â”€ address_standardizer.py    # USPS standardization (TO DO)
+â”‚   â”œâ”€â”€ reporting/
+â”‚   â”‚   â”œâ”€â”€ html_generator.py          # HTML report generation (TO DO)
+â”‚   â”‚   â”œâ”€â”€ excel_generator.py         # Excel report generation (TO DO)
+â”‚   â”‚   â””â”€â”€ json_generator.py          # JSON metrics export (TO DO)
+â”‚   â””â”€â”€ utils/
+â”‚       â”œâ”€â”€ schema_loader.py           # Load schemas from Standards (TO DO)
+â”‚       â”œâ”€â”€ hash_utils.py              # File integrity checks (TO DO)
+â”‚       â””â”€â”€ audit_trail.py             # Change tracking (TO DO)
+â”‚
+â”œâ”€â”€ tests/                      # Test suite
+â”‚   â”œâ”€â”€ test_validators.py             # Validator tests (TO DO)
+â”‚   â”œâ”€â”€ test_processors.py             # Processor tests (TO DO)
+â”‚   â”œâ”€â”€ test_consolidation.py          # Consolidation tests (TO DO)
+â”‚   â””â”€â”€ fixtures/                      # Test data (empty)
+â”‚
+â””â”€â”€ docs/                       # Documentation
+    â”œâ”€â”€ arcgis/                        # ArcGIS import and automation âœ…
+    â”‚   â”œâ”€â”€ README.md                  # Workflow guide for geodatabase import âœ…
+    â”‚   â”œâ”€â”€ README_Backfill_Process.md # User guide for backfill automation âœ…
+    â”‚   â”œâ”€â”€ config.json                # Central configuration for backfill workflow âœ…
+    â”‚   â”œâ”€â”€ discover_tool_info.py      # Tool discovery script âœ…
+    â”‚   â”œâ”€â”€ run_publish_call_data.py   # Python runner for ArcGIS Pro tool âœ…
+    â”‚   â”œâ”€â”€ Test-PublishReadiness.ps1  # Pre-flight checks âœ…
+    â”‚   â”œâ”€â”€ Invoke-CADBackfillPublish.ps1  # Main orchestrator âœ…
+    â”‚   â”œâ”€â”€ Copy-PolishedToServer.ps1  # Robust file copy script âœ…
+    â”‚   â””â”€â”€ import_cad_polished_to_geodatabase.py  # Legacy arcpy import script
+    â”œâ”€â”€ ARCHITECTURE.md                # System design (TO DO)
+    â”œâ”€â”€ MIGRATION_NOTES.md             # What came from legacy projects (TO DO)
+    â”œâ”€â”€ CONSOLIDATION_GUIDE.md         # How to run consolidation (TO DO)
+    â”œâ”€â”€ MONTHLY_VALIDATION_GUIDE.md    # How to run monthly validation (TO DO)
+    â””â”€â”€ STANDARDS_REFERENCE.md         # How to use 09_Reference/Standards (TO DO)
+```
+
+---
+
+## Authoritative Sources
+
+### Primary Schema Source: 09_Reference/Standards
+**Location:** `C:\Users\carucci_r\OneDrive - City of Hackensack\09_Reference\Standards`
+**Version:** v2.3.0 (Updated: 2026-01-17)
+
+**Key Files:**
+- `unified_data_dictionary/schemas/canonical_schema.json` - Master field definitions
+- `unified_data_dictionary/schemas/cad_fields_schema_latest.json` - CAD field validation
+- `unified_data_dictionary/schemas/rms_fields_schema_latest.json` - RMS field validation
+- `CAD_RMS/DataDictionary/current/schema/cad_to_rms_field_map.json` - Field mappings
+- `CAD_RMS/DataDictionary/current/schema/multi_column_matching_strategy.md` - Matching logic
+- `mappings/field_mappings/mapping_rules.md` - ETL transformation rules
+- `config/response_time_filters.json` - Response time calculation filters
+
+### Primary Logic Source: CAD_Data_Cleaning_Engine
+**Location:** `C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine`
+**Status:** Active (Last updated: Dec 2025)
+
+**Key Components to Migrate:**
+- Validation framework (pre-run/post-run checks)
+- Advanced Normalization Rules v3.2
+- Parallel validation (26.7x performance improvement)
+- RMS backfill logic with intelligent deduplication
+- Audit trail and file integrity checking
+
+### Secondary Sources (Specific Features)
+- `RMS_Data_ETL`: Address standardization with `usaddress` library
+- `RMS_Data_Processing`: Time artifact fixes
+- `dv_doj`: Reporting templates and patterns
+
+---
+
+## Data Sources for Consolidation
+
+### CAD Files (2012-2025)
+**Base Directory:** `C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_CAD\yearly\`
+**Structure:** Canonical v2.0.0 (Updated: 2026-01-30)
+
+**Yearly Source Files:**
+1. **2012**: `yearly\2012\2012_CAD_ALL.xlsx` (~30,000 records)
+2. **2013**: `yearly\2013\2013_CAD_ALL.xlsx` (~32,000 records)
+3. **2014**: `yearly\2014\2014_CAD_ALL.xlsx` (~35,000 records)
+4. **2015**: `yearly\2015\2015_CAD_ALL.xlsx` (~35,000 records)
+5. **2016**: `yearly\2016\2016_CAD_ALL.xlsx` (~35,000 records)
+6. **2017**: `yearly\2017\2017_CAD_ALL.xlsx` (~38,000 records)
+7. **2018**: `yearly\2018\2018_CAD_ALL.xlsx` (~35,000 records)
+8. **2019**: `yearly\2019\2019_CAD_ALL.xlsx` (~33,000 records)
+9. **2020**: `yearly\2020\2020_CAD_ALL.xlsx` (~32,000 records)
+10. **2021**: `yearly\2021\2021_CAD_ALL.xlsx` (~33,000 records)
+11. **2022**: `yearly\2022\2022_CAD_ALL.xlsx` (~38,000 records)
+12. **2023**: `yearly\2023\2023_CAD_ALL.xlsx` (~40,000 records)
+13. **2024**: `yearly\2024\2024_CAD_ALL.xlsx` (~40,000 records)
+14. **2025**: `yearly\2025\2025_CAD_ALL.xlsx` (~42,000 records)
+
+**Monthly Source Files (2025 Q4 & 2026):**
+- `monthly\2025\2025_10_CAD.xlsx`, `2025_11_CAD.xlsx`, `2025_12_CAD.xlsx`
+- `monthly\2026\2026_01_CAD.xlsx`, `2026_02_CAD.xlsx` (incremental: Jan filtered by baseline IDs, Feb from 2026-02-01)
+
+**Actual Records (Verified 2026-01-30):** 714,689 records (2019-2025, 7 years)
+**Unique Cases:** ~540,000 estimated after deduplication
+**Full History:** 1,401,462 total records (2012-2025, 14 years)
+
+**Note:** Configuration updated to canonical structure (2026-01-30). **Important:** Actual records are ~3.3x higher than initial estimates due to inclusion of supplemental reports, unit records, and status updates (not just incidents). ### CAD Data Coverage by Year
+
+| Year | Total Records | Unique Cases | Coverage |
+|------|---------------|--------------|----------|
+| 2012 | 85,234 | ~65,000 | Historical |
+| 2013 | 92,643 | ~70,000 | Historical |
+| 2014 | 103,840 | ~79,000 | Historical |
+| 2015 | 98,962 | ~75,000 | Historical |
+| 2016 | 98,795 | ~75,000 | Historical |
+| 2017 | 108,543 | ~83,000 | Historical |
+| 2018 | 98,756 | ~75,000 | Historical |
+| **2019** | **91,217** | **~69,000** | **Consolidation Target** |
+| **2020** | **89,400** | **~68,000** | **Consolidation Target** |
+| **2021** | **91,477** | **~70,000** | **Consolidation Target** |
+| **2022** | **105,038** | **~80,000** | **Consolidation Target** |
+| **2023** | **113,179** | **~86,000** | **Consolidation Target** |
+| **2024** | **110,313** | **~84,000** | **Consolidation Target** |
+| **2025** | **114,065** | **~87,000** | **Consolidation Target** |
+| | | | |
+| **2019-2025 Total** | **714,689** | **~543,000** | **Primary Target** |
+| **2012-2025 Total** | **1,401,462** | **~1,071,000** | **Full History** |
+
+**Data Source Files:**
+- `yearly/2012/2012_CAD_ALL.xlsx` through `yearly/2025/2025_CAD_ALL.xlsx`
+- `monthly/2025/2025_10_CAD.xlsx`, `2025_11_CAD.xlsx`, `2025_12_CAD.xlsx`
+
+---
+
+## Key Validation Rules (from Standards)
+
+### Case Number Format
+- Pattern: `^\d{2}-\d{6}([A-Z])?$`
+- Examples: `25-000001`, `25-000001A` (supplemental)
+- Must be preserved as text (not numeric). Monthly validation (`validate_cad.py`) forces ReportNumberNew to string on load and normalizes Excel artifacts (e.g. `26000001.0` â†’ `26-000001`) before validation; see CHANGELOG v1.2.6. ### Address Validation
+- USPS standardization using `usaddress` library
+- Reverse geocoding validation (if ArcGIS available)
+- Fuzzy matching â‰¥90% threshold
+- Exclude Police HQ: "225 State Street"
+
+### Call Type Classification
+- 649 call types mapped to 11 ESRI categories
+- Source: `09_Reference/Standards/mappings/call_types_*.csv`
+- Categories: Criminal Incidents, Emergency Response, Traffic, etc. ### Quality Scoring (0-100)
+- Required fields present: 30 points
+- Valid formats: 25 points
+- Address quality: 20 points
+- Domain compliance: 15 points
+- Consistency checks: 10 points
+
+---
+
+## What changed in v1.3.1
+
+- **Fixed 2026 monthly data inclusion**: Full consolidation now loads all monthly files from config (was only loading yearly files)
+- **Extended date range**: Changed `END_DATE` from `2026-01-30` to `2026-02-28` to include February data
+- **Updated totals**: 753,903 records (was 714,689), date range now 2019-01-01 to 2026-02-01 (was 2025-12-31)
+- **Monthly files loaded**: Now includes 5 monthly files (2025 Q4 + 2026 Jan/Feb) in addition to 7 yearly files
+- **Processing time**: ~2 minutes for full consolidation with 12 files using parallel loading
+
+See [CHANGELOG.md](CHANGELOG.md#131---2026-02-02) for full details. ---
+
+## What changed in v1.3.0
+
+- **ArcGIS Pro backfill automation**: Complete workflow automation reducing manual steps from 5+ hours to 30 minutes
+- **Staging pattern implemented**: Model reads from fixed path; only file content swaps (no more model editing)
+- **Collision control**: Lock files, scheduled task checks, stale lock detection prevent concurrent publishes
+- **Tool discovery**: Created discovery script, confirmed callable `arcpy.TransformCallData_tbx1()`
+- **Orchestration scripts**: Main orchestrator with atomic swaps, SHA256 verification, auto-restore on error
+- **Pre-flight checks**: Lock files, task status, process check, geodatabase lock, Excel sheet validation
+- **Documentation**: Complete user guide with setup, workflow, troubleshooting, configuration reference
+
+See [CHANGELOG.md](CHANGELOG.md#130---2026-02-02) for full details. ---
+
+## What changed in v1.2.6
+
+- **Incremental 2026 run**: Config uses 2026_01/02 CAD and RMS monthly paths; copy script updates 13_PROCESSED_DATA and manifest. - **ReportNumberNew and CaseNumber fix**: CAD and RMS validators force case-number column to string and normalize Excel artifacts; quality scores improved. - **SCRPA-style quality reports**: Shared report builder; context-aware text (CAD or RMS only); data-driven "In this run" causes; report folders YYYY_MM_cad/rms. - **RMS export alignment**: Required fields and mappings use Case Number, FullAddress, Zone (not Location, PDZone, OffenseCode); Standards updated. - **QUALITY_REPORTS_REFERENCE.md**: Field names CAD vs RMS; score categories and consistency checks explained. See [CHANGELOG.md](CHANGELOG.md#126---2026-02-02) for full details. ---
+
+## What changed in v1.2.5
+
+- **Expansion Plan complete**: All 6 milestones done (paths and baseline, reports, server copy and ArcPy, speed optimizations, monthly processing, legacy archive). - **Legacy projects archived**: Five projects moved to `02_ETL_Scripts/_Archive/` with README; cad_rms_data_quality is the single active project. - **Version sync**: pyproject.toml version aligned to 1.2.5. See [CHANGELOG.md](CHANGELOG.md#125---2026-02-02) for full details. ---
+
+## What Changed in v1.1.0
+
+### Consolidation Implementation Complete
+- **Production Script**: `consolidate_cad_2019_2026.py` operational, successfully processed 716,420 records (2019-2026)
+- **ESRI Output**: Automated pipeline with RMS backfill (41,137 PDZone values) and Advanced Normalization v3.2
+- **Quality Metrics**: 99.9% field completeness, 100% domain compliance
+- **Validation Analysis**: Comprehensive gap analysis with solutions mapped to 09_Reference/Standards
+- **Call Type Normalizer**: Created `shared/utils/call_type_normalizer.py` for runtime validation
+- **Backup System**: Implemented `backups/YYYY_MM_DD/` structure with tracking logs
+
+See [CHANGELOG.md](CHANGELOG.md#110---2026-01-31) for complete details. ---
+
+## Development Status
+
+### âœ… Phase 1: Consolidation Operational (2026-01-31)
+- [x] Project directory structure created
+- [x] README.md, CHANGELOG.md, PLAN.md, NEXT_STEPS.md, Claude.md, SUMMARY.md
+- [x] **config/schemas.yaml** - Paths to 09_Reference/Standards
+- [x] **config/validation_rules.yaml** - Validation patterns and quality scoring
+- [x] **config/consolidation_sources.yaml** - 2019-2025 CAD source files (actual: 714K records)
+- [x] **config/rms_sources.yaml** - RMS source files
+- [x] **requirements.txt** - Python dependencies (pandas, pyyaml, usaddress, etc.) - [x] **pyproject.toml** - Project metadata and build configuration
+- [x] **.gitignore** - Git exclusion rules
+- [x] **consolidate_cad_2019_2026.py** - Production consolidation script
+- [x] **shared/utils/call_type_normalizer.py** - Runtime normalization utility
+- [x] Integrated with CAD_Data_Cleaning_Engine for ESRI output generation
+- [x] Validation framework analysis complete
+- [x] Record count verification complete (716,420 records)
+
+### âœ… Phase 2: Comprehensive Validation System (COMPLETE - 2026-02-04)
+- [x] Built 9 field validators covering all critical CAD fields
+- [x] Built 2 drift detectors for reference data monitoring
+- [x] Created master orchestrator for single-command validation
+- [x] First production run: 98.3% quality score on 754,409 records
+- [x] Fixed disposition field validation (eliminated 87,896 false positives)
+- [x] Synced reference data (823 call types, 387 personnel)
+- [x] Created automated drift sync tools
+
+**See:** `validation/` directory for complete documentation and tools. ---
+
+## Quick Start
+
+### Installation
+```powershell
+cd "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality"
+pip install -r requirements.txt
+```
+
+### Run Historical Consolidation (Operational)
+```powershell
+# Consolidate 2019-2026 CAD data
+python consolidate_cad_2019_2026.py
+
+# Generate ESRI output (run in CAD_Data_Cleaning_Engine)
+cd ../CAD_Data_Cleaning_Engine
+python scripts/enhanced_esri_output_generator.py \
+  --input "data/01_raw/2019_to_2026_01_30_CAD.csv" \
+  --output-dir "data/03_final" \
+  --format excel
+
+# Validate output
+python scripts/validation/validate_esri_polished_dataset.py \
+  --input "data/03_final/CAD_ESRI_POLISHED_[timestamp].xlsx"
+
+# Copy polished file to 13_PROCESSED_DATA and update manifest (from cad_rms_data_quality repo)
+cd ../cad_rms_data_quality
+python scripts/copy_polished_to_processed_and_update_manifest.py
+```
+
+For incremental runs (baseline + new monthly only), see **INCREMENTAL_RUN_GUIDE.md**. ### Run Monthly Validation
+```powershell
+# CAD monthly export
+python monthly_validation/scripts/validate_cad.py --input "path/to/monthly_export.xlsx" --output "monthly_validation/reports/YYYY_MM_cad"
+
+# RMS monthly export
+python monthly_validation/scripts/validate_rms.py --input "path/to/monthly_export.xlsx" --output "monthly_validation/reports/YYYY_MM_rms"
+```
+
+See `outputs/consolidation/CAD_CONSOLIDATION_EXECUTION_GUIDE.txt` and `INCREMENTAL_RUN_GUIDE.md` for detailed instructions. ---
+
+## Architecture Principles
+
+1. **Reference, Don't Duplicate**: Schemas loaded from `09_Reference/Standards` (not copied)
+2. **Single Source of Truth**: One authoritative location for validation rules and field definitions
+3. **Modular Design**: Shared utilities reusable across consolidation and monthly validation
+4. **Production-Ready**: Pre-run/post-run checks, audit trails, comprehensive logging
+5. **Performance-Optimized**: Vectorized operations, parallel processing, quality scoring
+6. **Baseline + Incremental**: Load baseline once, append new monthly data only (skip re-reading 7 years)
+
+---
+
+## Processed Data Location (13_PROCESSED_DATA)
+
+**Location:** `C:\Users\carucci_r\OneDrive - City of Hackensack\13_PROCESSED_DATA\`
+
+Production-ready ESRI polished datasets are stored here:
+
+```
+13_PROCESSED_DATA/
+â”œâ”€â”€ manifest.json                    # Latest file registry (read this first!) â”œâ”€â”€ README.md                        # Usage documentation
+â””â”€â”€ ESRI_Polished/
+    â”œâ”€â”€ base/                        # Immutable baseline (724,794 records)
+    â”‚   â””â”€â”€ CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx
+    â”œâ”€â”€ incremental/                 # Incremental run outputs
+    â”‚   â””â”€â”€ YYYY_MM_DD_append/
+    â””â”€â”€ full_rebuild/                # Full consolidation outputs
+```
+
+### Finding the Latest File
+```powershell
+# PowerShell: Read manifest.json
+$manifest = Get-Content "C:\...\13_PROCESSED_DATA\manifest.json" | ConvertFrom-Json
+$latestPath = $manifest.latest.full_path
+Write-Host "Latest: $latestPath ($($manifest.latest.record_count) records)"
+```
+
+### Baseline Dataset
+- **File:** `CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx`
+- **Records:** 724,794 | **Unique cases:** 559,202
+- **Date range:** 2019-01-01 to 2026-01-30
+- **Created:** 2026-01-31
+
+Incremental runs load this baseline and append only new monthly data, avoiding re-processing 7 years of records
+
+---
+
+## Related Projects
+
+- **dv_doj**: Domestic violence analysis project (active)
+- **CAD_Data_Cleaning_Engine**: Source of validation framework (active, retained as reference)
+- **09_Reference/Standards**: Authoritative schemas and mappings (active)
+- **_ARCHIVED_2026_01_30/**: Legacy projects (to be archived after migration)
+
+---
+
+## License
+
+Internal use - City of Hackensack Police Department
+
+---
+
+## Contact
+
+**Author:** R. A. Carucci
+**Department:** City of Hackensack Police Department
+**Created:** January 29, 2026
+
+---
+
+## Change Log
+
+See [CHANGELOG.md](CHANGELOG.md) for version history. ---
+
+## Next Steps
+
+See [NEXT_STEPS.md](NEXT_STEPS.md) for detailed roadmap and implementation checklist. PS C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality> type CHANGELOG.md
+# Changelog
+
+All notable changes to the CAD/RMS Data Quality System will be documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). ---
+
+## [Unreleased]
+
+- (No changes yet.) ---
+
+## [1.4.0] - 2026-02-04
+
+### Added - Comprehensive Data Quality Validation System
+
+#### Validation Framework (6 commits over 2 sessions)
+Built a complete data quality validation system for 754,409 CAD records:
+
+**9 Field Validators (`validation/validators/`):**
+1. **HowReportedValidator** - Call source domain validation (100% pass)
+2. **DispositionValidator** - Outcome domain validation (100% after fix)
+3. **CaseNumberValidator** - Format validation YY-NNNNNN (99.99% pass)
+4. **IncidentValidator** - Call type validation against 823 reference types
+5. **DateTimeValidator** - Date/time validation across 4 fields
+6. **DurationValidator** - Response time and duration validation
+7. **OfficerValidator** - Personnel validation against 387 reference personnel
+8. **GeographyValidator** - Address and zone validation
+9. **DerivedFieldValidator** - Calculated field consistency
+
+**2 Drift Detectors (`validation/sync/`):**
+- **CallTypeDriftDetector** - Identifies new/unused call types
+- **PersonnelDriftDetector** - Identifies new/inactive personnel
+
+**Master Orchestrator (`validation/run_all_validations.py`):**
+- Single command runs all validators and drift detectors
+- Multiple output formats: JSON, Excel (row-level issues), Markdown
+- Quality scoring with configurable weights
+- Performance: ~6 minutes for 754k records
+
+#### Drift Sync Automation Tools
+- **extract_drift_reports.py** - Export drift to reviewable CSV files
+- **extract_all_drift.py** - Full extraction bypassing 50-item limit
+- **apply_drift_sync.py** - Apply approved changes with automatic backups
+- **batch_mark_add.py** - Bulk mark items for addition
+
+#### First Production Run Results
+- **Quality Score:** 98.3% (Grade A)
+- **Records Validated:** 754,409
+- **Date Range:** 2019-01-01 to 2026-02-04
+- **Processing Time:** ~6 minutes
+
+#### Issues Found and Fixed
+1. **Disposition Field:** 87,896 false positives (11.7%)
+   - Root cause: Validator missing 5 valid values (See Report, See Supplement, Field Contact, Curbside Warning, Cleared)
+   - Fix: Updated `validation/validators/disposition_validator.py`
+
+2. **Call Type Drift:** 174 new types not in reference
+   - Fix: Added to CallTypes_Master.csv (649 â†’ 823 types)
+
+3. **Personnel Drift:** 219 new officers not in reference
+   - Fix: Added to Assignment_Master_V2.csv (168 â†’ 387 personnel)
+
+#### Reference Data Updates
+- **CallTypes_Master.csv:** 649 â†’ 823 entries (+174)
+- **Assignment_Master_V2.csv:** 168 â†’ 387 entries (+219)
+- Backups created automatically before updates
+
+#### Documentation Created
+- `validation/FIRST_PRODUCTION_RUN_SUMMARY.md` - Complete first run results
+- `validation/DRIFT_SYNC_GUIDE.md` - Reference data sync workflow
+- `validation/DRIFT_TOOLS_COMPLETE.md` - Automation tools documentation
+- `validation/DRIFT_DATA_ANALYSIS.md` - Data analysis and recommendations
+- `validation/NEXT_STEPS.md` - Action items and next phases
+- `validation/README.md` - Validation system overview
+
+#### Git History (6 commits)
+```
+2f088cb Post-Validation Cleanup: Disposition Fix & Reference Data Sync
+96454fb Phase 5 Complete: Master Validation Orchestrator
+e8a114f Phase 4 Complete: Drift Detectors Implementation
+3952bff Phase 3 Complete: Field Validators Implementation
+621d6d5 Phase 2 Complete: Data Dictionary & Validator Planning
+b1ea6b7 Phase 1 Complete: Discovery & Reference Data Consolidation
+```
+
+### Changed
+- README.md updated with validation system status
+- Project version: 1.3.3 â†’ 1.4.0
+- Reference data files expanded significantly
+
+### Fixed
+- Disposition validator now recognizes all valid values from normalizer
+- Reference data drift resolved through automated sync
+
+### Impact
+**Before:** No systematic field validation, unknown data quality
+**After:** 98.3% quality score, automated validation in 6 minutes, reference data current
+
+---
+
+## [1.3.3] - 2026-02-04
+
+### Fixed - Phone/911 Dashboard Data Quality Issue
+
+#### Problem Identified
+- **Dashboard Issue**: 174,949 records (31% of production data) displaying "Phone/911" as combined Call Source value instead of separate "Phone" and "9-1-1" categories
+- **User Impact**: Dashboard users unable to distinguish between phone calls (109,569) and 911 emergency calls (61,916)
+- **Discovery Method**: Visual inspection of ArcGIS Online dashboard dropdown values
+
+#### Root Cause Analysis
+- **Location**: ArcGIS Pro Model Builder "Publish Call Data" tool
+- **Culprit Tool**: Calculate Field (2) step within model
+- **Bad Arcade Expression**: `iif($feature.How_Reported=='9-1-1'||$feature.How_Reported=='Phone','Phone/911',$feature.How_Reported)`
+- **Why It Happened**: Model Builder was explicitly combining two distinct values into single category
+- **Verification**: Raw CAD exports confirmed to NOT contain "Phone/911" - it was created during ArcGIS processing
+
+#### Investigation Process
+1. Created diagnostic ArcPy scripts to analyze feature service data (561,739 records)
+2. Verified raw consolidated CSV had NO "Phone/911" values
+3. Traced through ETL pipeline to isolate transformation point
+4. Discovered Model Builder Calculate Field tool as source of combination
+5. Fixed Arcade expression to pass-through original values
+
+#### Fix Applied
+- **Changed Expression To**: `$feature.How_Reported` (pass-through, no transformation)
+- **Tool Modified**: Calculate Field (2) in "Publish Call Data" model
+- **Processing Date**: February 3, 2026 (9:48 PM - 10:01 PM)
+
+#### Results - Local Geodatabase (âœ… VERIFIED)
+- **Location**: `C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable`
+- **Total Records**: 565,870 (up from 561,739 baseline - includes new 2026 data)
+- **Phone/911 Combined**: 0 records âœ… (previously 174,949)
+- **Phone**: 109,569 records (19.36%)
+- **9-1-1**: 61,916 records (10.94%)
+- **Data Quality**: 100% separation verified via ArcPy cursor analysis
+
+#### CSV Export for Validation
+- **File**: `CFSTable_2019_2026_FULL_20260203_231437.csv`
+- **Location**: `cad_rms_data_quality\consolidation\output\`
+- **Records**: 565,870 (7 years: 2019-2026)
+- **Size**: 167.53 MB (175,662,945 bytes)
+- **Status**: âœ… Production-ready and VERIFIED
+- **Export Process**:
+  - Exported from RDP server geodatabase to `C:\Temp`
+  - Transferred to local machine via RDP clipboard
+  - Verified with `verify_csv_export.py`
+- **Quality Verification Results**:
+  - âœ… All 41 expected columns present
+  - âœ… Zero "Phone/911" combined values
+  - âœ… Phone: 109,569 records (19.36%)
+  - âœ… 9-1-1: 61,916 records (10.94%)
+  - âœ… Date range: 2019-01-01 to 2026-02-03 (2,590 days)
+  - âœ… Only 16 null Call IDs (0.003% - negligible)
+  - âœ… No null values in calldate, callsource, or disposition fields
+
+#### ArcGIS Online Upload Status (â³ PENDING)
+- **Status**: Upload to feature service FAILED after 56 minutes due to network timeout
+- **Attempted**: February 3, 2026 (10:01 PM - 10:57 PM)
+- **Error**: `KeyboardInterrupt` during "Update Features With Incident Records (2)" step
+- **Current Online Data**: Still shows OLD "Phone/911" combined values (561,739 records)
+- **Next Action**: Schedule retry during off-peak hours (2-6 AM) or use batch upload strategy
+
+#### Additional Data Quality Observations
+1. **Geocoding Failures**: 2,000+ features skipped due to NULL/EMPTY geometry
+   - Warning: `000635: Skipping feature X because of NULL or EMPTY geometry`
+   - Impact: Records with missing or invalid addresses could not be geocoded
+
+2. **Date Conversion Warnings**: Partial failures in time field conversions
+   - Affected: Time_Dispatched, Time_Out, Time_In fields
+   - Warning: `002125: Unable to convert part of the values`
+
+3. **Record Count Increase**: +4,131 records from baseline (561,739 â†’ 565,870)
+   - Possible causes: New 2026 data, previous filtering removed valid records, data refresh
+
+#### Files Created/Modified
+- **Created**: `SESSION_SUMMARY_PHONE911_FIX_20260203.txt` - Complete technical documentation
+- **Created**: `NEXT_ACTIONS_PHONE911_FIX.md` - Action plan for upload retry and validation
+- **Created**: `CFSTable_2019_2026_FULL_20260203_230223.csv` - Full dataset export
+- **Updated**: `OPUS_BRIEFING_COMPREHENSIVE_VALIDATION.md` - Added Phone/911 fix status
+- **Modified**: Model Builder "Publish Call Data" tool - Fixed Calculate Field (2) expression
+- **Modified**: Local geodatabase CFStable - Updated to 565,870 records with fix
+
+#### Documentation
+- **Session Summary**: `outputs\consolidation\SESSION_SUMMARY_PHONE911_FIX_20260203.txt`
+- **Action Plan**: `NEXT_ACTIONS_PHONE911_FIX.md`
+- **Validation Briefing**: `OPUS_BRIEFING_COMPREHENSIVE_VALIDATION.md`
+- **Timeline**: Complete investigation, fix, and verification in 1 hour 15 minutes
+
+#### Next Steps
+1. **Immediate**: Re-upload to ArcGIS Online during off-peak hours
+2. **Short-term**: Begin comprehensive field-by-field validation using CSV export
+3. **Medium-term**: Investigate geocoding failures and date conversion warnings
+4.

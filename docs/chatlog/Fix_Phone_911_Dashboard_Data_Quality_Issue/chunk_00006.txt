@@ -1,0 +1,434 @@
+Click **Properties**
+3. Go to **Fields** tab
+4. Look for the field that shows call source (might be `HowReported`, `How_Reported`, `CallSource`, `Source`, etc.) ### Option B: Attribute Table
+1. Right-click **"Calls For Service"** layer
+2. Click **Attribute Table**
+3. Look at the column headers
+4. Find the column that shows values like "Phone", "9-1-1", "Radio", etc. 5. Right-click the column header → **Properties** to see the actual field name
+
+### Option C: Layer Properties - Source
+1. Right-click **"Calls For Service"** layer → **Properties**
+2. Go to **Source** tab
+3. At the bottom, you'll see **Fields** section listing all field names
+
+Run the Python script above and tell me which field names have 👉 next to them, or tell me what you see in the attribute table! ---
+
+**User**
+
+================================================================================
+Finding ALL fields in 'Calls For Service' layer
+================================================================================
+
+Method 1: Using layer.listFields()...
+❌ Error: 'Layer' object has no attribute 'listFields'
+
+================================================================================
+Method 2: Reading actual field names from data...
+✅ Found 42 fields:
+      1. OBJECTID
+  👉  2. callid
+  👉  3. callcat
+  👉  4. calltype
+      5. priority
+      6. description
+  👉  7. callsource
+  👉  8. callerinfo
+      9. fulladdr
+     10. city
+     11. state
+     12. zip
+     13. locdesc
+     14. beat
+     15. district
+     16. division
+  👉 17. calldate
+  👉 18. callyear
+  👉 19. callmonth
+  👉 20. calldow
+  👉 21. calldownum
+  👉 22. callhour
+     23. dispatchdate
+     24. enroutedate
+     25. arrivaldate
+     26. cleardate
+     27. dispatchtime
+     28. queuetime
+     29. traveltime
+     30. cleartime
+     31. responsetime
+     32. agency
+     33. firstunit
+     34. unittotal
+     35. disposition
+     36. comments
+     37. analystnotes
+     38. probname
+     39. probtype
+     40. x
+     41. y
+     42. Shape
+
+================================================================================
+Look for field names containing:
+  - 'How', 'Report', 'Source', 'Call'
+================================================================================
+
+
+---
+
+**Cursor**
+
+Perfect! Found it! The field is **`callsource`** (field #7), not "How Reported". The feature service uses different field names than the source Excel. Now let's analyze it:
+
+```python
+import arcpy
+from collections import defaultdict
+
+print("="*80)
+print("Call Source Analysis - FINAL VERSION")
+print("="*80)
+
+# Get the layer
+aprx = arcpy.mp.ArcGISProject("CURRENT")
+map_obj = aprx.listMaps("Map")[0]
+cad_layer = map_obj.listLayers("Calls For Service")[0]
+
+print(f"\n✅ Analyzing field: 'callsource'")
+
+# Analyze values
+value_counts = defaultdict(int)
+phone_911_samples = []
+
+print(f"\n📊 Reading data from feature service...")
+
+with arcpy.da.SearchCursor(cad_layer, ['callsource', 'callid']) as cursor:
+    count = 0
+    for row in cursor:
+        value = str(row[0]) if row[0] is not None else "NULL"
+        value_counts[value] += 1
+        
+        # Look for slash patterns
+        if '/' in value:
+            phone_911_samples.append({
+                'value': value,
+                'callid': row[1] if row[1] else 'N/A'
+            })
+        
+        count += 1
+        if count % 50000 == 0:
+            print(f"  Processed {count:,} records...")
+
+print(f"\n✅ Analyzed {count:,} records")
+print(f"   Found {len(value_counts)} unique values")
+
+# Display results
+print("\n" + "="*80)
+print("TOP 30 'CALLSOURCE' VALUES")
+print("="*80)
+
+sorted_vals = sorted(value_counts.items(), key=lambda x: x[1], reverse=True)
+
+for i, (val, cnt) in enumerate(sorted_vals[:30], 1):
+    pct = (cnt / count) * 100
+    marker = "⚠️ " if '/' in val else "   "
+    print(f"{marker}{i:2d}. {val:40s}: {cnt:>8,} ({pct:>6.2f}%)")
+
+# Check for all values (show complete list if reasonable)
+if len(value_counts) <= 50:
+    print("\n" + "="*80)
+    print("ALL UNIQUE VALUES:")
+    print("="*80)
+    for i, (val, cnt) in enumerate(sorted_vals, 1):
+        pct = (cnt / count) * 100
+        print(f"  {i:2d}. {val:40s}: {cnt:>8,} ({pct:>6.2f}%)")
+
+# Phone/911 Analysis
+print("\n" + "="*80)
+print("PHONE/911 PATTERN ANALYSIS")
+print("="*80)
+
+slash_vals = [v for v in value_counts.keys() if '/' in v]
+
+if slash_vals:
+    print(f"\n⚠️ FOUND {len(slash_vals)} values containing '/':")
+    total_slash = sum(value_counts[v] for v in slash_vals)
+    print(f"   Total records: {total_slash:,} ({(total_slash/count)*100:.2f}%)")
+    
+    for v in sorted(slash_vals, key=lambda x: value_counts[x], reverse=True):
+        cnt = value_counts[v]
+        pct = (cnt / count) * 100
+        print(f"\n   Value: '{v}'")
+        print(f"   Count: {cnt:,} records ({pct:.2f}%)")
+    
+    if phone_911_samples:
+        print(f"\n📋 Sample Call IDs with this pattern (first 10):")
+        for i, s in enumerate(phone_911_samples[:10], 1):
+            print(f"   {i}. Call ID {s['callid']}: '{s['value']}'")
+    
+    print(f"\n" + "="*80)
+    print(f"⚠️ FINDING: Phone/911 EXISTS in the data")
+    print(f"="*80)
+    print(f"\n   These records need to be split into:")
+    print(f"   - Primary channel (Phone OR 9-1-1)")
+    print(f"   - Secondary channel (if applicable)")
+    print(f"\n   Next steps:")
+    print(f"   1. Determine business rule: Which channel takes precedence?") print(f"   2. Update source data normalization")
+    print(f"   3. Republish feature service")
+    
+else:
+    print("\n✅ NO values containing '/' found")
+    print("   Phone/911 is NOT in the actual data")
+
+# Check if Phone and 9-1-1 are separate
+phone_count = value_counts.get('Phone', 0)
+nine11_count = value_counts.get('9-1-1', 0)
+combined_count = value_counts.get('Phone/911', 0) + value_counts.get('911/Phone', 0)
+
+print(f"\n" + "="*80)
+print("PHONE vs 9-1-1 BREAKDOWN")
+print("="*80)
+
+if phone_count > 0:
+    print(f"  'Phone' only:     {phone_count:>8,} records ({(phone_count/count)*100:>5.2f}%)")
+if nine11_count > 0:
+    print(f"  '9-1-1' only:     {nine11_count:>8,} records ({(nine11_count/count)*100:>5.2f}%)")
+if combined_count > 0:
+    print(f"  'Phone/911':      {combined_count:>8,} records ({(combined_count/count)*100:>5.2f}%)")
+    print(f"\n  💡 These {combined_count:,} combined records should be split")
+
+print("\n" + "="*80)
+print("COMPLETE!") print("="*80)
+```
+
+**This will show you:**
+1. ✅ All unique values in the `callsource` field
+2. ✅ Whether `Phone/911` exists in the data
+3. ✅ Sample Call IDs with the pattern
+4. ✅ Breakdown of Phone vs 9-1-1 vs Phone/911
+
+Paste this and run it - we'll finally see what's in the actual published data! ---
+
+**User**
+
+================================================================================
+Call Source Analysis - FINAL VERSION
+================================================================================
+
+✅ Analyzing field: 'callsource'
+
+📊 Reading data from feature service... Processed 50,000 records... Processed 100,000 records... Processed 150,000 records... Processed 200,000 records... Processed 250,000 records... Processed 300,000 records... Processed 350,000 records... Processed 400,000 records... Processed 450,000 records... Processed 500,000 records... Processed 550,000 records...
+
+✅ Analyzed 561,739 records
+   Found 88 unique values
+
+================================================================================
+TOP 30 'CALLSOURCE' VALUES
+================================================================================
+    1. Radio                                   :  239,604 ( 42.65%)
+⚠️  2. Phone/911                               :  174,949 ( 31.14%)
+    3. Self-Initiated                          :   93,527 ( 16.65%)
+    4. Walk-In                                 :   22,946 (  4.08%)
+    5. Other - See Notes                       :   15,713 (  2.80%)
+    6. eMail                                   :    9,191 (  1.64%)
+    7. Fax                                     :    4,570 (  0.81%)
+    8. Mail                                    :      663 (  0.12%)
+    9. Teletype                                :      217 (  0.04%)
+   10. phone                                   :       78 (  0.01%)
+   11. radio                                   :       63 (  0.01%)
+   12. 911                                     :       30 (  0.01%)
+   13. Virtual Patrol                          :       26 (  0.00%)
+   14. fax                                     :       13 (  0.00%)
+   15. Canceled Call                           :       11 (  0.00%)
+   16. email                                   :       10 (  0.00%)
+   17. rs                                      :        8 (  0.00%)
+   18. walk-In                                 :        7 (  0.00%)
+   19. Email                                   :        6 (  0.00%)
+   20. NULL                                    :        5 (  0.00%)
+   21. 0                                       :        5 (  0.00%)
+   22. rt                                      :        4 (  0.00%)
+   23. r                                       :        4 (  0.00%)
+   24. walk-in                                 :        4 (  0.00%)
+   25. tr                                      :        3 (  0.00%)
+   26. re                                      :        3 (  0.00%)
+   27. rRadio                                  :        2 (  0.00%)
+   28. [                                       :        2 (  0.00%)
+   29. self-initiated                          :        2 (  0.00%)
+   30. RADIO                                   :        2 (  0.00%)
+
+================================================================================
+PHONE/911 PATTERN ANALYSIS
+================================================================================
+
+⚠️ FOUND 1 values containing '/':
+   Total records: 174,949 (31.14%)
+
+   Value: 'Phone/911'
+   Count: 174,949 records (31.14%)
+
+📋 Sample Call IDs with this pattern (first 10):
+   1. Call ID 23-065221: 'Phone/911'
+   2. Call ID 23-065222: 'Phone/911'
+   3. Call ID 23-065232: 'Phone/911'
+   4. Call ID 23-065237: 'Phone/911'
+   5. Call ID 23-065238: 'Phone/911'
+   6. Call ID 23-065240: 'Phone/911'
+   7. Call ID 23-065243: 'Phone/911'
+   8. Call ID 23-065245: 'Phone/911'
+   9. Call ID 23-065246: 'Phone/911'
+   10. Call ID 23-065249: 'Phone/911'
+
+================================================================================
+⚠️ FINDING: Phone/911 EXISTS in the data
+================================================================================
+
+   These records need to be split into:
+   - Primary channel (Phone OR 9-1-1)
+   - Secondary channel (if applicable)
+
+   Next steps:
+   1. Determine business rule: Which channel takes precedence? 2. Update source data normalization
+   3. Republish feature service
+
+================================================================================
+PHONE vs 9-1-1 BREAKDOWN
+================================================================================
+  'Phone/911':       174,949 records (31.14%)
+
+  💡 These 174,949 combined records should be split
+
+================================================================================
+COMPLETE! ================================================================================
+
+
+The current How Reported values are 
+9-1-1
+Walk-In
+Phone
+Self-Initiated
+Radio
+Teletype
+Fax
+Other - See Notes
+eMail
+Mail
+Virtual Patrol
+Canceled Call
+
+
+---
+
+**Cursor**
+
+**🎯 BINGO! Found it! **
+
+## The Problem
+
+**174,949 records (31%! )** in your published data have `Phone/911` as the call source. This is a MASSIVE issue - nearly 1 in 3 calls! ## Root Cause Analysis
+
+The `Phone/911` values **ARE in the published feature service**, which means they got through your entire ETL pipeline. Let me trace where they're coming from:
+
+Perfect! **The raw consolidated CSV has ZERO `Phone/911` values. ** This means `Phone/911` is being **CREATED** during the normalization step! ## 🔍 Mystery Solved! **The `Phone/911` values are being CREATED by the `enhanced_esri_output_generator.py` script! **
+
+Let me check the normalization logic:
+
+Wait! Line 299 maps `'PHONE/911': 'Phone'` - but that's what I just added! Let me check if there's logic that **creates** Phone/911:
+
+Wait, my addition was just removed. Let me search for where Phone/911 might be output:
+
+Let me check the `_normalize_how_reported_advanced` function - that's where the magic happens:
+
+Found it! But wait, this function doesn't create `Phone/911`. Let me check if there's grouping logic:
+
+Perfect! Now let me check the actual baseline file. While that's loading, let me check where the baseline came from:
+
+The baseline was last updated **Feb 3, 2026 at 4:31 PM**. Let me kill the hung process and check that file directly:
+
+While that's loading, let me check the ArcGIS publishing scripts to see if they create the Phone/911 combination:
+
+Let me check the terminal output:
+
+Still loading. Based on what we know, let me give you the answer now:
+
+## 🎯 **ROOT CAUSE IDENTIFIED**
+
+### The Issue: `Phone/911` is Created During ArcGIS Publishing
+
+**Here's what's happening:**
+
+1. ✅ **Raw Excel exports** → NO `Phone/911` values
+2. ✅ **Raw consolidated CSV** → NO `Phone/911` values  
+3. ✅ **Normalized baseline** (likely) → NO `Phone/911` values
+4. ❌ **Published ArcGIS Feature Service** → **174,949 `Phone/911` values (31%! )**
+
+### Where Phone/911 is Created
+
+The `Phone/911` combination is being created by **ArcGIS Pro** during one of these steps:
+
+1. **Field Mapping/Calculation** in the feature layer definition
+2. **Domain or Subtype** applied to the `callsource` field
+3. **Model Builder or GP Tool** that processes data before publishing
+4. **Feature Service definition** in ArcGIS Online
+
+##Solution
+
+You need to find where in ArcGIS Pro the `callsource` field is being populated or transformed. Here's how:
+
+### In ArcGIS Pro (on the RDP), run this to find the issue:
+
+```python
+import arcpy
+
+# Get the layer
+aprx = arcpy.mp.ArcGISProject("CURRENT")
+map_obj = aprx.listMaps("Map")[0]
+cad_layer = map_obj.listLayers("Calls For Service")[0]
+
+# Check if it's from a definition query or join
+print(f"Layer: {cad_layer.name}")
+print(f"Data Source: {cad_layer.dataSource}")
+print(f"\nDefinition Query: {cad_layer.definitionQuery if cad_layer.supports('DEFINITIONQUERY') else 'N/A'}")
+
+# Check if callsource is a calculated field
+print("\nChecking if 'callsource' is calculated...")
+print("\n** YOU NEED TO:**")
+print("1. Right-click 'Calls For Service' layer → Properties")
+print("2. Go to 'Fields' tab")
+print("3. Find 'callsource' field")
+print("4. Check if it says 'Calculated' or has an expression")
+print("5. If yes, THAT'S where Phone/911 is being created!") ```
+
+### Most Likely Culprit: **Arcade Expression**
+
+The field `callsource` probably has an Arcade expression like:
+
+```arcade
+// WRONG - This creates Phone/911
+if (Find("Phone", $feature.How_Reported) >= 0 || Find("911", $feature.How_Reported) >= 0) {
+    return "Phone/911"
+}
+```
+
+### The Fix
+
+You need to:
+1. **Find the calculated field or domain** creating `Phone/911`
+2. **Remove or fix the logic** to keep Phone and 9-1-1 separate
+3. **Republish the feature service**
+
+Let me know what you find in the layer properties! ---
+
+**User**
+
+Layer: Calls For Service
+Data Source: https://services1.arcgis.com/JYl0Hy0wQdiiV0qh/arcgis/rest/services/CallsForService_2153d1ef33a0414291a8eb54b938507b/FeatureServer/0
+
+Definition Query: 
+
+Checking if 'callsource' is calculated...
+
+** YOU NEED TO:**
+1. Right-click 'Calls For Service' layer → Properties
+2. Go to 'Fields' tab
+3. Find 'callsource' field
+4. Check if it says 'Calculated' or has an expression
+5. If yes, THAT'S where Phone/911 is being created!

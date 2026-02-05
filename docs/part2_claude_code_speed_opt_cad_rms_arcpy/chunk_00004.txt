@@ -1,0 +1,568 @@
+Create latest.json:
+    - At consolidation/reports/latest.json (placeholder until reports are reorganized)
+  6. Test:
+    - Verify directories exist
+    - Verify baseline file copied successfully
+    - Verify config loads (Python import test)
+    - Verify manifest.json is valid JSON
+  7. Update docs:
+    - README.md, CHANGELOG.md, SUMMARY.md, Claude.md
+
+  ---
+  Ready to proceed with Milestone 1? (yes/no)
+
+> yes
+
+● Starting Milestone 1 implementation. ● Bash(mkdir -p "C:\Users\carucci_r\OneDrive - City of Hackensack\13_PROCESSED_DATA\ESRI_Polished\base" "C:\Users\carucci_r\OneDrive -
+       City of Hackensack\13_PROCESSED_…)
+  ⎿  (No content)
+
+● Read 1 file (ctrl+o to expand)
+
+● Bash(powershell -Command "Get-ChildItem 'C:\Users\carucci_r\OneDrive - City of
+      Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine\data\03_final\' | Select-Object Nam…)
+  ⎿  Name                                                                   Length    LastWriteTime
+     ----                                                                   ------    -------------
+     archive                                                                          12/25/25 20:19:20
+     … +59 lines (ctrl+o to expand)
+
+● Bash(powershell -Command "Test-Path 'C:\Users\carucci_r\OneDrive - City of Hackensack\13_PROCESSED_DATA\ESRI_Polished\base'")
+  ⎿  True
+
+● Directories created. Now let me copy the polished file to baseline and read the current config. ● Bash(powershell -Command "Copy-Item 'C:\Users\carucci_r\OneDrive - City of
+      Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine\data\03_final\CAD_ESRI_POLISHED_2026013…)
+  ⎿  Error: Exit code 1
+     \0 : The term '\0' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the
+     spelling of the name, or if a path was included, verify that the path is correct and try again. At line:1 char:305
+     + ... ESRI_Polished_Baseline_20190101_20260130.xlsx' -Force; if (\0) { Writ ...
+     +                                                                ~~
+         + CategoryInfo          : ObjectNotFound: (\0:String) [], CommandNotFoundException
+         + FullyQualifiedErrorId : CommandNotFoundException
+
+● Read 1 file (ctrl+o to expand)
+
+● Bash(powershell -Command "Copy-Item 'C:\Users\carucci_r\OneDrive - City of
+      Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine\data\03_final\CAD_ESRI_POLISHED_2026013…)
+  ⎿  (No content)
+
+● Bash(powershell -Command "Get-ChildItem 'C:\Users\carucci_r\OneDrive - City of Hackensack\13_PROCESSED_DATA\ESRI_Polished\base\' |
+      Select-Object Name, Length, LastWr…)
+  ⎿  Name                                                Length LastWriteTime
+     ----                                                ------ -------------
+     CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx 74844671 01/31/26 1:53:26
+
+● Read 1 file (ctrl+o to expand)
+
+● Baseline file copied successfully (71.4 MB). Now let me update the config file with the new sections. ● Update(config\consolidation_sources.yaml)
+  ⎿  Added 102 lines
+       70      - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\monthly\\2025\\2025_10_CAD.xlsx'
+       71      - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\monthly\\2025\\2025_11_CAD.xlsx'
+       72      - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\monthly\\2025\\2025_12_CAD.xlsx'
+       73 +    # 2026: Monthly exports
+       74 +    - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\monthly\\2026\\2026_01_01_to_202
+          +6_01_30_CAD_Export.xlsx'
+       75 +      month: '2026-01'
+       76 +      notes: 'January 2026 full month export'
+       77 +
+       78 +# ============================================================================
+       79 +# BASELINE CONFIGURATION (Added 2026-02-01)
+       80 +# ============================================================================
+       81 +# Enables incremental mode: load baseline once, append new monthly data only
+       82 +baseline:
+       83 +  enabled: true
+       84 +  path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\13_PROCESSED_DATA\\ESRI_Polished\\base\\CAD_ESRI_Polis
+          +hed_Baseline_20190101_20260130.xlsx'
+       85 +  date_range:
+       86 +    start: '2019-01-01'
+       87 +    end: '2026-01-30'
+       88 +  record_count: 724794
+       89 +  unique_cases: 559202
+       90 +  checksum_sha256: null  # Populate after verification if needed
+       91 +  created: '2026-01-31'
+       92 +  source_file: 'CAD_ESRI_POLISHED_20260131_014644.xlsx'
+       93 +
+       94 +# ============================================================================
+       95 +# INCREMENTAL MODE CONFIGURATION (Added 2026-02-01)
+       96 +# ============================================================================
+       97 +# Controls how consolidation handles existing data vs new monthly data
+       98 +incremental:
+       99 +  enabled: true
+      100 +  mode: 'append'  # Options: 'append' (add new records), 'full' (rebuild from scratch)
+      101 +  last_run_date: '2026-01-31'
+      102 +  last_run_record_count: 724794
+      103 +  dedup_strategy: 'keep_latest'  # Options: 'keep_latest', 'keep_first', 'keep_all_supplements'
+      104 +
+      105 +# ============================================================================
+      106 +# PERFORMANCE CONFIGURATION (Added 2026-02-01)
+      107 +# ============================================================================
+      108 +# Tunable settings for parallel processing, chunking, and memory optimization
+      109 +performance:
+      110 +  parallel_loading:
+      111 +    enabled: true
+      112 +    max_workers: 8  # Cap at 8 to avoid memory issues; adjust based on system
+      113 +
+      114 +  chunked_reading:
+      115 +    enabled: true
+      116 +    threshold_mb: 50  # Use chunked reading for files over this size
+      117 +    chunk_size: 100000  # Rows per chunk
+      118 +
+      119 +  memory_optimization:
+      120 +    use_categories: true  # Convert low-cardinality strings to categorical
+      121 +    downcast_numeric: true  # Downcast int64/float64 to smaller types
+      122 +
+      123 +  esri_generation:
+      124 +    n_workers: 4  # Workers for enhanced_esri_output_generator.py
+      125 +    enable_parallel: true
+      126 +    chunk_size: 10000  # Normalization chunk size
+      127 +
+      128 +# ============================================================================
+      129 +# PROCESSED DATA PATHS (Added 2026-02-01)
+      130 +# ============================================================================
+      131 +# Centralized path management for polished outputs and manifests
+      132 +processed_data:
+      133 +  root: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\13_PROCESSED_DATA'
+      134 +
+      135 +  esri_polished:
+      136 +    base_dir: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\13_PROCESSED_DATA\\ESRI_Polished\\base'
+      137 +    incremental_dir: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\13_PROCESSED_DATA\\ESRI_Polished\\increme
+          +ntal'
+      138 +    full_rebuild_dir: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\13_PROCESSED_DATA\\ESRI_Polished\\full_r
+          +ebuild'
+      139 +
+      140 +  manifest_path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\13_PROCESSED_DATA\\manifest.json'
+      141 +
+      142 +  naming:
+      143 +    base_pattern: 'CAD_ESRI_Polished_Baseline_{start_date}_{end_date}.xlsx'
+      144 +    incremental_pattern: 'CAD_ESRI_Polished_{run_date}.xlsx'
+      145 +    folder_pattern: '{YYYY}_{MM}_{DD}_{run_type}'  # e.g., 2026_02_01_append
+      146 +
+      147 +# ============================================================================
+      148 +# OUTPUT CONFIGURATION
+      149 +# ============================================================================
+      150 +output:
+      151 +  base_directory: 'consolidation/output'
+      152 +  consolidated_filename: '2019_2026_CAD_Consolidated.csv'
+      153 +  report_directory: 'consolidation/reports'
+      154 +  log_directory: 'consolidation/logs'
+      155 +
+      156 +# ============================================================================
+      157 +# VALIDATION THRESHOLDS
+      158 +# ============================================================================
+      159 +validation:
+      160 +  min_quality_score: 95
+      161 +  max_duplicate_rate: 0.01  # 1% max
+      162 +  expected_total_records_min: 700000
+      163 +  expected_total_records_max: 800000
+      164 +
+      165 +# ============================================================================
+      166 +# METADATA
+      167 +# ============================================================================
+      168 +metadata:
+      169 +  config_version: '2.0.0'
+      170 +  standards_version: 'v2.3.0'
+      171 +  last_updated: '2026-02-01'
+      172 +  total_years_consolidated: 7
+      173 +  canonical_source: '05_EXPORTS/_CAD/yearly'
+      174 +  schema_reference: '09_Reference/Standards/unified_data_dictionary/schemas/cad_fields_schema_latest.json'
+
+● Now let me create the manifest.json file. ● Write(~\OneDrive - City of Hackensack\13_PROCESSED_DATA\manifest.json)
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Create file
+ ..\..\13_PROCESSED_DATA\manifest.json
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+   1 {
+   2   "schema_version": "1.0",
+   3   "last_updated": "2026-02-01T00:00:00Z",
+   4   "description": "Registry of CAD ESRI polished datasets for ArcGIS Pro import",
+   5
+   6   "latest": {
+   7     "path": "ESRI_Polished/base/CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx",
+   8     "full_path": "C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\13_PROCESSED_DATA\\ESRI_Polished\\base\\CAD_ESRI_Polish
+     ed_Baseline_20190101_20260130.xlsx",
+   9     "date_range": {
+  10       "start": "2019-01-01",
+  11       "end": "2026-01-30"
+  12     },
+  13     "record_count": 724794,
+  14     "unique_cases": 559202,
+  15     "file_size_bytes": 74844671,
+  16     "checksum_sha256": null,
+  17     "run_type": "baseline",
+  18     "created": "2026-01-31T01:53:26Z"
+  19   },
+  20
+  21   "baseline": {
+  22     "path": "ESRI_Polished/base/CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx",
+  23     "full_path": "C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\13_PROCESSED_DATA\\ESRI_Polished\\base\\CAD_ESRI_Polish
+     ed_Baseline_20190101_20260130.xlsx",
+  24     "date_range": {
+  25       "start": "2019-01-01",
+  26       "end": "2026-01-30"
+  27     },
+  28     "record_count": 724794,
+  29     "unique_cases": 559202,
+  30     "source_file": "CAD_ESRI_POLISHED_20260131_014644.xlsx",
+  31     "created": "2026-01-31T01:53:26Z",
+  32     "notes": "Initial baseline created from complete January 2026 consolidation"
+  33   },
+  34
+  35   "history": [
+  36     {
+  37       "path": "ESRI_Polished/base/CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx",
+  38       "date": "2026-01-31",
+  39       "run_type": "baseline_creation",
+  40       "record_count": 724794,
+  41       "notes": "Initial baseline from 7-year consolidation (2019-2026)"
+  42     }
+  43   ],
+  44
+  45   "directories": {
+  46     "base": "ESRI_Polished/base",
+  47     "incremental": "ESRI_Polished/incremental",
+  48     "full_rebuild": "ESRI_Polished/full_rebuild",
+  49     "archive": "archive"
+  50   }
+  51 }
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Do you want to create manifest.json? 1. Yes
+ > 2. Yes, allow all edits in 13_PROCESSED_DATA/ during this session (shift+tab)
+   3. No
+
+ Esc to cancel
+
+ ▐▛███▜▌   Claude Code v2.1.29
+▝▜█████▛▘  Opus 4.5 · Claude Pro
+  ▘▘ ▝▝    ~\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality
+
+> Read and follow the instructions in:
+  c:\Users\carucci_r\OneDrive - City of
+  Hackensack\02_ETL_Scripts\cad_rms_data_quality\docs\Plan_Review_Package_For_Claude\PROMPT_FOR_CLAUDE.md
+
+  The prompt tells you which files to read, what to enhance (speed, efficiency, organization), and where to save the enhanced
+  plan. ● Read 1 file (ctrl+o to expand)
+
+● I'll read the expansion plan and all context files to understand the current state and then produce an enhanced version with speed,
+  efficiency, and organization improvements. ● Read 12 files (ctrl+o to expand)
+
+● Now I have all the context. Let me analyze the current implementation and create an enhanced plan with specific recommendations for
+  speed, efficiency, and organization. ● Write(docs\Plan_Review_Package_For_Claude\CAD_RMS_Data_Quality_Expansion_Plan_ENHANCED.md)
+  ⎿  Wrote 1 lines to docs\Plan_Review_Package_For_Claude\CAD_RMS_Data_Quality_Expansion_Plan_ENHANCED.md
+       1 # CAD/RMS Data Quality: Baseline, Paths, Monthly Processing, Archive, and Server Handoff
+       2
+       3 ## ENHANCED VERSION - Speed, Efficiency, and Organization Improvements
+       4
+       5 **Enhanced by:** Claude Code
+       6 **Date:** 2026-02-01
+       7 **Original Plan Version:** 1.0.0
+       8 **Enhanced Plan Version:** 1.1.0
+       9
+      10 ---
+
+● Write(docs\Plan_Review_Package_For_Claude\ENHANCEMENT_SUMMARY.md)
+  ⎿  Wrote 1 lines to docs\Plan_Review_Package_For_Claude\ENHANCEMENT_SUMMARY.md
+      1 # Enhancement Summary: CAD/RMS Data Quality Expansion Plan
+      2
+      3 **Date:** 2026-02-01
+      4 **Reviewer:** Claude Code (Opus 4.5)
+      5 **Enhanced Plan:** `CAD_RMS_Data_Quality_Expansion_Plan_ENHANCED.md`
+      6
+      7 ---
+      8
+      9 ## Quick Reference: Main Changes
+
+● I've completed the review and created two files:
+
+  Files Created
+
+  1. CAD_RMS_Data_Quality_Expansion_Plan_ENHANCED.md - Full enhanced plan with all recommendations integrated
+  2. ENHANCEMENT_SUMMARY.md - Quick reference summary of changes
+
+  Key Enhancements
+
+  Speed Improvements
+
+  - Parallel file loading using ThreadPoolExecutor (3-4x faster)
+  - Chunked reading for 100MB+ files using openpyxl read_only mode
+  - Baseline + incremental mode - skip re-reading 7 years of data
+  - Dtype optimization - 40-60% memory reduction via categorical conversion and downcasting
+  - Configurable ESRI worker count
+
+  Efficiency Improvements
+
+  - New config sections: baseline, incremental, performance, processed_data
+  - Clear script flow: check baseline.enabled → load single file → append new monthly only
+  - Deduplication strategy config (keep_latest, keep_first, keep_all_supplements)
+
+  Organization Improvements
+
+  - manifest.json - tracks latest polished file with checksums and record counts
+  - Run-specific report folders - consolidation/reports/YYYY_MM_DD_consolidation/
+  - latest.json pointers - easy latest file resolution for scripts
+  - Separate cad/rms report folders under monthly_validation/reports/
+  - Action items export format with priority levels (Critical/Warning/Info)
+
+  Implementation Order
+
+  1. Paths and baseline (foundation)
+  2. Reports reorganization
+  3. Server copy script updates
+  4. Speed optimizations
+  5. Monthly processing
+  6. Legacy archive
+
+  The enhanced plan preserves the original scope while adding specific config keys, function signatures, and code snippets ready for
+  implementation. ✻ Cooked for 3m 56s
+
+> Use the enhanced plan you created (CAD_RMS_Data_Quality_Expansion_Plan_ENHANCED.md) to implement the changes in the live
+  project at:
+  c:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\
+
+  Follow the implementation order (sections 1-6). After each significant milestone:
+  1. **Test** - verify the changes work (e.g. config loads, directories exist, scripts run without error)
+  2. **Update docs** - update these files to reflect what was done:
+     - README.md (project overview, structure, entry points)
+     - CHANGELOG.md (add entry under [Unreleased] or new version section)
+     - SUMMARY.md (update metrics, status, next steps)
+     - Claude.md (update directory roles, conventions, config sections, "When Working on This Project" as needed)
+
+  **Milestones to implement (pause for my approval before each):**
+
+  1. **Paths and baseline**
+     - Create 13_PROCESSED_DATA\ESRI_Polished\base directory
+     - Copy current polished file to baseline
+     - Add baseline, incremental, performance, processed_data sections to config
+     - Create manifest.json and latest.json
+     - Test: verify config loads, baseline file exists, manifest is valid JSON
+
+  2. **Reports reorganization**
+     - Create consolidation/reports/ with .gitkeep
+     - Update consolidate_cad_2019_2026.py to write reports to consolidation/reports/YYYY_MM_DD_<run>/
+     - Optionally migrate outputs/consolidation to consolidation/reports/2026_01_30_legacy/
+     - Test: dry run or actual run, verify report folder created
+
+  3. **Server copy + ArcPy**
+     - Update copy_consolidated_dataset_to_server.ps1 to find latest from 13_PROCESSED_DATA\ESRI_Polished (using manifest.json or
+   latest.json)
+     - Add docs/arcgis/import_cad_polished_to_geodatabase.py with arcpy script
+     - Add docs/arcgis/README.md
+     - Test: run PowerShell script (or dry run), verify arcpy script is valid Python
+
+  4. **Speed optimizations**
+     - Add parallel file loading to consolidate_cad_2019_2026.py (ThreadPoolExecutor)
+     - Add chunked reading for large files (openpyxl read_only or pandas chunksize)
+     - Add baseline + incremental mode logic (check config, load baseline if enabled, append only new monthly)
+     - Test: run consolidation, compare timing to previous runs if possible
+
+  5. **Monthly processing**
+     - Create monthly_validation/ directories (scripts/, reports/, processed/)
+     - Add monthly_cad_directory and monthly_rms_directory to config
+     - Create or wire validate_cad.py and validate_rms.py
+     - Test: run monthly validation on a sample file, verify report output
+
+  6. **Legacy archive**
+     - After all above complete, move legacy projects to _Archive\ with README.md
+     - Update Claude.md to note archived projects
+
+  **After all milestones:** Update Claude.md with all new concepts (baseline mode, manifest, report folders, performance config,
+  etc.) so future AI sessions have full context. Let me know before you start each milestone so I can approve. ● I'll implement the enhanced plan following the milestone order. Let me start by requesting approval for the first milestone. ---
+  Milestone 1: Paths and Baseline
+
+  What I'll do:
+
+  1. Create directory structure:
+    - C:\Users\carucci_r\OneDrive - City of Hackensack\13_PROCESSED_DATA\ESRI_Polished\base\
+    - C:\Users\carucci_r\OneDrive - City of Hackensack\13_PROCESSED_DATA\ESRI_Polished\incremental\
+  2. Copy current polished file to baseline:
+    - Source: CAD_Data_Cleaning_Engine\data\03_final\CAD_ESRI_POLISHED_20260131_014644.xlsx
+    - Destination: 13_PROCESSED_DATA\ESRI_Polished\base\CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx
+  3. Update config/consolidation_sources.yaml:
+    - Add baseline section (enabled, path, date_range, record_count)
+    - Add incremental section (enabled, mode, last_run_date, dedup_strategy)
+    - Add performance section (parallel_loading, chunked_reading, memory_optimization)
+    - Add processed_data section (root, esri_polished paths, manifest_path)
+  4. Create manifest.json:
+    - At 13_PROCESSED_DATA\manifest.json
+    - Track latest file, baseline info, history
+  5. Create latest.json:
+    - At consolidation/reports/latest.json (placeholder until reports are reorganized)
+  6. Test:
+    - Verify directories exist
+    - Verify baseline file copied successfully
+    - Verify config loads (Python import test)
+    - Verify manifest.json is valid JSON
+  7. Update docs:
+    - README.md, CHANGELOG.md, SUMMARY.md, Claude.md
+
+  ---
+  Ready to proceed with Milestone 1? (yes/no)
+
+> yes
+
+● Starting Milestone 1 implementation. ● Bash(mkdir -p "C:\Users\carucci_r\OneDrive - City of Hackensack\13_PROCESSED_DATA\ESRI_Polished\base" "C:\Users\carucci_r\OneDrive -
+       City of Hackensack\13_PROCESSED_…)
+  ⎿  (No content)
+
+● Read 1 file (ctrl+o to expand)
+
+● Bash(powershell -Command "Get-ChildItem 'C:\Users\carucci_r\OneDrive - City of
+      Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine\data\03_final\' | Select-Object Nam…)
+  ⎿  Name                                                                   Length    LastWriteTime
+     ----                                                                   ------    -------------
+     archive                                                                          12/25/25 20:19:20
+     … +59 lines (ctrl+o to expand)
+
+● Bash(powershell -Command "Test-Path 'C:\Users\carucci_r\OneDrive - City of Hackensack\13_PROCESSED_DATA\ESRI_Polished\base'")
+  ⎿  True
+
+● Directories created. Now let me copy the polished file to baseline and read the current config. ● Bash(powershell -Command "Copy-Item 'C:\Users\carucci_r\OneDrive - City of
+      Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine\data\03_final\CAD_ESRI_POLISHED_2026013…)
+  ⎿  Error: Exit code 1
+     \0 : The term '\0' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the
+     spelling of the name, or if a path was included, verify that the path is correct and try again. At line:1 char:305
+     + ... ESRI_Polished_Baseline_20190101_20260130.xlsx' -Force; if (\0) { Writ ...
+     +                                                                ~~
+         + CategoryInfo          : ObjectNotFound: (\0:String) [], CommandNotFoundException
+         + FullyQualifiedErrorId : CommandNotFoundException
+
+● Read 1 file (ctrl+o to expand)
+
+● Bash(powershell -Command "Copy-Item 'C:\Users\carucci_r\OneDrive - City of
+      Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine\data\03_final\CAD_ESRI_POLISHED_2026013…)
+  ⎿  (No content)
+
+● Bash(powershell -Command "Get-ChildItem 'C:\Users\carucci_r\OneDrive - City of Hackensack\13_PROCESSED_DATA\ESRI_Polished\base\' |
+      Select-Object Name, Length, LastWr…)
+  ⎿  Name                                                Length LastWriteTime
+     ----                                                ------ -------------
+     CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx 74844671 01/31/26 1:53:26
+
+● Read 1 file (ctrl+o to expand)
+
+● Baseline file copied successfully (71.4 MB). Now let me update the config file with the new sections. ● Update(config\consolidation_sources.yaml)
+  ⎿  Added 102 lines
+       70      - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\monthly\\2025\\2025_10_CAD.xlsx'
+       71      - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\monthly\\2025\\2025_11_CAD.xlsx'
+       72      - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\monthly\\2025\\2025_12_CAD.xlsx'
+       73 +    # 2026: Monthly exports
+       74 +    - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\monthly\\2026\\2026_01_01_to_202
+          +6_01_30_CAD_Export.xlsx'
+       75 +      month: '2026-01'
+       76 +      notes: 'January 2026 full month export'
+       77 +
+       78 +# ============================================================================
+       79 +# BASELINE CONFIGURATION (Added 2026-02-01)
+       80 +# ============================================================================
+       81 +# Enables incremental mode: load baseline once, append new monthly data only
+       82 +baseline:
+       83 +  enabled: true
+       84 +  path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\13_PROCESSED_DATA\\ESRI_Polished\\base\\CAD_ESRI_Polis
+          +hed_Baseline_20190101_20260130.xlsx'
+       85 +  date_range:
+       86 +    start: '2019-01-01'
+       87 +    end: '2026-01-30'
+       88 +  record_count: 724794
+       89 +  unique_cases: 559202
+       90 +  checksum_sha256: null  # Populate after verification if needed
+       91 +  created: '2026-01-31'
+       92 +  source_file: 'CAD_ESRI_POLISHED_20260131_014644.xlsx'
+       93 +
+       94 +# ============================================================================
+       95 +# INCREMENTAL MODE CONFIGURATION (Added 2026-02-01)
+       96 +# ============================================================================
+       97 +# Controls how consolidation handles existing data vs new monthly data
+       98 +incremental:
+       99 +  enabled: true
+      100 +  mode: 'append'  # Options: 'append' (add new records), 'full' (rebuild from scratch)
+      101 +  last_run_date: '2026-01-31'
+      102 +  last_run_record_count: 724794
+      103 +  dedup_strategy: 'keep_latest'  # Options: 'keep_latest', 'keep_first', 'keep_all_supplements'
+      104 +
+      105 +# ============================================================================
+      106 +# PERFORMANCE CONFIGURATION (Added 2026-02-01)
+      107 +# ============================================================================
+      108 +# Tunable settings for parallel processing, chunking, and memory optimization
+      109 +performance:
+      110 +  parallel_loading:
+      111 +    enabled: true
+      112 +    max_workers: 8  # Cap at 8 to avoid memory issues; adjust based on system
+      113 +
+      114 +  chunked_reading:
+      115 +    enabled: true
+      116 +    threshold_mb: 50  # Use chunked reading for files over this size
+      117 +    chunk_size: 100000  # Rows per chunk
+      118 +
+      119 +  memory_optimization:
+      120 +    use_categories: true  # Convert low-cardinality strings to categorical
+      121 +    downcast_numeric: true  # Downcast int64/float64 to smaller types
+      122 +
+      123 +  esri_generation:
+      124 +    n_workers: 4  # Workers for enhanced_esri_output_generator.py
+      125 +    enable_parallel: true
+      126 +    chunk_size: 10000  # Normalization chunk size
+      127 +
+      128 +# ============================================================================
+      129 +# PROCESSED DATA PATHS (Added 2026-02-01)
+      130 +# ============================================================================
+      131 +# Centralized path management for polished outputs and manifests
+      132 +processed_data:
+      133 +  root: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\13_PROCESSED_DATA'
+      134 +
+      135 +  esri_polished:
+      136 +    base_dir: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\13_PROCESSED_DATA\\ESRI_Polished\\base'
+      137 +    incremental_dir: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\13_PROCESSED_DATA\\ESRI_Polished\\increme
+          +ntal'
+      138 +    full_rebuild_dir: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\13_PROCESSED_DATA\\ESRI_Polished\\full_r
+          +ebuild'
+      139 +
+      140 +  manifest_path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\13_PROCESSED_DATA\\manifest.json'
+      141 +
+      142 +  naming:
+      143 +    base_pattern: 'CAD_ESRI_Polished_Baseline_{start_date}_{end_date}.xlsx'
+      144 +    incremental_pattern: 'CAD_ESRI_Polished_{run_date}.xlsx'
+      145 +    folder_pattern: '{YYYY}_{MM}_{DD}_{run_type}'  # e.g., 2026_02_01_append
+      146 +
+      147 +# ============================================================================
+      148 +# OUTPUT CONFIGURATION
+      149 +# ============================================================================
+      150 +output:
+      151 +  base_directory: 'consolidation/output'
+      152 +  consolidated_filename: '2019_2026_CAD_Consolidated.csv'
+      153 +  report_directory: 'consolidation/reports'
+      154 +  log_directory: 'consolidation/logs'
+      155 +
+      156 +# ============================================================================
+      157 +# VALIDATION THRESHOLDS
+      158 +# ============================================================================
+      159 +validation:
+      160 +  min_quality_score: 95
+      161 +  max_duplicate_rate: 0.01  # 1% max
+      162 +  expected_total_records_min: 700000
+      163 +  expected_total_records_max: 800000
+      164 +
+      165 +# ============================================================================
+      166 +# METADATA
+      167 +# ============================================================================
+      168 +metadata:
+      169 +  config_version: '2.0.0'
+      170 +  standards_version: 'v2.3.0'
+      171 +  last_updated: '2026-02-01'
+      172 +  total_years_consolidated: 7
+      173 +  canonical_source: '05_EXPORTS/_CAD/yearly'
+      174 +  schema_reference: '09_Reference/Standards/unified_data_dictionary/schemas/cad_fields_schema_latest.json'
+
+● Now let me create the manifest.json file. ● Write(~\OneDrive - City of Hackensack\13_PROCESSED_DATA\manifest.json)
+  ⎿  Wrote 1 lines to ..\..\13_PROCESSED_DATA\manifest.json
+       1 {
+       2   "schema_version": "1.0",
+       3   "last_updated": "2026-02-01T00:00:00Z",
+       4   "description": "Registry of CAD ESRI polished datasets for ArcGIS Pro import",
+       5
+       6   "latest": {
+       7     "path": "ESRI_Polished/base/CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx",
+       8     "full_path": "C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\13_PROCESSED_DATA\\ESRI_Polished\\base\\CAD_ESR
+         I_Polished_Baseline_20190101_20260130.xlsx",
+       9     "date_range": {
+      10       "start": "2019-01-01",
+
+● Now let me create the README for 13_PROCESSED_DATA and the latest.json placeholder.

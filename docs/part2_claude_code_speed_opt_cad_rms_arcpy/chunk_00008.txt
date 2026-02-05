@@ -1,0 +1,625 @@
+hint: Disable this message with "git config set advice.addIgnoredFile false"
+
+● Bash(cd "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality" && git commit -m "feat: Expansion
+      Plan Milestone 3 - Server Copy + Arc…)
+  ⎿  [main aa3a08b] feat: Expansion Plan Milestone 3 - Server Copy + ArcPy Scripts (v1.2.2)
+      35 files changed, 10958 insertions(+), 80 deletions(-)
+      create mode 100644 REMOTE_SERVER_GUIDE.md
+     … +30 lines (ctrl+o to expand)
+
+● Bash(cd "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality" && git log --oneline -3)
+  ⎿  aa3a08b feat: Expansion Plan Milestone 3 - Server Copy + ArcPy Scripts (v1.2.2)
+     f05901b feat: complete January consolidation v1.1.1 - 724,794 records
+     3d80356 docs: update CHANGELOG, README, SUMMARY for v1.1.0 - consolidation implementation complete
+
+● ---
+  Milestone 3 Complete: Server Copy + ArcPy
+
+  Commit: aa3a08b - feat: Expansion Plan Milestone 3 - Server Copy + ArcPy Scripts (v1.2.2)
+
+  Files Created/Modified
+  File: copy_consolidated_dataset_to_server.ps1
+  Change: Updated to read from manifest.json (v2.0.0), added -DryRun switch, file integrity verification
+  ────────────────────────────────────────
+  File: docs/arcgis/import_cad_polished_to_geodatabase.py
+  Change: New - arcpy ExcelToTable script with pre-flight checks and verification
+  ────────────────────────────────────────
+  File: docs/arcgis/README.md
+  Change: New - Workflow guide with order of operations
+  ────────────────────────────────────────
+  File: CHANGELOG.md
+  Change: Added v1.2.2 release notes
+  ────────────────────────────────────────
+  File: README.md
+  Change: Updated version to 1.2.2, added docs/arcgis to structure
+  ────────────────────────────────────────
+  File: SUMMARY.md
+  Change: Updated milestone progress table
+  ────────────────────────────────────────
+  File: Claude.md
+  Change: Updated milestone progress and version info
+  Testing Performed
+
+  PowerShell script dry-run test passed:
+  - Successfully reads manifest.json from 13_PROCESSED_DATA/
+  - Resolves latest file: CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx
+  - Displays expected records: 724,794
+  - Verifies source file exists (71.38 MB)
+
+  Workflow Summary
+
+  Local Machine                          Server (HPD2022LAWSOFT)
+  =============                          ======================
+  python consolidate_cad_2019_2026.py
+         |
+         v
+  13_PROCESSED_DATA/manifest.json
+         |
+         v
+  copy_consolidated_dataset_to_server.ps1  -->  \\10.0.0.157\esri\
+                                                      |
+                                                      v
+                                         import_cad_polished_to_geodatabase.py
+                                                      |
+                                                      v
+                                         CAD_Data.gdb table
+
+  ---
+  Ready for Milestone 4: Speed Optimizations? Milestone 4 includes:
+  - Parallel Excel loading with ThreadPoolExecutor
+  - Chunked reading for large files (>50MB)
+  - Memory-efficient dtype optimization
+  - Baseline + incremental append mode implementation
+
+✻ Brewed for 6m 39s
+
+❯ Yes, proceed to Milestone 4: Speed optimizations. Implement:
+  - Parallel Excel loading with ThreadPoolExecutor in consolidate_cad_2019_2026.py
+  - Chunked reading for large files (>50MB) using openpyxl read_only or pandas chunksize
+  - Memory-efficient dtype optimization (categorical conversion, downcasting where appropriate)
+  - Baseline + incremental append mode: check config baseline.enabled, load baseline polished file if enabled, append only new
+  monthly data instead of re-reading 7 years
+
+  After completion:
+  - Test: Run consolidation (full and/or incremental) and verify timing and output
+  - Update docs: CHANGELOG, README, SUMMARY, Claude.md
+  - Update local git: stage and commit with message like "feat: Expansion Plan Milestone 4 - Speed optimizations (v1.2.3)"
+
+  Then ask "Ready for Milestone 5: Monthly processing?" ● I'll implement Milestone 4: Speed optimizations. Let me first read the current consolidation script to understand its structure. ● Read 1 file (ctrl+o to expand)
+
+● Let me also check the config file for the baseline and performance settings. ● Read 1 file (ctrl+o to expand)
+
+● Now I'll implement the speed optimizations. Let me rewrite the consolidation script with all the performance enhancements. ● Write(consolidate_cad_2019_2026.py)
+  ⎿  Added 834 lines, removed 378 lines
+        1 -#!/usr/bin/env python3
+        2 -"""
+        3 -CAD Data Consolidation Script (2019 to 2026-01-30)
+        4 -Prepares input for CAD_Data_Cleaning_Engine pipeline
+        5 -
+        6 -This script consolidates:
+        7 -- 7 yearly CAD files (2019-2025)
+        8 -- 1 monthly file (2026-01-01 to 2026-01-30)
+        9 -
+       10 -Output: Single CSV file ready for RMS backfill and ESRI export processing
+       11 -
+       12 -Reports are written to: consolidation/reports/YYYY_MM_DD_consolidation/
+       13 -
+       14 -Author: R. A. Carucci
+       15 -Date: 2026-01-30
+       16 -Updated: 2026-02-01 - Reports reorganization (Milestone 2)
+       17 -"""
+       18 -
+       19 -import pandas as pd
+       20 -from pathlib import Path
+       21 -from datetime import datetime
+       22 -import logging
+       23 -import sys
+       24 -import json
+       25 -
+       26 -# Configure logging
+       27 -logging.basicConfig(
+       28 -    level=logging.INFO,
+       29 -    format='%(asctime)s - %(levelname)s - %(message)s',
+       30 -    handlers=[
+       31 -        logging.FileHandler('logs/consolidate_2019_2026.log'),
+       32 -        logging.StreamHandler()
+       33 -    ]
+       34 -)
+       35 -logger = logging.getLogger(__name__)
+       36 -
+       37 -# Paths
+       38 -CAD_ROOT = Path(r"C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_CAD")
+       39 -OUTPUT_PATH = Path(r"C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine\data\0
+          -1_raw")
+       40 -CLEANING_ENGINE_ROOT = Path(r"C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engi
+          -ne")
+       41 -
+       42 -# Source files configuration
+       43 -YEARLY_FILES = [
+       44 -    ("yearly/2019/2019_CAD_ALL.xlsx", 2019, 91217),
+       45 -    ("yearly/2020/2020_CAD_ALL.xlsx", 2020, 89400),
+       46 -    ("yearly/2021/2021_CAD_ALL.xlsx", 2021, 91477),
+       47 -    ("yearly/2022/2022_CAD_ALL.xlsx", 2022, 105038),
+       48 -    ("yearly/2023/2023_CAD_ALL.xlsx", 2023, 113179),
+       49 -    ("yearly/2024/2024_CAD_ALL.xlsx", 2024, 110313),
+       50 -    ("yearly/2025/2025_CAD_ALL.xlsx", 2025, 114065),
+       51 -]
+       52 -
+       53 -MONTHLY_FILE = ("monthly/2026/2026_01_01_to_2026_01_30_CAD_Export.xlsx", 2026, None)
+       54 -
+       55 -# Date range filter
+       56 -START_DATE = pd.Timestamp("2019-01-01")
+       57 -END_DATE = pd.Timestamp("2026-01-30 23:59:59")
+       58 -
+       59 -
+       60 -def create_directories():
+       61 -    """Ensure required directories exist"""
+       62 -    OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
+       63 -    logs_dir = Path("logs")
+       64 -    logs_dir.mkdir(exist_ok=True)
+       65 -    logger.info(f"[OK] Output directory ready: {OUTPUT_PATH}")
+       66 -
+       67 -
+       68 -def get_report_directory(run_type: str = "consolidation") -> Path:
+       69 -    """
+       70 -    Generate run-specific report directory with timestamp. 71 -
+       72 -    Args:
+       73 -        run_type: "consolidation", "incremental", or "full"
+       74 -
+       75 -    Returns:
+       76 -        Path to report directory (created if not exists)
+       77 -    """
+       78 -    timestamp = datetime.now().strftime("%Y_%m_%d")
+       79 -    report_dir = Path(f"consolidation/reports/{timestamp}_{run_type}")
+       80 -    report_dir.mkdir(parents=True, exist_ok=True)
+       81 -    return report_dir
+       82 -
+       83 -
+       84 -def update_latest_pointer(report_dir: Path, metrics: dict):
+       85 -    """
+       86 -    Update latest.json to point to current run. 87 -
+       88 -    Args:
+       89 -        report_dir: Path to current run's report directory
+       90 -        metrics: Dictionary with run metrics (record_count, date_range, etc.) 91 -    """
+       92 -    latest_file = Path("consolidation/reports/latest.json")
+       93 -    latest_data = {
+       94 -        "latest_run": str(report_dir.name),
+       95 -        "timestamp": datetime.now().isoformat(),
+       96 -        "path": str(report_dir),
+       97 -        "record_count": metrics.get("record_count"),
+       98 -        "unique_cases": metrics.get("unique_cases"),
+       99 -        "date_range": metrics.get("date_range"),
+      100 -        "output_file": metrics.get("output_file")
+      101 -    }
+      102 -    with open(latest_file, 'w', encoding='utf-8') as f:
+      103 -        json.dump(latest_data, f, indent=2)
+      104 -    logger.info(f"[OK] Updated latest.json -> {report_dir.name}")
+      105 -
+      106 -
+      107 -def load_excel_file(file_path: Path, year: int, expected_count: int = None) -> pd.DataFrame:
+      108 -    """
+      109 -    Load Excel file with error handling and validation
+      110 -
+      111 -    Args:
+      112 -        file_path: Path to Excel file
+      113 -        year: Year for this file
+      114 -        expected_count: Expected record count (for verification)
+      115 -
+      116 -    Returns:
+      117 -        DataFrame with loaded data
+      118 -    """
+      119 -    logger.info(f"Loading {year}: {file_path.name}")
+      120 -
+      121 -    if not file_path.exists():
+      122 -        logger.error(f"✗ File not found: {file_path}")
+      123 -        raise FileNotFoundError(f"Missing file: {file_path}")
+      124 -
+      125 -    try:
+      126 -        # Load Excel file
+      127 -        df = pd.read_excel(file_path, engine='openpyxl')
+      128 -
+      129 -        # Log file stats
+      130 -        file_size_mb = file_path.stat().st_size / (1024 * 1024)
+      131 -        logger.info(f"  Size: {file_size_mb:.1f} MB")
+      132 -        logger.info(f"  Rows: {len(df):,}")
+      133 -        logger.info(f"  Columns: {len(df.columns)}")
+      134 -
+      135 -        # Verify expected count
+      136 -        if expected_count:
+      137 -            deviation = abs(len(df) - expected_count) / expected_count * 100
+      138 -            if deviation > 5:
+      139 -                logger.warning(f"  ⚠ Record count deviation: {deviation:.1f}% from expected {expected_count:,}")
+      140 -            else:
+      141 -                logger.info(f"  [OK] Record count within 5% of expected {expected_count:,}")
+      142 -
+      143 -        # Check for TimeOfCall column
+      144 -        if 'TimeOfCall' not in df.columns and 'Time of Call' not in df.columns:
+      145 -            logger.error(f"[ERROR] Missing TimeOfCall column in {file_path.name}")
+      146 -            logger.info(f"  Available columns: {', '.join(df.columns[:10])}...")
+      147 -            raise ValueError("TimeOfCall column not found")
+      148 -
+      149 -        # Standardize TimeOfCall column name
+      150 -        if 'Time of Call' in df.columns:
+      151 -            df = df.rename(columns={'Time of Call': 'TimeOfCall'})
+      152 -
+      153 -        logger.info(f"[OK] Successfully loaded {year}: {len(df):,} records")
+      154 -        return df
+      155 -
+      156 -    except Exception as e:
+      157 -        logger.error(f"[ERROR] Error loading {file_path.name}: {str(e)}")
+      158 -        raise
+      159 -
+      160 -
+      161 -def filter_date_range(df: pd.DataFrame, start_date: pd.Timestamp, end_date: pd.Timestamp) -> pd.DataFrame:
+      162 -    """
+      163 -    Filter DataFrame to specified date range
+      164 -
+      165 -    Args:
+      166 -        df: Input DataFrame
+      167 -        start_date: Start of date range
+      168 -        end_date: End of date range
+      169 -
+      170 -    Returns:
+      171 -        Filtered DataFrame
+      172 -    """
+      173 -    original_count = len(df)
+      174 -
+      175 -    # Parse TimeOfCall to datetime
+      176 -    df['TimeOfCall'] = pd.to_datetime(df['TimeOfCall'], errors='coerce')
+      177 -
+      178 -    # Count invalid dates
+      179 -    invalid_dates = df['TimeOfCall'].isna().sum()
+      180 -    if invalid_dates > 0:
+      181 -        logger.warning(f"  [WARN] Found {invalid_dates:,} records with invalid TimeOfCall")
+      182 -
+      183 -    # Filter date range
+      184 -    df = df[(df['TimeOfCall'] >= start_date) & (df['TimeOfCall'] <= end_date)]
+      185 -
+      186 -    filtered_count = len(df)
+      187 -    removed = original_count - filtered_count
+      188 -
+      189 -    if removed > 0:
+      190 -        logger.info(f"  Filtered: {removed:,} records outside date range")
+      191 -
+      192 -    logger.info(f"  Kept: {filtered_count:,} records within {start_date.date()} to {end_date.date()}")
+      193 -
+      194 -    return df
+      195 -
+      196 -
+      197 -def consolidate_cad_data():
+      198 -    """Main consolidation process"""
+      199 -    logger.info("=" * 80)
+      200 -    logger.info("CAD DATA CONSOLIDATION: 2019-01-01 to 2026-01-30")
+      201 -    logger.info("=" * 80)
+      202 -
+      203 -    # Create directories
+      204 -    create_directories()
+      205 -
+      206 -    # Load all files
+      207 -    all_dataframes = []
+      208 -    total_records = 0
+      209 -
+      210 -    logger.info("\n" + "-" * 80)
+      211 -    logger.info("LOADING YEARLY FILES (2019-2025)")
+      212 -    logger.info("-" * 80)
+      213 -
+      214 -    for file_rel_path, year, expected_count in YEARLY_FILES:
+      215 -        file_path = CAD_ROOT / file_rel_path
+      216 -        try:
+      217 -            df = load_excel_file(file_path, year, expected_count)
+      218 -            df = filter_date_range(df, START_DATE, END_DATE)
+      219 -            all_dataframes.append(df)
+      220 -            total_records += len(df)
+      221 -        except Exception as e:
+      222 -            logger.error(f"Failed to process {year}: {e}")
+      223 -            logger.info("Continuing with remaining files...")
+      224 -
+      225 -    logger.info("\n" + "-" * 80)
+      226 -    logger.info("LOADING MONTHLY FILE (2026-01-01 to 2026-01-30)")
+      227 -    logger.info("-" * 80)
+      228 -
+      229 -    file_rel_path, year, _ = MONTHLY_FILE
+      230 -    file_path = CAD_ROOT / file_rel_path
+      231 -    try:
+      232 -        df = load_excel_file(file_path, year)
+      233 -        df = filter_date_range(df, START_DATE, END_DATE)
+      234 -        all_dataframes.append(df)
+      235 -        total_records += len(df)
+      236 -    except Exception as e:
+      237 -        logger.error(f"Failed to process 2026 monthly file: {e}")
+      238 -
+      239 -    # Check if we have any data
+      240 -    if not all_dataframes:
+      241 -        logger.error("[ERROR] No data loaded! Cannot continue.") 242 -        sys.exit(1)
+      243 -
+      244 -    logger.info("\n" + "-" * 80)
+      245 -    logger.info("CONSOLIDATING DATA")
+      246 -    logger.info("-" * 80)
+      247 -
+      248 -    # Concatenate all dataframes
+      249 -    logger.info(f"Merging {len(all_dataframes)} files...")
+      250 -    consolidated = pd.concat(all_dataframes, ignore_index=True)
+      251 -
+      252 -    logger.info(f"[OK] Consolidated total: {len(consolidated):,} records")
+      253 -
+      254 -    # Final date range filter (in case any slipped through)
+      255 -    consolidated = filter_date_range(consolidated, START_DATE, END_DATE)
+      256 -
+      257 -    # Check for duplicates
+      258 -    if 'ReportNumberNew' in consolidated.columns:
+      259 -        unique_cases = consolidated['ReportNumberNew'].nunique()
+      260 -        duplicates = len(consolidated) - unique_cases
+      261 -        logger.info(f"Unique case numbers: {unique_cases:,}")
+      262 -        if duplicates > 0:
+      263 -            logger.info(f"Duplicate records (supplements/units): {duplicates:,}")
+      264 -
+      265 -    # Export to CSV
+      266 -    output_file = OUTPUT_PATH / f"2019_to_2026_01_30_CAD.csv"
+      267 -    logger.info("\n" + "-" * 80)
+      268 -    logger.info("EXPORTING TO CSV")
+      269 -    logger.info("-" * 80)
+      270 -    logger.info(f"Output file: {output_file}")
+      271 -
+      272 -    consolidated.to_csv(output_file, index=False)
+      273 -
+      274 -    output_size_mb = output_file.stat().st_size / (1024 * 1024)
+      275 -    logger.info(f"[OK] Export complete: {output_size_mb:.1f} MB")
+      276 -
+      277 -    # Generate summary
+      278 -    logger.info("\n" + "=" * 80)
+      279 -    logger.info("CONSOLIDATION SUMMARY")
+      280 -    logger.info("=" * 80)
+      281 -    logger.info(f"Total records: {len(consolidated):,}")
+      282 -    logger.info(f"Date range: {consolidated['TimeOfCall'].min()} to {consolidated['TimeOfCall'].max()}")
+      283 -    logger.info(f"Output file: {output_file}")
+      284 -    logger.info(f"File size: {output_size_mb:.1f} MB")
+      285 -
+      286 -    if 'ReportNumberNew' in consolidated.columns:
+      287 -        logger.info(f"Unique cases: {consolidated['ReportNumberNew'].nunique():,}")
+      288 -
+      289 -    logger.info("\n[OK] Consolidation complete!") 290 -    logger.info(f"[OK] Ready for CAD_Data_Cleaning_Engine processing")
+      291 -
+      292 -    # Create run-specific report directory
+      293 -    report_dir = get_report_directory("consolidation")
+      294 -    logger.info(f"\n[OK] Report directory: {report_dir}")
+      295 -
+      296 -    # Prepare metrics for reports
+      297 -    unique_cases = consolidated['ReportNumberNew'].nunique() if 'ReportNumberNew' in consolidated.columns else None
+      298 -    date_min = str(consolidated['TimeOfCall'].min())
+      299 -    date_max = str(consolidated['TimeOfCall'].max())
+      300 -
+      301 -    metrics = {
+      302 -        "record_count": len(consolidated),
+      303 -        "unique_cases": unique_cases,
+      304 -        "date_range": {"start": date_min, "end": date_max},
+      305 -        "output_file": str(output_file),
+      306 -        "file_size_mb": round(output_size_mb, 2),
+      307 -        "input_files": len(all_dataframes),
+      308 -        "generated": datetime.now().isoformat()
+      309 -    }
+      310 -
+      311 -    # Generate summary report (text)
+      312 -    summary_file = report_dir / "consolidation_summary.txt"
+      313 -
+      314 -    with open(summary_file, 'w', encoding='utf-8') as f:
+      315 -        f.write("=" * 80 + "\n")
+      316 -        f.write("CAD DATA CONSOLIDATION SUMMARY\n")
+      317 -        f.write("=" * 80 + "\n")
+      318 -        f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+      319 -        f.write(f"Report Directory: {report_dir}\n\n")
+      320 -        f.write(f"Input Files: {len(all_dataframes)}\n")
+      321 -        f.write(f"Total Records: {len(consolidated):,}\n")
+      322 -        f.write(f"Date Range: {date_min} to {date_max}\n")
+      323 -        f.write(f"Output File: {output_file}\n")
+      324 -        f.write(f"File Size: {output_size_mb:.1f} MB\n")
+      325 -
+      326 -        if unique_cases:
+      327 -            f.write(f"Unique Cases: {unique_cases:,}\n")
+      328 -
+      329 -        f.write("\n" + "-" * 80 + "\n")
+      330 -        f.write("SOURCE FILES:\n")
+      331 -        f.write("-" * 80 + "\n")
+      332 -
+      333 -        for file_rel_path, year, expected_count in YEARLY_FILES:
+      334 -            f.write(f"  {year}: {file_rel_path}\n")
+      335 -
+      336 -        file_rel_path, year, _ = MONTHLY_FILE
+      337 -        f.write(f"  {year}: {file_rel_path}\n")
+      338 -
+      339 -        f.write("\n" + "=" * 80 + "\n")
+      340 -        f.write("NEXT STEPS:\n")
+      341 -        f.write("=" * 80 + "\n")
+      342 -        f.write("1. Run CAD_Data_Cleaning_Engine pipeline:\n")
+      343 -        f.write(f"   cd {CLEANING_ENGINE_ROOT}\n")
+      344 -        f.write("   python scripts/enhanced_esri_output_generator.py\n\n")
+      345 -        f.write("2. Validate output:\n")
+      346 -        f.write("   python scripts/validation/validate_esri_polished_dataset.py\n\n")
+      347 -        f.write("3. Copy results to cad_rms_data_quality project\n")
+      348 -
+      349 -    logger.info(f"[OK] Summary report: {summary_file}")
+      350 -
+      351 -    # Generate JSON metrics file
+      352 -    metrics_file = report_dir / "consolidation_metrics.json"
+      353 -    with open(metrics_file, 'w', encoding='utf-8') as f:
+      354 -        json.dump(metrics, f, indent=2)
+      355 -    logger.info(f"[OK] Metrics JSON: {metrics_file}")
+      356 -
+      357 -    # Update latest.json pointer
+      358 -    update_latest_pointer(report_dir, metrics)
+      359 -
+      360 -    return output_file
+      361 -
+      362 -
+      363 -if __name__ == "__main__":
+      364 -    try:
+      365 -        output_file = consolidate_cad_data()
+      366 -        logger.info("\n" + "=" * 80)
+      367 -        logger.info("[SUCCESS] CONSOLIDATION COMPLETE")
+      368 -        logger.info("=" * 80)
+      369 -        sys.exit(0)
+      370 -
+      371 -    except Exception as e:
+      372 -        logger.error("\n" + "=" * 80)
+      373 -        logger.error("[FAILED] CONSOLIDATION FAILED")
+      374 -        logger.error("=" * 80)
+      375 -        logger.error(f"Error: {str(e)}")
+      376 -        import traceback
+      377 -        logger.error(traceback.format_exc())
+      378 -        sys.exit(1)
+        1 +#!/usr/bin/env python3
+        2 +"""
+        3 +CAD Data Consolidation Script (2019 to 2026-01-30)
+        4 +Prepares input for CAD_Data_Cleaning_Engine pipeline
+        5 +
+        6 +This script consolidates:
+        7 +- 7 yearly CAD files (2019-2025)
+        8 +- 1 monthly file (2026-01-01 to 2026-01-30)
+        9 +
+       10 +Performance Optimizations (v1.2.3):
+       11 +- Parallel Excel loading with ThreadPoolExecutor
+       12 +- Chunked reading for large files (>50MB)
+       13 +- Memory-efficient dtype optimization
+       14 +- Baseline + incremental append mode
+       15 +
+       16 +Output: Single CSV file ready for RMS backfill and ESRI export processing
+       17 +
+       18 +Reports are written to: consolidation/reports/YYYY_MM_DD_consolidation/
+       19 +
+       20 +Author: R. A. Carucci
+       21 +Date: 2026-01-30
+       22 +Updated: 2026-02-01 - Reports reorganization (Milestone 2)
+       23 +Updated: 2026-02-01 - Speed optimizations (Milestone 4)
+       24 +"""
+       25 +
+       26 +import pandas as pd
+       27 +from pathlib import Path
+       28 +from datetime import datetime
+       29 +import logging
+       30 +import sys
+       31 +import json
+       32 +import yaml
+       33 +import os
+       34 +import time
+       35 +from concurrent.futures import ThreadPoolExecutor, as_completed
+       36 +from typing import List, Tuple, Dict, Optional
+       37 +
+       38 +# Configure logging
+       39 +logging.basicConfig(
+       40 +    level=logging.INFO,
+       41 +    format='%(asctime)s - %(levelname)s - %(message)s',
+       42 +    handlers=[
+       43 +        logging.FileHandler('logs/consolidate_2019_2026.log'),
+       44 +        logging.StreamHandler()
+       45 +    ]
+       46 +)
+       47 +logger = logging.getLogger(__name__)
+       48 +
+       49 +# Paths
+       50 +CAD_ROOT = Path(r"C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_CAD")
+       51 +OUTPUT_PATH = Path(r"C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine\data\0
+          +1_raw")
+       52 +CLEANING_ENGINE_ROOT = Path(r"C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engi
+          +ne")
+       53 +CONFIG_PATH = Path("config/consolidation_sources.yaml")
+       54 +
+       55 +# Source files configuration (fallback if config not loaded)
+       56 +YEARLY_FILES = [
+       57 +    ("yearly/2019/2019_CAD_ALL.xlsx", 2019, 91217),
+       58 +    ("yearly/2020/2020_CAD_ALL.xlsx", 2020, 89400),
+       59 +    ("yearly/2021/2021_CAD_ALL.xlsx", 2021, 91477),
+       60 +    ("yearly/2022/2022_CAD_ALL.xlsx", 2022, 105038),
+       61 +    ("yearly/2023/2023_CAD_ALL.xlsx", 2023, 113179),
+       62 +    ("yearly/2024/2024_CAD_ALL.xlsx", 2024, 110313),
+       63 +    ("yearly/2025/2025_CAD_ALL.xlsx", 2025, 114065),
+       64 +]
+       65 +
+       66 +MONTHLY_FILE = ("monthly/2026/2026_01_01_to_2026_01_30_CAD_Export.xlsx", 2026, None)
+       67 +
+       68 +# Date range filter
+       69 +START_DATE = pd.Timestamp("2019-01-01")
+       70 +END_DATE = pd.Timestamp("2026-01-30 23:59:59")
+       71 +
+       72 +
+       73 +# ============================================================================
+       74 +# CONFIGURATION LOADING
+       75 +# ============================================================================
+       76 +
+       77 +def load_config(config_path: Path = CONFIG_PATH) -> Dict:
+       78 +    """
+       79 +    Load configuration from YAML file. 80 +
+       81 +    Args:
+       82 +        config_path: Path to YAML config file
+       83 +
+       84 +    Returns:
+       85 +        Configuration dictionary
+       86 +    """
+       87 +    if not config_path.exists():
+       88 +        logger.warning(f"Config file not found: {config_path}. Using defaults.") 89 +        return {}
+       90 +
+       91 +    try:
+       92 +        with open(config_path, 'r', encoding='utf-8') as f:
+       93 +            config = yaml.safe_load(f)
+       94 +        logger.info(f"[OK] Loaded config: {config_path}")
+       95 +        return config
+       96 +    except Exception as e:
+       97 +        logger.error(f"Failed to load config: {e}")
+       98 +        return {}
+       99 +
+      100 +
+      101 +# ============================================================================
+      102 +# DIRECTORY SETUP
+      103 +# ============================================================================
+      104 +
+      105 +def create_directories():
+      106 +    """Ensure required directories exist"""
+      107 +    OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
+      108 +    logs_dir = Path("logs")
+      109 +    logs_dir.mkdir(exist_ok=True)
+      110 +    logger.info(f"[OK] Output directory ready: {OUTPUT_PATH}")
+      111 +
+      112 +
+      113 +def get_report_directory(run_type: str = "consolidation") -> Path:
+      114 +    """
+      115 +    Generate run-specific report directory with timestamp. 116 +
+      117 +    Args:
+      118 +        run_type: "consolidation", "incremental", or "full"
+      119 +
+      120 +    Returns:
+      121 +        Path to report directory (created if not exists)
+      122 +    """
+      123 +    timestamp = datetime.now().strftime("%Y_%m_%d")
+      124 +    report_dir = Path(f"consolidation/reports/{timestamp}_{run_type}")
+      125 +    report_dir.mkdir(parents=True, exist_ok=True)
+      126 +    return report_dir
+      127 +
+      128 +
+      129 +def update_latest_pointer(report_dir: Path, metrics: dict):
+      130 +    """
+      131 +    Update latest.json to point to current run. 132 +
+      133 +    Args:
+      134 +        report_dir: Path to current run's report directory
+      135 +        metrics: Dictionary with run metrics (record_count, date_range, etc.) 136 +    """
+      137 +    latest_file = Path("consolidation/reports/latest.json")
+      138 +    latest_data = {
+      139 +        "latest_run": str(report_dir.name),
+      140 +        "timestamp": datetime.now().isoformat(),
+      141 +        "path": str(report_dir),
+      142 +        "record_count": metrics.get("record_count"),
+      143 +        "unique_cases": metrics.get("unique_cases"),
+      144 +        "date_range": metrics.get("date_range"),
+      145 +        "output_file": metrics.get("output_file"),
+      146 +        "mode": metrics.get("mode", "full")
+      147 +    }
+      148 +    with open(latest_file, 'w', encoding='utf-8') as f:
+      149 +        json.dump(latest_data, f, indent=2)
+      150 +    logger.info(f"[OK] Updated latest.json -> {report_dir.name}")
+      151 +
+      152 +
+      153 +# ============================================================================
+      154 +# MEMORY OPTIMIZATION
+      155 +# ============================================================================
+      156 +
+      157 +def optimize_dtypes(df: pd.DataFrame, config: Dict = None) -> pd.DataFrame:
+      158 +    """
+      159 +    Optimize DataFrame memory usage by downcasting types. 160 +
+      161 +    Typical memory reduction: 40-60% for CAD datasets.

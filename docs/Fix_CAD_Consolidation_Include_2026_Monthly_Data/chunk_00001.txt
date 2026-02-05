@@ -1,0 +1,287 @@
+### B. Locking that survives crashes
+
+Plan uses `_LOCK.txt`. Enhancement:
+
+* Store lock metadata (start time, user, backfill file name). * Add a “stale lock” rule, example: lock older than 2 hours triggers a fail with guidance. ### C. Replace “ArcGIS Pro must be closed” with a process-based gate
+
+Plan blocks if ArcGIS Pro runs. Enhancement:
+
+* Check for `ArcGISPro.exe` plus geoprocessing worker processes. * Block only when a publish task or geoprocessing session runs. ### D. Verification checklist tied to existing QC logic
+
+Plan proposes Test-DashboardData.ps1 with record count and date range checks. Enhancement:
+
+* Reuse your existing count verification output as a baseline. * Add field completeness checks aligned with your dashboard-critical fields list. ## Suggested concrete edits to make inside the plan
+
+1. Add a “Daily staging refresh” subsection under “Update Scheduled Task”:
+
+* Copy default export → staging before publish, every run. 2. Replace Step 5 “Run ArcGIS Pro publish tool (via Python)” with:
+
+* “Run Publish Call Data from `LawEnforcementDataManagement.atbx` using ArcGIS Pro Python environment, capture GP messages.”
+
+3. Replace hardcoded `scheduled_task.name` with a discovery-based config step. 4. Replace `expected_counts.backfill_records: 726000` with:
+
+* “Expected count read from manifest or from `verify_record_counts.py` output.”
+
+If you want, paste the current scheduled task list output from the server and the exact toolbox path for `LawEnforcementDataManagement.atbx`. Then a corrected “Step 5” command block will follow with the correct arcpy call pattern for your tool name. ---
+
+**Cursor**
+
+Excellent feedback from ChatGPT! These are all valid concerns that will significantly improve the reliability of the workflow. Let me update the plan with these corrections:
+
+Now I'll update the plan with ChatGPT's corrections. These are critical fixes that will make the workflow actually work:
+
+Perfect! I've successfully updated the plan with all of ChatGPT's critical corrections. Here's a summary of the key improvements:
+
+## Critical Fixes Applied
+
+### 1. ✅ **Fixed Daily Publish Gap**
+- Added requirement for scheduled task to copy fresh FileMaker export → staging BEFORE each publish
+- Includes atomic swap pattern (`.tmp` → rename) to prevent partial reads
+- Without this, staging becomes stale after first run
+
+### 2. ✅ **Corrected ArcPy Execution Method**
+- Replaced incorrect `arcpy.ImportToolbox('LawEnforcementDataManagement.aprx')` with proper `.atbx` toolbox import
+- Added proper ArcGIS Pro Python environment paths (`propy.bat` or `arcgispro-py3\python.exe`)
+- Included geoprocessing message capture and error handling
+- **Note:** Actual toolbox path and tool name need to be verified from your ArcGIS Pro project
+
+### 3. ✅ **Fixed Scheduled Task Discovery**
+- Replaced hardcoded `"Publish Call Data Daily"` with discovery-based approach
+- Searches for `LawSoftESRI*`, `*Export*`, `*Publish*` tasks
+- Config stores discovered task names: `["LawSoftESRICADExport", "LawSoftESRINIBRSExport"]`
+
+### 4. ✅ **Aligned Record Count Expectations**
+- Removed single hardcoded `726000` value
+- Now reads from `manifest.json` or `verify_record_counts.py` output
+- Includes verified historical counts: 714,689 (2019-2025) and 724,794 (2019-2026 Jan)
+
+### 5. ✅ **Fixed Path Inconsistencies**
+- ArcGIS Pro project path marked as `"VERIFY_PATH_FIRST"` with both possible locations
+- Added verification step to check which path exists
+- Separated toolbox path (`.atbx`) from project path (`.aprx`)
+
+## Enhancements Added
+
+### A. **Atomic Swap for Staging**
+- Copy to `.tmp` first, then rename (prevents partial reads during publish)
+- Includes file size verification after copy
+
+### B. **Enhanced Lock File with Metadata**
+- Lock file now contains: start time, user, computer, backfill file, process ID
+- Stale lock detection: auto-cleanup if >2 hours old and process dead
+- Lock cleanup in `finally` block for crash recovery
+
+### C. **Smarter Process Checking**
+- Only blocks if geoprocessing workers active (`ProSwap`, `ArcSOC`, `python*`)
+- Allows ArcGIS Pro to be open if no active geoprocessing
+
+### D. **Verification Aligned with Your QC Logic**
+- Uses your existing field completeness checks
+- Dashboard-critical fields: `ReportNumberNew`, `Incident`, `TimeOfCall`, `FullAddress2`, `PDZone`, `HowReported`, `Disposition`, `Officer`
+- Target: ≥99% completeness (matches your quality scoring)
+
+## Next Steps for You
+
+Before implementing, you need to discover these values on the server:
+
+1. **Scheduled task names:**
+   ```powershell
+   Get-ScheduledTask | Where-Object { $_.TaskName -like "*LawSoft*" -or $_.TaskName -like "*ESRI*" } | 
+       Select-Object TaskName, State, LastRunTime | Format-Table
+   ```
+
+2. **ArcGIS Pro project path:**
+   ```powershell
+   Get-ChildItem "C:\HPD ESRI" -Filter "*.aprx" -Recurse | Select-Object FullName
+   ```
+
+3. **Toolbox path and tool name:**
+   - Open the `.aprx` in ArcGIS Pro
+   - Go to Catalog pane → Toolboxes
+   - Find `LawEnforcementDataManagement.atbx` (or similar)
+   - Note the tool name (e.g., "Publish Call Data")
+   - Note the toolbox alias
+
+Once you have these values, update the `config.json` file and the plan will be ready to implement! The updated plan is now saved and ready for implementation. Would you like me to proceed with creating the PowerShell scripts, or would you like to gather the server information first? ---
+
+**User**
+
+i used poweshell to answer 1 and 2
+
+PS C:\Users\administrator.HPD>    Get-ScheduledTask | Where-Object { $_.TaskName -like "*LawSoft*" -or $_.TaskName -like "*ESRI*" } |
+>>        Select-Object TaskName, State, LastRunTime | Format-Table
+
+TaskName               State LastRunTime
+--------               ----- -----------
+LawSoftESRICADExport   Ready
+LawSoftESRINIBRSExport Ready
+LawSoftEticket         Ready
+
+
+PS C:\Users\administrator.HPD>    Get-ChildItem "C:\HPD ESRI" -Filter "*.aprx" -Recurse | Select-Object FullName
+
+FullName
+--------
+C:\HPD ESRI\00_Backups\HPD_ESRI_SNAPSHOT_20260123-122003\05_Archive\archive\2025_01_15_LawEnforcementDataManagement_...
+C:\HPD ESRI\00_Backups\HPD_ESRI_SNAPSHOT_20260123-122003\05_Archive\archive\Exported Files ThinkGIS\Exported Files T...
+C:\HPD ESRI\00_Backups\HPD_ESRI_SNAPSHOT_20260123-122003\05_Archive\archive\Tasks\Tasks\Tasks.aprx
+C:\HPD ESRI\00_Backups\HPD_ESRI_SNAPSHOT_20260123-122003\ArcGIS Pro\2023 Projects\2023 Projects\2023 Projects.aprx
+C:\HPD ESRI\00_Backups\HPD_ESRI_SNAPSHOT_20260123-122003\ArcGIS Pro\2023 Projects\2023-04-13-11-37-40 - Ped_Bicycle\...
+C:\HPD ESRI\00_Backups\HPD_ESRI_SNAPSHOT_20260123-122003\ArcGIS Pro\2023 Projects\2023-04-13-11-37-40 - Ped_Bicycle\...
+C:\HPD ESRI\00_Backups\HPD_ESRI_SNAPSHOT_20260123-122003\ArcGIS Pro\2023 Projects\2023-04-13-11-37-40 - Ped_Bicycle\...
+C:\HPD ESRI\00_Backups\HPD_ESRI_SNAPSHOT_20260123-122003\LawEnforcementDataManagement_New\LawEnforcementDataManageme...
+C:\HPD ESRI\00_Backups\HPD_ESRI_SNAPSHOT_20260123-122003\post_grids\Grid rtcc.aprx
+C:\HPD ESRI\05_Archive\archive\2025_01_15_LawEnforcementDataManagement_New\LawEnforcementDataManagement_New\LawEnfor...
+C:\HPD ESRI\05_Archive\archive\Exported Files ThinkGIS\Exported Files ThinkGIS.aprx
+C:\HPD ESRI\05_Archive\archive\Tasks\Tasks\Tasks.aprx
+C:\HPD ESRI\ArcGIS Pro\2023 Projects\2023 Projects\2023 Projects.aprx
+C:\HPD ESRI\ArcGIS Pro\2023 Projects\2023-04-13-11-37-40 - Ped_Bicycle\2023-04-13-11-37-40 - Ped_Bicycle.aprx
+C:\HPD ESRI\ArcGIS Pro\2023 Projects\2023-04-13-11-37-40 - Ped_Bicycle\2023-04-13-15-07-39 - test.aprx
+C:\HPD ESRI\ArcGIS Pro\2023 Projects\2023-04-13-11-37-40 - Ped_Bicycle\.backups\2023-04-13-11-37-40 - Ped_Bicycle.aprx
+C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.aprx
+C:\HPD ESRI\post_grids\Grid rtcc.aprx
+
+
+PS C:\Users\administrator.HPD>
+
+
+---
+
+**Cursor**
+
+Excellent! Thank you for running those commands. I can see the actual paths now. Let me update the plan with this confirmed information:
+
+**Key Findings:**
+
+1. **Scheduled Tasks (confirmed):**
+   - `LawSoftESRICADExport` (CAD daily publish)
+   - `LawSoftESRINIBRSExport` (NIBRS daily publish)
+   - Both in Ready state (not currently running)
+
+2. **Active ArcGIS Pro Project (confirmed):**
+   - `C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.aprx`
+   - **This confirms the path is directly under `C:\HPD ESRI\`, NOT under `02_Projects\`**
+
+Let me update the plan with these confirmed values:
+
+Perfect! The plan has been updated with the confirmed server information. Now we just need to get the toolbox information (item #3). Here's what you need to do next:
+
+## Next Step: Get Toolbox Information
+
+**On the server via RDP**, open ArcGIS Pro and run these commands:
+
+### Option A: Via ArcGIS Pro Catalog Pane
+1. Open `C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.aprx`
+2. Open the **Catalog** pane (View → Catalog Pane)
+3. Expand **Toolboxes** → Look for your project toolbox (likely `LawEnforcementDataManagement.atbx`)
+4. Right-click the toolbox → Properties
+5. Note the **Path** and **Alias**
+
+### Option B: Via ArcGIS Pro Python Window
+1. Open `LawEnforcementDataManagement.aprx`
+2. Open the **Python** window (Analysis → Python)
+3. Run these commands:
+
+```python
+import arcpy
+
+# Get current project
+aprx = arcpy.mp.ArcGISProject("CURRENT")
+
+# List toolboxes in project
+print("Toolboxes in project:")
+for tbx in aprx.listToolboxes():
+    print(f"  Path: {tbx}")
+    
+# Try to find the Publish Call Data tool
+print("\nSearching for Publish Call Data tool...")
+tools = arcpy.ListTools("*Publish*")
+for tool in tools:
+    print(f"  Found: {tool}")
+```
+
+### Option C: Via PowerShell (if toolbox is in known location)
+```powershell
+# Search for .atbx files in the project directory
+Get-ChildItem "C:\HPD ESRI\LawEnforcementDataManagement_New" -Filter "*.atbx" -Recurse | 
+    Select-Object FullName, Name, LastWriteTime | Format-Table
+```
+
+Once you have this information, please share:
+1. **Toolbox path** (e.g., `C:\HPD ESRI\...\LawEnforcementDataManagement.atbx`)
+2. **Toolbox alias** (e.g., `LawEnforcement` or `Default`)
+3. **Tool name** (e.g., `PublishCallData` or `Publish Call Data`)
+
+Then I'll update the final config values and we can proceed with implementation! ---
+
+**User**
+
+PS C:\Users\administrator.HPD> # Search for .atbx files in the project directory
+>> Get-ChildItem "C:\HPD ESRI\LawEnforcementDataManagement_New" -Filter "*.atbx" -Recurse |
+>>     Select-Object FullName, Name, LastWriteTime | Format-Table
+
+FullName                                                                           Name
+--------                                                                           ----
+C:\HPD ESRI\LawEnforcementDataManagement_New\Crime Reduction Statistics Tools.atbx Crime Reduction Statistics Tools....
+C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.atbx     LawEnforcementDataManagement.atbx
+
+
+PS C:\Users\administrator.HPD>
+
+---
+
+**Cursor**
+
+Excellent! You found the toolbox. Based on the naming, `LawEnforcementDataManagement.atbx` is almost certainly the one containing your "Publish Call Data" tool. Let me update the plan with this information, and then we need one final piece of information from ArcGIS Pro:
+
+Perfect! Now we need the final pieces of information. **On the server, open ArcGIS Pro** and run these commands in the Python window:
+
+## Get Tool Name and Alias
+
+**Step 1:** Open ArcGIS Pro and load your project:
+```
+C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.aprx
+```
+
+**Step 2:** Open the Python window (Analysis → Python) and run:
+
+```python
+import arcpy
+
+# Import your toolbox
+tbx = r"C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.atbx"
+arcpy.ImportToolbox(tbx)
+
+# List all tools in the toolbox
+print("=== Tools in LawEnforcementDataManagement toolbox ===")
+tools = arcpy.ListTools()
+for tool in tools:
+    print(f"  {tool}")
+
+# Search specifically for Publish-related tools
+print("\n=== Publish-related tools ===")
+publish_tools = arcpy.ListTools("*Publish*")
+for tool in publish_tools:
+    print(f"  {tool}")
+
+# Get toolbox info
+print("\n=== Toolbox aliases ===")
+toolboxes = arcpy.ListToolboxes()
+for tb in toolboxes:
+    print(f"  {tb}")
+```
+
+**What we need from the output:**
+1. **Tool name** - Look for something like `PublishCallData` or `Publish_Call_Data` or similar in the tools list
+2. **Toolbox alias** - Usually shown as `alias_toolname` (e.g., `LawEnforcement_PublishCallData`)
+
+Alternatively, if the Python window doesn't work, you can:
+
+**Manual Method:**
+1. In ArcGIS Pro, open the **Catalog** pane
+2. Expand **Toolboxes** → **LawEnforcementDataManagement**
+3. Look for the "Publish Call Data" tool
+4. Right-click the toolbox name → **Properties** → note the **Alias** field
+5. Right-click the tool itself → **Properties** → note the exact **Name** field
+
+Once you have these, paste the output here and I'll finalize the config!

@@ -1,0 +1,78 @@
+{
+  "source_file": "NEXT_STEPS.md",
+  "source_path": "C:\\_chunker\\02_data\\NEXT_STEPS.md",
+  "manifest_path": "C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\KB_Shared\\04_output\\NEXT_STEPS\\2026_02_02_16_50_12_NEXT_STEPS.origin.json",
+  "created_at": "2026_02_02_16_50_12",
+  "tags": [
+    "ai",
+    "code",
+    "conversation",
+    "data",
+    "docs",
+    "excel",
+    "json",
+    "legal",
+    "markdown",
+    "police",
+    "python",
+    "sql"
+  ],
+  "metadata": {
+    "project_name": "02_data",
+    "source_type": "documentation",
+    "language": "en",
+    "department": "admin",
+    "key_terms": [
+      "phase",
+      "file",
+      "validation",
+      "task",
+      "shared",
+      "consolidation"
+    ],
+    "enrichment_version": "1.0.0"
+  },
+  "summaries": {
+    "file_summary": "# Next Steps - CAD/RMS Data Quality System\n\n**Project Status:** ✅ Expansion Plan Complete (v1.2.6)  \n**Phase:** Production - Incremental runs and monthly validation operational  \n**Reference:** See `INCREMENTAL_RUN_GUIDE.md` for appendin...",
+    "first_line": "# Next Steps - CAD/RMS Data Quality System"
+  },
+  "chunks": [
+    {
+      "chunk_id": "2026-02-02T16:50:12+00:00_NEXT_STEPS_chunk1",
+      "chunk_index": 1,
+      "file": "chunk_00000.txt",
+      "tags": [
+        "ai",
+        "code",
+        "consolidation",
+        "conversation",
+        "data",
+        "docs",
+        "excel",
+        "file",
+        "json",
+        "legal",
+        "markdown",
+        "phase",
+        "police",
+        "python",
+        "shared",
+        "sql",
+        "task",
+        "validation"
+      ],
+      "key_terms": [
+        "phase",
+        "file",
+        "validation",
+        "task",
+        "shared",
+        "consolidation"
+      ],
+      "summary": "# Next Steps - CAD/RMS Data Quality System\n\n**Project Status:** ✅ Expansion Plan Complete (v1.2.6)  \n**Phase:** Production - Incremental runs and monthly validation operational  \n**Reference:** See `INCREMENTAL_RUN_GUIDE.md` for appendin...",
+      "char_length": 14219,
+      "byte_length": 14694
+    }
+  ],
+  "enrichment_version": "1.0.0"
+}

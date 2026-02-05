@@ -1,0 +1,115 @@
+{
+  "source_file": "Update_CAD_Consolidation_Create_Call_Type_Normalizer.md",
+  "source_path": "C:\\_chunker\\02_data\\Update_CAD_Consolidation_Create_Call_Type_Normalizer.md",
+  "manifest_path": "C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\KB_Shared\\04_output\\Update_CAD_Consolidation_Create_Call_Type_Normalizer\\2026_01_31_01_22_57_Update_CAD_Consolidation_Create_Call_Type_Normalizer.origin.json",
+  "created_at": "2026_01_31_01_22_57",
+  "tags": [
+    "ai",
+    "code",
+    "data",
+    "docs",
+    "excel",
+    "finance",
+    "json",
+    "legal",
+    "markdown",
+    "police",
+    "powershell",
+    "python",
+    "sql"
+  ],
+  "metadata": {
+    "project_name": "02_data",
+    "source_type": "documentation",
+    "language": "en",
+    "department": "admin",
+    "key_terms": [
+      "data",
+      "xlsx",
+      "consolidation",
+      "update",
+      "file",
+      "value"
+    ],
+    "enrichment_version": "1.0.0"
+  },
+  "summaries": {
+    "file_summary": "▐▛███▜▌   Claude Code v2.1.27\n▝▜█████▛▘  Sonnet 4.5 · API Usage Billing\n  ▘▘ ▝▝    ~\\OneDrive - City of Hackensack\\02_ETL_Scripts\\cad_rms_data_quality\n\n❯\n  # Task: Backup, Update CAD Consolidation, and Create Call Type Utility## PART 0:...",
+    "first_line": "▐▛███▜▌   Claude Code v2.1.27"
+  },
+  "chunks": [
+    {
+      "chunk_id": "2026-01-31T01:22:57+00:00_Update_CAD_Consolidation_Create_Call_Type_Normalizer_chunk1",
+      "chunk_index": 1,
+      "file": "chunk_00000.txt",
+      "tags": [
+        "ai",
+        "code",
+        "data",
+        "docs",
+        "excel",
+        "finance",
+        "json",
+        "legal",
+        "markdown",
+        "police",
+        "powershell",
+        "python",
+        "sql",
+        "statute",
+        "type",
+        "update",
+        "value",
+        "xlsx"
+      ],
+      "key_terms": [
+        "data",
+        "xlsx",
+        "value",
+        "statute",
+        "update",
+        "type"
+      ],
+      "summary": "▐▛███▜▌   Claude Code v2.1.27\n▝▜█████▛▘  Sonnet 4.5 · API Usage Billing\n  ▘▘ ▝▝    ~\\OneDrive - City of Hackensack\\02_ETL_Scripts\\cad_rms_data_quality\n\n❯\n  # Task: Backup, Update CAD Consolidation, and Create Call Type Utility## PART 0:...",
+      "char_length": 29922,
+      "byte_length": 30631
+    },
+    {
+      "chunk_id": "2026-01-31T01:22:57+00:00_Update_CAD_Consolidation_Create_Call_Type_Normalizer_chunk2",
+      "chunk_index": 2,
+      "file": "chunk_00001.txt",
+      "tags": [
+        "ai",
+        "bash",
+        "carucci_r",
+        "code",
+        "consolidation",
+        "data",
+        "docs",
+        "excel",
+        "finance",
+        "info",
+        "json",
+        "legal",
+        "line",
+        "markdown",
+        "police",
+        "powershell",
+        "python",
+        "sql"
+      ],
+      "key_terms": [
+        "info",
+        "consolidation",
+        "data",
+        "line",
+        "bash",
+        "carucci_r"
+      ],
+      "summary": "Starting Task Execution\n\n  Let me begin by creating the backup structure, then the call type normalizer, updating the consolidation script, and running the pipeline.",
+      "char_length": 24036,
+      "byte_length": 26795
+    }
+  ],
+  "enrichment_version": "1.0.0"
+}

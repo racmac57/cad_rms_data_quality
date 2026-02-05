@@ -1,0 +1,604 @@
+162 +
+      163 +    Args:
+      164 +        df: Input DataFrame
+      165 +        config: Configuration dictionary with memory_optimization settings
+      166 +
+      167 +    Returns:
+      168 +        Optimized DataFrame
+      169 +    """
+      170 +    if config is None:
+      171 +        config = {}
+      172 +
+      173 +    perf_config = config.get('performance', {}).get('memory_optimization', {})
+      174 +    use_categories = perf_config.get('use_categories', True)
+      175 +    downcast_numeric = perf_config.get('downcast_numeric', True)
+      176 +
+      177 +    mem_before = df.memory_usage(deep=True).sum() / 1024**2
+      178 +    logger.info(f"  Memory before optimization: {mem_before:.1f} MB")
+      179 +
+      180 +    for col in df.columns:
+      181 +        col_type = df[col].dtype
+      182 +
+      183 +        # Downcast integers
+      184 +        if downcast_numeric and col_type in ['int64', 'int32']:
+      185 +            df[col] = pd.to_numeric(df[col], downcast='integer')
+      186 +
+      187 +        # Downcast floats
+      188 +        elif downcast_numeric and col_type in ['float64']:
+      189 +            df[col] = pd.to_numeric(df[col], downcast='float')
+      190 +
+      191 +        # Convert low-cardinality strings to categorical
+      192 +        elif use_categories and col_type == 'object':
+      193 +            num_unique = df[col].nunique()
+      194 +            num_total = len(df[col])
+      195 +
+      196 +            # If less than 5% unique values, convert to categorical
+      197 +            if num_total > 0 and num_unique / num_total < 0.05:
+      198 +                df[col] = df[col].astype('category')
+      199 +
+      200 +    mem_after = df.memory_usage(deep=True).sum() / 1024**2
+      201 +    reduction = (1 - mem_after / mem_before) * 100 if mem_before > 0 else 0
+      202 +    logger.info(f"  Memory after optimization: {mem_after:.1f} MB ({reduction:.1f}% reduction)")
+      203 +
+      204 +    return df
+      205 +
+      206 +
+      207 +# ============================================================================
+      208 +# CHUNKED READING FOR LARGE FILES
+      209 +# ============================================================================
+      210 +
+      211 +def load_excel_chunked(file_path: Path, chunk_size: int = 100000) -> pd.DataFrame:
+      212 +    """
+      213 +    Load large Excel files in chunks to reduce memory pressure. 214 +    Uses openpyxl read_only mode for better performance. 215 +
+      216 +    Args:
+      217 +        file_path: Path to Excel file
+      218 +        chunk_size: Number of rows per chunk
+      219 +
+      220 +    Returns:
+      221 +        Complete DataFrame
+      222 +    """
+      223 +    from openpyxl import load_workbook
+      224 +
+      225 +    # Check file size - only use chunked for large files
+      226 +    file_size_mb = file_path.stat().st_size / (1024 * 1024)
+      227 +
+      228 +    if file_size_mb < 50:
+      229 +        # Small file - use standard read
+      230 +        return pd.read_excel(file_path, engine='openpyxl')
+      231 +
+      232 +    logger.info(f"  Using chunked read for {file_size_mb:.1f} MB file")
+      233 +
+      234 +    # Use read_only mode for large files
+      235 +    wb = load_workbook(file_path, read_only=True, data_only=True)
+      236 +    ws = wb.active
+      237 +
+      238 +    # Get headers from first row
+      239 +    rows_iter = ws.rows
+      240 +    header_row = next(rows_iter)
+      241 +    headers = [cell.value for cell in header_row]
+      242 +
+      243 +    chunks = []
+      244 +    chunk_rows = []
+      245 +
+      246 +    for row in rows_iter:
+      247 +        chunk_rows.append([cell.value for cell in row])
+      248 +
+      249 +        if len(chunk_rows) >= chunk_size:
+      250 +            chunk_df = pd.DataFrame(chunk_rows, columns=headers)
+      251 +            chunks.append(chunk_df)
+      252 +            logger.info(f"    Processed chunk {len(chunks)}: {len(chunk_df):,} rows")
+      253 +            chunk_rows = []
+      254 +
+      255 +    # Final chunk
+      256 +    if chunk_rows:
+      257 +        chunk_df = pd.DataFrame(chunk_rows, columns=headers)
+      258 +        chunks.append(chunk_df)
+      259 +
+      260 +    wb.close()
+      261 +
+      262 +    result = pd.concat(chunks, ignore_index=True)
+      263 +    logger.info(f"  Chunked load complete: {len(result):,} total rows")
+      264 +    return result
+      265 +
+      266 +
+      267 +# ============================================================================
+      268 +# FILE LOADING (SINGLE FILE)
+      269 +# ============================================================================
+      270 +
+      271 +def load_excel_file(file_path: Path, year: int, expected_count: int = None,
+      272 +                    config: Dict = None) -> pd.DataFrame:
+      273 +    """
+      274 +    Load Excel file with error handling and validation. 275 +
+      276 +    Args:
+      277 +        file_path: Path to Excel file
+      278 +        year: Year for this file
+      279 +        expected_count: Expected record count (for verification)
+      280 +        config: Configuration dictionary
+      281 +
+      282 +    Returns:
+      283 +        DataFrame with loaded data
+      284 +    """
+      285 +    logger.info(f"Loading {year}: {file_path.name}")
+      286 +
+      287 +    if not file_path.exists():
+      288 +        logger.error(f"[ERROR] File not found: {file_path}")
+      289 +        raise FileNotFoundError(f"Missing file: {file_path}")
+      290 +
+      291 +    try:
+      292 +        # Check file size for chunked reading decision
+      293 +        file_size_mb = file_path.stat().st_size / (1024 * 1024)
+      294 +        logger.info(f"  Size: {file_size_mb:.1f} MB")
+      295 +
+      296 +        # Get chunked reading settings from config
+      297 +        perf_config = (config or {}).get('performance', {}).get('chunked_reading', {})
+      298 +        threshold_mb = perf_config.get('threshold_mb', 50)
+      299 +        chunk_size = perf_config.get('chunk_size', 100000)
+      300 +        use_chunked = perf_config.get('enabled', True) and file_size_mb >= threshold_mb
+      301 +
+      302 +        # Load Excel file (chunked or standard)
+      303 +        if use_chunked:
+      304 +            df = load_excel_chunked(file_path, chunk_size)
+      305 +        else:
+      306 +            df = pd.read_excel(file_path, engine='openpyxl')
+      307 +
+      308 +        logger.info(f"  Rows: {len(df):,}")
+      309 +        logger.info(f"  Columns: {len(df.columns)}")
+      310 +
+      311 +        # Verify expected count
+      312 +        if expected_count:
+      313 +            deviation = abs(len(df) - expected_count) / expected_count * 100
+      314 +            if deviation > 5:
+      315 +                logger.warning(f"  [WARN] Record count deviation: {deviation:.1f}% from expected {expected_count:,}"
+          +)
+      316 +            else:
+      317 +                logger.info(f"  [OK] Record count within 5% of expected {expected_count:,}")
+      318 +
+      319 +        # Check for TimeOfCall column
+      320 +        if 'TimeOfCall' not in df.columns and 'Time of Call' not in df.columns:
+      321 +            logger.error(f"[ERROR] Missing TimeOfCall column in {file_path.name}")
+      322 +            logger.info(f"  Available columns: {', '.join(df.columns[:10])}...")
+      323 +            raise ValueError("TimeOfCall column not found")
+      324 +
+      325 +        # Standardize TimeOfCall column name
+      326 +        if 'Time of Call' in df.columns:
+      327 +            df = df.rename(columns={'Time of Call': 'TimeOfCall'})
+      328 +
+      329 +        logger.info(f"[OK] Successfully loaded {year}: {len(df):,} records")
+      330 +        return df
+      331 +
+      332 +    except Exception as e:
+      333 +        logger.error(f"[ERROR] Error loading {file_path.name}: {str(e)}")
+      334 +        raise
+      335 +
+      336 +
+      337 +# ============================================================================
+      338 +# PARALLEL LOADING
+      339 +# ============================================================================
+      340 +
+      341 +def load_files_parallel(file_configs: List[Tuple[str, int, Optional[int]]],
+      342 +                        config: Dict = None) -> List[Tuple[int, pd.DataFrame]]:
+      343 +    """
+      344 +    Load multiple Excel files in parallel using ThreadPoolExecutor. 345 +
+      346 +    Args:
+      347 +        file_configs: List of (file_path, year, expected_count) tuples
+      348 +        config: Configuration dictionary
+      349 +
+      350 +    Returns:
+      351 +        List of (year, DataFrame) tuples sorted by year
+      352 +    """
+      353 +    perf_config = (config or {}).get('performance', {}).get('parallel_loading', {})
+      354 +    max_workers = perf_config.get('max_workers', min(8, os.cpu_count() or 4))
+      355 +    parallel_enabled = perf_config.get('enabled', True)
+      356 +
+      357 +    if not parallel_enabled or len(file_configs) <= 1:
+      358 +        # Sequential loading
+      359 +        results = []
+      360 +        for path, year, expected in file_configs:
+      361 +            file_path = Path(CAD_ROOT / path) if not Path(path).is_absolute() else Path(path)
+      362 +            df = load_excel_file(file_path, year, expected, config)
+      363 +            results.append((year, df))
+      364 +        return results
+      365 +
+      366 +    logger.info(f"[PARALLEL] Loading {len(file_configs)} files with {max_workers} workers")
+      367 +    results = []
+      368 +    errors = []
+      369 +
+      370 +    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+      371 +        # Submit all load tasks
+      372 +        future_to_file = {}
+      373 +        for path, year, expected in file_configs:
+      374 +            file_path = Path(CAD_ROOT / path) if not Path(path).is_absolute() else Path(path)
+      375 +            future = executor.submit(load_excel_file, file_path, year, expected, config)
+      376 +            future_to_file[future] = (path, year)
+      377 +
+      378 +        # Collect results as they complete
+      379 +        for future in as_completed(future_to_file):
+      380 +            path, year = future_to_file[future]
+      381 +            try:
+      382 +                df = future.result()
+      383 +                results.append((year, df))
+      384 +                logger.info(f"[PARALLEL] Completed {year}: {len(df):,} records")
+      385 +            except Exception as e:
+      386 +                logger.error(f"[PARALLEL] Failed {year}: {e}")
+      387 +                errors.append((year, str(e)))
+      388 +
+      389 +    if errors:
+      390 +        logger.warning(f"[PARALLEL] {len(errors)} files failed to load")
+      391 +
+      392 +    # Sort by year and return
+      393 +    results.sort(key=lambda x: x[0])
+      394 +    return results
+      395 +
+      396 +
+      397 +# ============================================================================
+      398 +# DATE FILTERING
+      399 +# ============================================================================
+      400 +
+      401 +def filter_date_range(df: pd.DataFrame, start_date: pd.Timestamp,
+      402 +                      end_date: pd.Timestamp) -> pd.DataFrame:
+      403 +    """
+      404 +    Filter DataFrame to specified date range. 405 +
+      406 +    Args:
+      407 +        df: Input DataFrame
+      408 +        start_date: Start of date range
+      409 +        end_date: End of date range
+      410 +
+      411 +    Returns:
+      412 +        Filtered DataFrame
+      413 +    """
+      414 +    original_count = len(df)
+      415 +
+      416 +    # Parse TimeOfCall to datetime
+      417 +    df['TimeOfCall'] = pd.to_datetime(df['TimeOfCall'], errors='coerce')
+      418 +
+      419 +    # Count invalid dates
+      420 +    invalid_dates = df['TimeOfCall'].isna().sum()
+      421 +    if invalid_dates > 0:
+      422 +        logger.warning(f"  [WARN] Found {invalid_dates:,} records with invalid TimeOfCall")
+      423 +
+      424 +    # Filter date range
+      425 +    df = df[(df['TimeOfCall'] >= start_date) & (df['TimeOfCall'] <= end_date)]
+      426 +
+      427 +    filtered_count = len(df)
+      428 +    removed = original_count - filtered_count
+      429 +
+      430 +    if removed > 0:
+      431 +        logger.info(f"  Filtered: {removed:,} records outside date range")
+      432 +
+      433 +    logger.info(f"  Kept: {filtered_count:,} records within {start_date.date()} to {end_date.date()}")
+      434 +
+      435 +    return df
+      436 +
+      437 +
+      438 +# ============================================================================
+      439 +# BASELINE + INCREMENTAL MODE
+      440 +# ============================================================================
+      441 +
+      442 +def run_incremental_consolidation(config: Dict) -> Tuple[pd.DataFrame, str]:
+      443 +    """
+      444 +    Run incremental consolidation: load baseline + append new monthly data. 445 +
+      446 +    This avoids re-reading 7 years of data for each run. 447 +
+      448 +    Args:
+      449 +        config: Configuration dictionary with baseline settings
+      450 +
+      451 +    Returns:
+      452 +        Tuple of (consolidated DataFrame, run_type string)
+      453 +    """
+      454 +    baseline_config = config.get('baseline', {})
+      455 +    incremental_config = config.get('incremental', {})
+      456 +
+      457 +    baseline_path = Path(baseline_config.get('path', ''))
+      458 +    expected_records = baseline_config.get('record_count', 0)
+      459 +    baseline_end_date = baseline_config.get('date_range', {}).get('end', '2026-01-30')
+      460 +
+      461 +    logger.info("=" * 80)
+      462 +    logger.info("INCREMENTAL MODE: Loading baseline + new data")
+      463 +    logger.info("=" * 80)
+      464 +
+      465 +    # Step 1: Load baseline polished file
+      466 +    logger.info(f"\n[Step 1] Loading baseline file...")
+      467 +    logger.info(f"  Path: {baseline_path}")
+      468 +
+      469 +    if not baseline_path.exists():
+      470 +        logger.error(f"[ERROR] Baseline file not found: {baseline_path}")
+      471 +        logger.info("Falling back to full consolidation mode")
+      472 +        return None, "full"
+      473 +
+      474 +    start_time = time.time()
+      475 +    baseline_df = pd.read_excel(baseline_path, engine='openpyxl')
+      476 +    load_time = time.time() - start_time
+      477 +
+      478 +    logger.info(f"  Loaded: {len(baseline_df):,} records in {load_time:.1f}s")
+      479 +    logger.info(f"  Expected: {expected_records:,} records")
+      480 +
+      481 +    if abs(len(baseline_df) - expected_records) > 100:
+      482 +        logger.warning(f"  [WARN] Record count mismatch: got {len(baseline_df):,}, expected {expected_records:,}")
+      483 +
+      484 +    # Step 2: Identify new monthly files (after baseline end date)
+      485 +    logger.info(f"\n[Step 2] Checking for new monthly files after {baseline_end_date}...")
+      486 +
+      487 +    baseline_end = pd.Timestamp(baseline_end_date)
+      488 +    new_monthly_files = []
+      489 +
+      490 +    # Check monthly directory for files newer than baseline
+      491 +    monthly_2026_dir = CAD_ROOT / "monthly" / "2026"
+      492 +    if monthly_2026_dir.exists():
+      493 +        for file_path in monthly_2026_dir.glob("*.xlsx"):
+      494 +            # Skip files already in baseline
+      495 +            if "2026_01_01_to_2026_01_30" in file_path.name:
+      496 +                continue  # This is already in baseline
+      497 +            new_monthly_files.append(file_path)
+      498 +            logger.info(f"  Found new file: {file_path.name}")
+      499 +
+      500 +    if not new_monthly_files:
+      501 +        logger.info("  No new monthly files found after baseline")
+      502 +        logger.info("  Returning baseline data as-is")
+      503 +        return baseline_df, "baseline_only"
+      504 +
+      505 +    # Step 3: Load and process new monthly files
+      506 +    logger.info(f"\n[Step 3] Loading {len(new_monthly_files)} new monthly file(s)...")
+      507 +
+      508 +    new_dfs = []
+      509 +    for file_path in new_monthly_files:
+      510 +        try:
+      511 +            df = pd.read_excel(file_path, engine='openpyxl')
+      512 +            # Standardize TimeOfCall column name
+      513 +            if 'Time of Call' in df.columns:
+      514 +                df = df.rename(columns={'Time of Call': 'TimeOfCall'})
+      515 +            # Filter to only records after baseline
+      516 +            df['TimeOfCall'] = pd.to_datetime(df['TimeOfCall'], errors='coerce')
+      517 +            df = df[df['TimeOfCall'] > baseline_end]
+      518 +            if len(df) > 0:
+      519 +                new_dfs.append(df)
+      520 +                logger.info(f"  {file_path.name}: {len(df):,} new records")
+      521 +        except Exception as e:
+      522 +            logger.error(f"  Failed to load {file_path.name}: {e}")
+      523 +
+      524 +    if not new_dfs:
+      525 +        logger.info("  No new records found in monthly files")
+      526 +        return baseline_df, "baseline_only"
+      527 +
+      528 +    # Step 4: Concatenate baseline + new records
+      529 +    logger.info(f"\n[Step 4] Merging baseline with new data...")
+      530 +
+      531 +    new_combined = pd.concat(new_dfs, ignore_index=True)
+      532 +    logger.info(f"  New records to add: {len(new_combined):,}")
+      533 +
+      534 +    # Ensure column alignment
+      535 +    common_cols = list(set(baseline_df.columns) & set(new_combined.columns))
+      536 +    baseline_df = baseline_df[common_cols]
+      537 +    new_combined = new_combined[common_cols]
+      538 +
+      539 +    combined = pd.concat([baseline_df, new_combined], ignore_index=True)
+      540 +    logger.info(f"  Combined total: {len(combined):,} records")
+      541 +
+      542 +    # Step 5: Deduplicate if needed
+      543 +    dedup_strategy = incremental_config.get('dedup_strategy', 'keep_latest')
+      544 +    if 'ReportNumberNew' in combined.columns:
+      545 +        before_dedup = len(combined)
+      546 +        if dedup_strategy == 'keep_latest':
+      547 +            combined = combined.sort_values('TimeOfCall', ascending=False)
+      548 +            combined = combined.drop_duplicates(subset=['ReportNumberNew'], keep='first')
+      549 +        elif dedup_strategy == 'keep_first':
+      550 +            combined = combined.drop_duplicates(subset=['ReportNumberNew'], keep='first')
+      551 +        # 'keep_all_supplements' keeps all records (no dedup)
+      552 +
+      553 +        after_dedup = len(combined)
+      554 +        if before_dedup != after_dedup:
+      555 +            logger.info(f"  Deduplication ({dedup_strategy}): {before_dedup:,} -> {after_dedup:,}")
+      556 +
+      557 +    return combined, "incremental"
+      558 +
+      559 +
+      560 +# ============================================================================
+      561 +# FULL CONSOLIDATION (ORIGINAL MODE)
+      562 +# ============================================================================
+      563 +
+      564 +def run_full_consolidation(config: Dict = None) -> Tuple[pd.DataFrame, str]:
+      565 +    """
+      566 +    Run full consolidation: load all yearly + monthly files. 567 +
+      568 +    Args:
+      569 +        config: Configuration dictionary
+      570 +
+      571 +    Returns:
+      572 +        Tuple of (consolidated DataFrame, run_type string)
+      573 +    """
+      574 +    logger.info("=" * 80)
+      575 +    logger.info("FULL MODE: Loading all source files")
+      576 +    logger.info("=" * 80)
+      577 +
+      578 +    # Create file configs list
+      579 +    file_configs = [(path, year, expected) for path, year, expected in YEARLY_FILES]
+      580 +    file_configs.append(MONTHLY_FILE)
+      581 +
+      582 +    # Load files (parallel or sequential based on config)
+      583 +    logger.info(f"\n[Step 1] Loading {len(file_configs)} source files...")
+      584 +    start_time = time.time()
+      585 +
+      586 +    loaded_files = load_files_parallel(file_configs, config)
+      587 +    load_time = time.time() - start_time
+      588 +    logger.info(f"[OK] Loaded {len(loaded_files)} files in {load_time:.1f}s")
+      589 +
+      590 +    # Apply date filtering
+      591 +    logger.info(f"\n[Step 2] Filtering date range...")
+      592 +    all_dataframes = []
+      593 +    for year, df in loaded_files:
+      594 +        df = filter_date_range(df, START_DATE, END_DATE)
+      595 +        all_dataframes.append(df)
+      596 +
+      597 +    # Concatenate all dataframes
+      598 +    logger.info(f"\n[Step 3] Concatenating {len(all_dataframes)} DataFrames...")
+      599 +    consolidated = pd.concat(all_dataframes, ignore_index=True)
+      600 +    logger.info(f"[OK] Consolidated total: {len(consolidated):,} records")
+      601 +
+      602 +    # Final date range filter
+      603 +    consolidated = filter_date_range(consolidated, START_DATE, END_DATE)
+      604 +
+      605 +    return consolidated, "full"
+      606 +
+      607 +
+      608 +# ============================================================================
+      609 +# MAIN CONSOLIDATION FUNCTION
+      610 +# ============================================================================
+      611 +
+      612 +def consolidate_cad_data(force_full: bool = False):
+      613 +    """
+      614 +    Main consolidation process. 615 +
+      616 +    Automatically chooses between incremental and full mode based on config. 617 +
+      618 +    Args:
+      619 +        force_full: Force full consolidation even if incremental is enabled
+      620 +    """
+      621 +    start_time = time.time()
+      622 +
+      623 +    logger.info("=" * 80)
+      624 +    logger.info("CAD DATA CONSOLIDATION: 2019-01-01 to 2026-01-30")
+      625 +    logger.info("Version: 1.2.3 (Speed Optimizations)")
+      626 +    logger.info("=" * 80)
+      627 +
+      628 +    # Create directories
+      629 +    create_directories()
+      630 +
+      631 +    # Load configuration
+      632 +    config = load_config()
+      633 +
+      634 +    # Determine run mode
+      635 +    baseline_enabled = config.get('baseline', {}).get('enabled', False)
+      636 +    incremental_enabled = config.get('incremental', {}).get('enabled', False)
+      637 +    baseline_path = Path(config.get('baseline', {}).get('path', ''))
+      638 +
+      639 +    use_incremental = (
+      640 +        not force_full and
+      641 +        baseline_enabled and
+      642 +        incremental_enabled and
+      643 +        baseline_path.exists()
+      644 +    )
+      645 +
+      646 +    if use_incremental:
+      647 +        logger.info("\n[MODE] Incremental mode enabled")
+      648 +        consolidated, run_type = run_incremental_consolidation(config)
+      649 +        if consolidated is None:
+      650 +            logger.info("[MODE] Falling back to full consolidation")
+      651 +            consolidated, run_type = run_full_consolidation(config)
+      652 +    else:
+      653 +        if force_full:
+      654 +            logger.info("\n[MODE] Full mode (forced)")
+      655 +        else:
+      656 +            logger.info("\n[MODE] Full mode (incremental not configured or baseline missing)")
+      657 +        consolidated, run_type = run_full_consolidation(config)
+      658 +
+      659 +    # Check if we have any data
+      660 +    if consolidated is None or len(consolidated) == 0:
+      661 +        logger.error("[ERROR] No data consolidated! Cannot continue.") 662 +        sys.exit(1)
+      663 +
+      664 +    # Apply memory optimization
+      665 +    logger.info("\n" + "-" * 80)
+      666 +    logger.info("OPTIMIZING MEMORY")
+      667 +    logger.info("-" * 80)
+      668 +    consolidated = optimize_dtypes(consolidated, config)
+      669 +
+      670 +    # Check for duplicates
+      671 +    unique_cases = None
+      672 +    if 'ReportNumberNew' in consolidated.columns:
+      673 +        unique_cases = consolidated['ReportNumberNew'].nunique()
+      674 +        duplicates = len(consolidated) - unique_cases
+      675 +        logger.info(f"Unique case numbers: {unique_cases:,}")
+      676 +        if duplicates > 0:
+      677 +            logger.info(f"Duplicate records (supplements/units): {duplicates:,}")
+      678 +
+      679 +    # Export to CSV
+      680 +    output_file = OUTPUT_PATH / f"2019_to_2026_01_30_CAD.csv"
+      681 +    logger.info("\n" + "-" * 80)
+      682 +    logger.info("EXPORTING TO CSV")
+      683 +    logger.info("-" * 80)
+      684 +    logger.info(f"Output file: {output_file}")
+      685 +
+      686 +    consolidated.to_csv(output_file, index=False)
+      687 +
+      688 +    output_size_mb = output_file.stat().st_size / (1024 * 1024)
+      689 +    logger.info(f"[OK] Export complete: {output_size_mb:.1f} MB")
+      690 +
+      691 +    # Calculate timing
+      692 +    total_time = time.time() - start_time
+      693 +
+      694 +    # Generate summary
+      695 +    logger.info("\n" + "=" * 80)
+      696 +    logger.info("CONSOLIDATION SUMMARY")
+      697 +    logger.info("=" * 80)
+      698 +    logger.info(f"Mode: {run_type}")
+      699 +    logger.info(f"Total records: {len(consolidated):,}")
+      700 +    logger.info(f"Date range: {consolidated['TimeOfCall'].min()} to {consolidated['TimeOfCall'].max()}")
+      701 +    logger.info(f"Output file: {output_file}")
+      702 +    logger.info(f"File size: {output_size_mb:.1f} MB")
+      703 +    logger.info(f"Processing time: {total_time:.1f} seconds")
+      704 +
+      705 +    if unique_cases:
+      706 +        logger.info(f"Unique cases: {unique_cases:,}")
+      707 +
+      708 +    logger.info("\n[OK] Consolidation complete!") 709 +    logger.info(f"[OK] Ready for CAD_Data_Cleaning_Engine processing")
+      710 +
+      711 +    # Create run-specific report directory
+      712 +    report_dir = get_report_directory(run_type)
+      713 +    logger.info(f"\n[OK] Report directory: {report_dir}")
+      714 +
+      715 +    # Prepare metrics for reports
+      716 +    date_min = str(consolidated['TimeOfCall'].min())
+      717 +    date_max = str(consolidated['TimeOfCall'].max())
+      718 +
+      719 +    metrics = {
+      720 +        "record_count": len(consolidated),
+      721 +        "unique_cases": unique_cases,
+      722 +        "date_range": {"start": date_min, "end": date_max},
+      723 +        "output_file": str(output_file),
+      724 +        "file_size_mb": round(output_size_mb, 2),
+      725 +        "mode": run_type,
+      726 +        "processing_time_seconds": round(total_time, 1),
+      727 +        "generated": datetime.now().isoformat()
+      728 +    }
+      729 +
+      730 +    # Generate summary report (text)
+      731 +    summary_file = report_dir / "consolidation_summary.txt"
+      732 +
+      733 +    with open(summary_file, 'w', encoding='utf-8') as f:
+      734 +        f.write("=" * 80 + "\n")
+      735 +        f.write("CAD DATA CONSOLIDATION SUMMARY\n")
+      736 +        f.write("=" * 80 + "\n")
+      737 +        f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+      738 +        f.write(f"Report Directory: {report_dir}\n")
+      739 +        f.write(f"Mode: {run_type}\n\n")
+      740 +        f.write(f"Total Records: {len(consolidated):,}\n")
+      741 +        f.write(f"Date Range: {date_min} to {date_max}\n")
+      742 +        f.write(f"Output File: {output_file}\n")
+      743 +        f.write(f"File Size: {output_size_mb:.1f} MB\n")
+      744 +        f.write(f"Processing Time: {total_time:.1f} seconds\n")
+      745 +
+      746 +        if unique_cases:
+      747 +            f.write(f"Unique Cases: {unique_cases:,}\n")
+      748 +
+      749 +        f.write("\n" + "-" * 80 + "\n")
+      750 +        f.write("PERFORMANCE SETTINGS:\n")
+      751 +        f.write("-" * 80 + "\n")
+      752 +        perf = config.get('performance', {})
+      753 +        f.write(f"  Parallel Loading: {perf.get('parallel_loading', {}).get('enabled', False)}\n")
+      754 +        f.write(f"  Max Workers: {perf.get('parallel_loading', {}).get('max_workers', 'N/A')}\n")
+      755 +        f.write(f"  Chunked Reading: {perf.get('chunked_reading', {}).get('enabled', False)}\n")
+      756 +        f.write(f"  Memory Optimization: {perf.get('memory_optimization', {}).get('use_categories', False)}\n")
+      757 +
+      758 +        f.write("\n" + "-" * 80 + "\n")
+      759 +        f.write("SOURCE FILES:\n")
+      760 +        f.write("-" * 80 + "\n")
+      761 +
+      762 +        for file_rel_path, year, expected_count in YEARLY_FILES:
+      763 +            f.write(f"  {year}: {file_rel_path}\n")
+      764 +
+      765 +        file_rel_path, year, _ = MONTHLY_FILE
+      766 +        f.write(f"  {year}: {file_rel_path}\n")
+      767 +
+      768 +        f.write("\n" + "=" * 80 + "\n")
+      769 +        f.write("NEXT STEPS:\n")
+      770 +        f.write("=" * 80 + "\n")
+      771 +        f.write("1. Run CAD_Data_Cleaning_Engine pipeline:\n")
+      772 +        f.write(f"   cd {CLEANING_ENGINE_ROOT}\n")
+      773 +        f.write("   python scripts/enhanced_esri_output_generator.py\n\n")
+      774 +        f.write("2. Validate output:\n")
+      775 +        f.write("   python scripts/validation/validate_esri_polished_dataset.py\n\n")
+      776 +        f.write("3.
