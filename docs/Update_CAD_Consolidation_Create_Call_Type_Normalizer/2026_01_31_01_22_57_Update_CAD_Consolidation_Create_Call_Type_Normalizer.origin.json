@@ -1,0 +1,41 @@
+{
+  "tags": [
+    "ai",
+    "code",
+    "data",
+    "docs",
+    "excel",
+    "finance",
+    "json",
+    "legal",
+    "markdown",
+    "police",
+    "powershell",
+    "python",
+    "sql"
+  ],
+  "metadata_enrichment": {
+    "metadata": {
+      "project_name": "02_data",
+      "source_type": "documentation",
+      "language": "en",
+      "department": "admin",
+      "key_terms": [
+        "data",
+        "xlsx",
+        "consolidation",
+        "update",
+        "file",
+        "value"
+      ],
+      "enrichment_version": "1.0.0"
+    },
+    "summaries": {
+      "file_summary": "▐▛███▜▌   Claude Code v2.1.27\n▝▜█████▛▘  Sonnet 4.5 · API Usage Billing\n  ▘▘ ▝▝    ~\\OneDrive - City of Hackensack\\02_ETL_Scripts\\cad_rms_data_quality\n\n❯\n  # Task: Backup, Update CAD Consolidation, and Create Call Type Utility## PART 0:...",
+      "first_line": "▐▛███▜▌   Claude Code v2.1.27"
+    },
+    "enrichment_version": "1.0.0"
+  },
+  "last_processed_at": "2026-01-31T01:22:57.750860",
+  "department": "admin"
+}

@@ -57,6 +57,137 @@ This repository contains a unified data quality system for CAD (Computer-Aided D
 - Archived: CAD_Data_Cleaning_Engine, Combined_CAD_RMS, RMS_CAD_Combined_ETL, RMS_Data_ETL, RMS_Data_Processing
 - cad_rms_data_quality is now the single active project
 
+### v1.3.0 - ArcGIS Pro Backfill Automation (2026-02-02)
+- **Problem**: Manual backfill process took 5+ hours with manual RDP copying, model editing, ArcPy errors, disorganized verification
+- **Solution**: Staging file pattern + orchestration scripts reduce time to ~30 minutes
+- **Tool discovery**: Created `discover_tool_info.py`, confirmed callable `arcpy.TransformCallData_tbx1()`
+- **Configuration**: `config.json` with all paths, task names, expected counts (from manifest), tool callables
+- **Orchestration**: `Invoke-CADBackfillPublish.ps1` with atomic swaps (SHA256 verification), auto-restore on error, collision control
+- **Pre-flight checks**: `Test-PublishReadiness.ps1` - lock files, scheduled tasks, process check, geodatabase lock, Excel sheet validation
+- **Python runner**: `run_publish_call_data.py` reads config and calls `arcpy.TransformCallData_tbx1()` via propy.bat
+- **File copy**: `Copy-PolishedToServer.ps1` reads manifest.json, uses robocopy with retry, SMB share support
+- **Documentation**: `README_Backfill_Process.md` - complete user guide for backfill automation
+
+### v1.3.2 - Complete Baseline Generation & Testing (2026-02-03)
+- **ESRI Generator Restored**: Found archived `enhanced_esri_output_generator.py` (v3.0, Dec 2025) and copied to active CAD_Data_Cleaning_Engine
+- **Critical Bug Fixed**: Added column rename logic (TimeOfCall → Time of Call, etc.) so generator works with consolidated CSV format
+- **Baseline Files Created**: Both generic (`CAD_ESRI_Polished_Baseline.xlsx`) and versioned (`CAD_ESRI_Polished_Baseline_20190101_20260203.xlsx`) in 13_PROCESSED_DATA
+- **Record Count**: 754,409 records (2019-01-01 to 2026-02-03) with 100% valid dates
+- **Jan 1-9 Gap Filled**: Confirmed 3,101 records present for previously missing period
+- **Testing Suite**: Created comprehensive test scripts (test_baseline.py, quick_test_baseline.py, backfill_gap_analysis.py)
+- **All Tests Pass**: 10/10 validation checks passed - baseline is production-ready for ArcGIS deployment
+- **Processing Time**: Full pipeline (consolidation → generation → testing) completed in ~51 minutes
+
+### v1.3.4 - Backfill Investigation (2026-02-05)
+- **Problem**: One-time backfill of 754K historical CAD records to ArcGIS dashboard failed twice, consistently hanging at feature 564916 (end of geocoding phase)
+- **Investigation**: No error logs (silent hang), suggesting network timeout, database lock, or memory issue
+- **System Status**: ✅ Emergency restore mechanism successfully cleaned up environment, system stable for nightly automated task
+- **Data Quality**: ✅ Baseline file excellent quality (99.97%), Phone/911 fix applied, Jan 1-9 gap filled - data is ready, issue is with publishing process
+- **Next Steps**: Test with smaller dataset (2024-2026, ~100K records), check geodatabase locks, or implement batch processing/API upload
+- **Documentation**: Created `BACKFILL_INVESTIGATION_20260205.md` with comprehensive findings and recommendations
+
+### v1.4.0 - Comprehensive Validation System Complete (2026-02-04)
+
+**Status:** ✅ COMPLETE AND PRODUCTION-READY
+
+**Summary:** Built a comprehensive data quality validation system for 754,409 CAD records.
+
+**Components Built:**
+- **9 Field Validators** (`validation/validators/`):
+  - HowReportedValidator - Call source domain (100% pass)
+  - DispositionValidator - Outcome domain (100% after fix)
+  - CaseNumberValidator - Format YY-NNNNNN (99.99% pass)
+  - IncidentValidator - Call type vs 823 reference types
+  - DateTimeValidator - 4 datetime fields validation
+  - DurationValidator - Response time, time spent
+  - OfficerValidator - Personnel vs 387 reference
+  - GeographyValidator - Address and zone
+  - DerivedFieldValidator - Calculated field consistency
+
+- **2 Drift Detectors** (`validation/sync/`):
+  - CallTypeDriftDetector - New/unused call types
+  - PersonnelDriftDetector - New/inactive personnel
+
+- **Automation Tools** (`validation/sync/`):
+  - extract_drift_reports.py - Export drift to CSV
+  - extract_all_drift.py - Full extraction (no 50-item limit)
+  - apply_drift_sync.py - Apply changes with backups
+  - batch_mark_add.py - Bulk operations
+
+- **Master Orchestrator** (`validation/run_all_validations.py`):
+  - Single command runs all validators
+  - Output formats: JSON, Excel, Markdown
+  - Quality scoring with configurable weights
+  - ~6 minutes for 754k records
+
+**First Production Run Results:**
+- **Quality Score:** 98.3% (Grade A)
+- **Records:** 754,409
+- **Date Range:** 2019-01-01 to 2026-02-04
+
+**Issues Found and Fixed:**
+1. **Disposition:** 87,896 false positives (11.7%) - Missing 5 valid values fixed
+2. **Call Type Drift:** 174 new types synced (649 → 823)
+3. **Personnel Drift:** 219 new officers synced (168 → 387)
+
+**Git History (6 commits):**
+```
+2f088cb Post-Validation Cleanup: Disposition Fix & Reference Data Sync
+96454fb Phase 5 Complete: Master Validation Orchestrator
+e8a114f Phase 4 Complete: Drift Detectors Implementation
+3952bff Phase 3 Complete: Field Validators Implementation
+621d6d5 Phase 2 Complete: Data Dictionary & Validator Planning
+b1ea6b7 Phase 1 Complete: Discovery & Reference Data Consolidation
+```
+
+**Key Files:**
+- `validation/run_all_validations.py` - Master orchestrator
+- `validation/validators/` - 9 field validators
+- `validation/sync/` - Drift detectors + automation
+- `validation/reports/` - Latest validation results
+
+**Documentation:**
+- `validation/README.md` - System overview
+- `validation/FIRST_PRODUCTION_RUN_SUMMARY.md` - First run results
+- `validation/DRIFT_SYNC_GUIDE.md` - Reference data sync workflow
+- `validation/NEXT_STEPS.md` - Action items
+
+**Next Steps:**
+1. Run second validation to verify 99.8%+ score
+2. Schedule weekly/monthly validation runs
+3. Implement enhanced drift detection logic
+
+---
+
+### v1.3.3 - Phone/911 Dashboard Data Quality Fix (2026-02-04)
+- **Problem**: Dashboard displayed "Phone/911" combined value (174,949 records, 31% of data) instead of separate "Phone" and "9-1-1" categories
+- **Root Cause**: ArcGIS Pro Model Builder "Publish Call Data" tool had Calculate Field (2) with Arcade expression combining values
+- **Investigation**: Created diagnostic ArcPy scripts, verified raw data had NO "Phone/911", traced to Model Builder transformation
+- **Fix Applied**: Changed Arcade expression from `iif($feature.How_Reported=='9-1-1'||$feature.How_Reported=='Phone','Phone/911',...)` to `$feature.How_Reported`
+- **Local Results**: ✅ 565,870 records processed | ✅ Zero "Phone/911" values | ✅ Phone: 109,569 (19.36%) | ✅ 9-1-1: 61,916 (10.94%)
+- **CSV Export**: ✅ VERIFIED `CFSTable_2019_2026_FULL_20260203_231437.csv` (565,870 records, 167.53 MB) in `consolidation/output/`
+  - Date range: 2019-01-01 to 2026-02-03 (7+ years, 2,590 days)
+  - All 41 expected columns present
+  - Zero "Phone/911" values confirmed in exported data
+  - Phone and 9-1-1 properly separated (171,485 total records)
+  - Only 16 null Call IDs (0.003% - negligible)
+  - Quality verified via `verify_csv_export.py`
+  - Ready for comprehensive validation
+- **ArcGIS Online**: ⏳ Upload failed after 56 minutes (network timeout), needs retry during off-peak hours
+- **RDP Export Process**: Export initially failed - geodatabase on RDP server cannot write to local OneDrive paths
+  - Solution: Export to `C:\Temp` on RDP, then manual copy to local machine via RDP clipboard
+  - File successfully transferred (167.53 MB) and verified
+- **Additional Observations**: 2,000+ geocoding failures (NULL geometry), date conversion warnings, +4,131 record increase from baseline
+- **Documentation**: Created SESSION_SUMMARY_PHONE911_FIX_20260203.txt, NEXT_ACTIONS_PHONE911_FIX.md, verify_csv_export.py, updated OPUS_BRIEFING_COMPREHENSIVE_VALIDATION.md
+- **Timeline**: Complete investigation, fix, verification, and CSV export in 2 hours (9:48 PM - 11:30 PM)
+
+### v1.3.1 - 2026 Monthly Data Fix (2026-02-02)
+- **Fixed monthly file loading**: `run_full_consolidation()` now reads and loads monthly files from `config/consolidation_sources.yaml`; was only loading yearly files despite config entries.
+- **Extended date range**: Changed `END_DATE` from `2026-01-30` to `2026-02-28` to allow February data inclusion.
+- **Result**: Full consolidation now includes 753,903 records (was 714,689), date range 2019-01-01 to 2026-02-01 (was 2025-12-31).
+- **Monthly files loaded**: 5 additional files (2025 Q4: Oct/Nov/Dec, 2026: Jan/Feb) plus 7 yearly files = 12 total files.
+- **Processing time**: ~2 minutes for 12-file consolidation with parallel loading (8 workers).
+
 ### v1.2.6 - Incremental 2026 Run & Validation Fixes (2026-02-02)
 - **Incremental consolidation**: Config uses 2026_01/02 CAD (and RMS) monthly paths; incremental mode uses only 2026 monthly files; January filtered by baseline IDs; February from 2026-02-01 onward. See `config/consolidation_sources.yaml` and `INCREMENTAL_RUN_GUIDE.md`.
 - **Copy script**: `scripts/copy_polished_to_processed_and_update_manifest.py` copies latest polished Excel to 13_PROCESSED_DATA and updates manifest.json (for `copy_consolidated_dataset_to_server.ps1` and ArcGIS).
@@ -100,7 +231,7 @@ This repository contains a unified data quality system for CAD (Computer-Aided D
 | `tests/` | Pytest test suite with fixtures | N/A |
 | `tests/fixtures/` | Sample data for testing | CSV/Excel samples |
 | `docs/` | Documentation (architecture, migration notes, user guides) | Markdown files |
-| `docs/arcgis/` | ArcGIS import scripts and documentation | Python scripts, README |
+| `docs/arcgis/` | ArcGIS import scripts, automation, and backfill documentation | Python scripts, PowerShell, README, config |
 
 ---
 
@@ -570,6 +701,82 @@ Source file paths for 2019-2026 CAD consolidation. **Updated 2026-02-01** with b
 
 ---
 
+## ArcGIS Pro Backfill Automation (v1.3.0)
+
+### Overview
+Automated workflow for backfilling ArcGIS Pro dashboard with polished CAD data, reducing manual process from 5+ hours to ~30 minutes.
+
+### Core Strategy: Staging File Pattern
+- ArcGIS Pro model reads from **fixed staging path**: `C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\ESRI_CADExport.xlsx`
+- For backfill: swap file content (not model nodes)
+- Daily publish: scheduled task copies default export → staging before running tool
+- Collision control: lock files prevent concurrent publishes
+
+### Key Scripts (docs/arcgis/)
+
+#### Tool Discovery
+- **discover_tool_info.py** - Discovers exact ArcPy callable from toolbox
+  - Confirmed: `arcpy.TransformCallData_tbx1()` from `LawEnforcementDataManagement.atbx`
+  - Toolbox alias: `tbx1`
+  - Run via: `propy.bat` (ArcGIS Pro Python environment)
+
+#### Configuration
+- **config.json** - Central configuration
+  - Paths: ArcGIS project, toolbox, geodatabase, staging, backfill sources
+  - Scheduled tasks: `LawSoftESRICADExport`, `LawSoftESRINIBRSExport`
+  - Expected counts: Read from `13_PROCESSED_DATA/manifest.json`
+  - Tool callable: `arcpy.TransformCallData_tbx1()`
+  - Safe hours: 8 AM - 11 PM (avoid midnight scheduled tasks)
+
+#### Orchestration
+- **Invoke-CADBackfillPublish.ps1** - Main orchestrator
+  - Pre-flight checks (lock, tasks, processes, geodatabase, sheet name)
+  - Atomic swap: backfill → staging (with SHA256 hash verification)
+  - Run publish: calls `run_publish_call_data.py` via propy.bat
+  - Auto-restore: default export → staging (with size verification)
+  - Lock file: metadata (PID, user, timestamp), stale detection (>2 hours)
+  - Emergency restore: cleanup in finally block
+
+- **run_publish_call_data.py** - Python runner
+  - Reads config.json
+  - Imports toolbox: `arcpy.ImportToolbox(toolbox_path, "tbx1")`
+  - Calls: `arcpy.TransformCallData_tbx1()`
+  - Captures geoprocessing messages
+  - Returns exit code (0=success, 1=warnings, 2=errors)
+
+#### Pre-Flight Checks
+- **Test-PublishReadiness.ps1**
+  - Lock file: Check existence + stale detection (auto-cleanup if process dead)
+  - Scheduled tasks: Check if `LawSoftESRICADExport` or `LawSoftESRINIBRSExport` are running
+  - Processes: Block if geoprocessing workers active (not just ArcGIS Pro open)
+  - Geodatabase lock: Ensure `CAD_Data.gdb` writable
+  - Excel validation: Verify "Sheet1" exists in backfill file
+  - Disk space: >5 GB free required
+
+#### File Copy
+- **Copy-PolishedToServer.ps1** - Local machine → server
+  - Reads `13_PROCESSED_DATA/manifest.json` for latest polished file
+  - Robocopy with retry (3 attempts, 5s wait)
+  - SMB share preferred (`\\HPD2022LAWSOFT\Share\`)
+  - Admin share fallback (`\\HPD2022LAWSOFT\c$\`)
+  - File integrity: size comparison after copy
+
+### Backfill Workflow
+1. **On local machine**: Run `Copy-PolishedToServer.ps1` to copy polished file to server
+2. **On server (RDP)**: Run `Invoke-CADBackfillPublish.ps1 -BackfillFile "path" [-DryRun]`
+3. **Verify**: Check dashboard date range and record counts
+
+### One-Time Setup (Manual)
+1. Create staging directory: `C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\`
+2. Copy 7 scripts from `docs/arcgis/` to `C:\HPD ESRI\04_Scripts\` on server
+3. Update ArcGIS Pro model: Change Input Spreadsheet to `_STAGING\ESRI_CADExport.xlsx`
+4. Update scheduled task: Add staging refresh (copy default → staging) as **FIRST** action in `LawSoftESRICADExport`
+
+### Documentation
+- **README_Backfill_Process.md** - Complete user guide with setup, workflow, troubleshooting
+
+---
+
 ## When Working on This Project (Original)
 
 1. **Read first** - Review `README.md`, `PLAN.md`, and `NEXT_STEPS.md` before making changes
@@ -614,18 +821,88 @@ See `_Archive/README.md` for detailed migration notes per project.
 
 ## Version Information
 
-**Current Version:** 1.2.6 (Incremental 2026 Run & Validation Fixes)
-**Created:** 2026-01-29
-**Last Updated:** 2026-02-02
-**Author:** R. A. Carucci
-**Status:** Expansion Plan Complete - Incremental Run & ReportNumberNew Fix
+**Current Version:** 1.5.0 (Staged Backfill System Released)
+**Created:** 2026-01-29  
+**Last Updated:** 2026-02-06  
+**Author:** R. A. Carucci  
+**Status:** ✅ v1.5.0 Released | 🚀 Production Ready for Monday Deployment
 
-**Expansion Plan Implementation Complete:**
-- ✅ Milestone 1: Paths & Baseline (v1.2.0)
-- ✅ Milestone 2: Reports Reorganization (v1.2.1)
-- ✅ Milestone 3: Server Copy + ArcPy (v1.2.2)
-- ✅ Milestone 4: Speed Optimizations (v1.2.3)
-- ✅ Milestone 5: Monthly Processing (v1.2.4)
-- ✅ Milestone 6: Legacy Archive (v1.2.5)
-- v1.2.6: Incremental 2026 monthly (Jan/Feb), copy script, ReportNumberNew validation fix
-- See `docs/Plan_Review_Package_For_Claude/CAD_RMS_Data_Quality_Expansion_Plan_ENHANCED.md` and `INCREMENTAL_RUN_GUIDE.md`
+**v1.5.0 Release Summary (2026-02-06):**
+- ✅ **All 8 Auxiliary Scripts Operational** - Complete staged backfill infrastructure (2,930 lines)
+- ✅ **Core Scripts Enhanced** - Watchdog monitoring fully integrated in PowerShell orchestrator
+- ✅ **Local Verification Complete** - 754,409 records across 16 batches, 100% SHA256 pass rate
+- ✅ **Geocoding Cache Generated** - 97.6% address deduplication achieved
+- ✅ **Quality Gates Passed** - <5% geocoding failure threshold confirmed
+- ✅ **Configuration Issues Resolved** - PowerShell paths corrected, Claude settings cleaned up
+- ✅ **Git Commit Completed** - Commit hash to be added after release
+- 📅 **Monday Deployment Ready** - 2-batch POC followed by full 15-batch backfill
+
+**New Scripts Created (8 total, 2,930 lines):**
+1. `scripts/create_geocoding_cache.py` (302 lines) - Offline geocoding with quality gates
+2. `scripts/split_baseline_into_batches.py` (309 lines) - Chronological batch splitter with SHA256
+3. `scripts/Verify-BatchIntegrity.py` (334 lines) - Pre-deployment integrity verification
+4. `docs/arcgis/Resume-CADBackfill.ps1` (305 lines) - Post-watchdog recovery with cleanup
+5. `docs/arcgis/Validate-CADBackfillCount.py` (304 lines) - ArcGIS Online record count verification
+6. `docs/arcgis/Rollback-CADBackfill.py` (324 lines) - Emergency truncation with WIPE confirmation
+7. `docs/arcgis/Generate-BackfillReport.ps1` (284 lines) - Batch audit log generator
+8. `docs/arcgis/Analyze-WatchdogHangs.ps1` (351 lines) - Hang diagnostics and cooling analysis
+
+**Core Scripts Modified (3 total):**
+1. `docs/arcgis/run_publish_call_data.py` - Heartbeat updates + marker detection + batch mode
+2. `docs/arcgis/Invoke-CADBackfillPublish.ps1` - Watchdog monitoring loop + adaptive cooling + staged processing
+3. `docs/arcgis/config.json` - Added `staged_backfill` configuration section
+
+**Git Commit:** `5765607` - feat: implement 15-batch staged backfill system (2,930 lines added)
+
+**Solution Architecture (Five Strategies):**
+1. **Pre-Geocoding Cache** - Geocode ~100-200K unique addresses offline, eliminate network timeout
+2. **Batch Processing** - 15 batches × 50K records with SHA256 integrity verification
+3. **Heartbeat/Watchdog** - 5-minute timeout detection, auto-kill silent hangs
+4. **Adaptive Cooling** - 60-120s delays based on network lag detection
+5. **Post-Watchdog Recovery** - Automatic cleanup, marker restoration, resume capability
+
+**Problem Being Solved:**
+- **Issue**: Monolithic 754K record upload hangs at feature 564,916 after 75 minutes
+- **Root Cause**: Network session exhaustion during live geocoding (Esri World Geocoder timeout)
+- **Current Success Rate**: 0% (consistent hang, requires manual kill)
+- **Proposed Success Rate**: 100% with automatic recovery
+
+**Recent Completed Work:**
+- ✅ Comprehensive data quality validation system (v1.4.0) - 98.3% quality score
+- ✅ Phone/911 dashboard fix verified (v1.3.3)
+- ✅ February 2026 data inclusion (v1.3.2)
+- ✅ ArcGIS automation workflow (v1.3.0)
+- ✅ Backfill investigation documented (v1.3.4)
+
+**Implementation Timeline:**
+- **Today (Feb 6, 2h 45m)**: Foundation work - geocoding, batching, testing
+- **Weekend**: Data at rest, hash-verified, ready for Monday
+- **Monday (Feb 9, 1h)**: Execute full 15-batch backfill, validate, document
+
+**Documentation Created:**
+- `STAGED_BACKFILL_PLAN_FINAL.md` - Complete implementation guide
+- `.cursor/plans/staged_backfill_implementation_99742877.plan.md` - Technical plan
+- `BACKFILL_INVESTIGATION_20260205.md` - Root cause analysis
+- `BACKFILL_PERFORMANCE_OPTIMIZATION_PLAN.md` - Strategic optimization goals
+
+**Key Innovation - Heartbeat/Watchdog System:**
+```
+Python Runner                    PowerShell Watchdog
+-------------                    -------------------
+update_heartbeat()         -->   Monitor every 30s
+  (timestamp written)            
+                                 if (age > 5 min):
+Run ArcGIS Tool                    Kill process
+  (may hang at 564916)             Clean staging
+                                   Preserve batch
+update_heartbeat()                 Enable resume
+  (unreached if hung)
+```
+
+**Expected Results:**
+- Completion Time: 30-45 minutes (vs 75-minute hang)
+- Success Rate: 100% (vs 0%)
+- Recovery Time: 5 minutes automatic (vs manual intervention)
+- Batch Granularity: 50K records (vs 754K all-or-nothing)
+
+---

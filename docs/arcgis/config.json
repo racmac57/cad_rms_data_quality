@@ -1,0 +1,108 @@
+{
+  "_comment": "HPD ESRI Backfill Workflow Configuration",
+  "_version": "1.0.0",
+  "_last_updated": "2026-02-02",
+  "_status": "CONFIRMED - Tool discovery completed",
+  "paths": {
+    "staging_dir": "C:\\HPD ESRI\\03_Data\\CAD\\Backfill\\_STAGING",
+    "staging_file": "C:\\HPD ESRI\\03_Data\\CAD\\Backfill\\_STAGING\\ESRI_CADExport.xlsx",
+    "backfill_source": "C:\\HPD ESRI\\03_Data\\CAD\\Backfill\\CAD_Consolidated_2019_2026.xlsx",
+    "default_export": "C:\\Program Files\\FileMaker\\FileMaker Server\\Data\\Documents\\ESRI\\ESRI_CADExport.xlsx",
+    "arcgis_project": "C:\\HPD ESRI\\LawEnforcementDataManagement_New\\LawEnforcementDataManagement.aprx",
+    "arcgis_toolbox": "C:\\HPD ESRI\\LawEnforcementDataManagement_New\\LawEnforcementDataManagement.atbx",
+    "arcgis_tool_display_name": "Publish Call Data",
+    "arcgis_tool_python_name": "TransformCallData_tbx1",
+    "arcgis_tool_callable": "arcpy.TransformCallData_tbx1()",
+    "arcgis_tool_alias": "tbx1",
+    "geodatabase": "C:\\HPD ESRI\\03_Data\\CAD\\CAD_Data.gdb",
+    "target_dataset": "VERIFY_FROM_TOOL_OUTPUT",
+    "_target_dataset_note": "Check GP messages after first run to confirm actual output feature class name",
+    "propy_python": "C:\\Program Files\\ArcGIS\\Pro\\bin\\Python\\Scripts\\propy.bat",
+    "propy_python_alt": "C:\\Program Files\\ArcGIS\\Pro\\bin\\Python\\envs\\arcgispro-py3\\python.exe",
+    "lock_file": "C:\\HPD ESRI\\03_Data\\CAD\\Backfill\\_STAGING\\_LOCK.txt",
+    "scripts_dir": "C:\\HPD ESRI\\04_Scripts",
+    "reports_dir": "C:\\HPD ESRI\\05_Reports"
+  },
+  "expected_counts": {
+    "source": "manifest_or_verification_script",
+    "_source_note": "Read from 13_PROCESSED_DATA/manifest.json or verify_record_counts.py output",
+    "backfill_records_min": 714689,
+    "backfill_records_max": 730000,
+    "backfill_min_date": "2019-01-01",
+    "backfill_max_date": "2026-02-01",
+    "daily_records_min": 2000,
+    "daily_records_max": 5000,
+    "verified_counts": {
+      "2019_2025_total": 714689,
+      "2019_2026_jan_total": 724794,
+      "_note": "Historical verified counts from consolidation runs"
+    }
+  },
+  "scheduled_tasks": [
+    "LawSoftESRICADExport",
+    "LawSoftESRINIBRSExport"
+  ],
+  "_scheduled_task_note": "CONFIRMED on server 2026-02-02",
+  "safe_hours": {
+    "start": 8,
+    "end": 23,
+    "_note": "Safe window for backfill publish (avoid midnight-2AM when scheduled tasks run)"
+  },
+  "collision_control": {
+    "lock_timeout_hours": 2,
+    "lock_check_interval_seconds": 30,
+    "max_wait_minutes": 15,
+    "_note": "Lock files older than 2 hours with dead process are considered stale"
+  },
+  "verification": {
+    "min_date": "2019-01-01",
+    "max_date": "2026-02-01",
+    "key_fields": [
+      "ReportNumberNew",
+      "Incident",
+      "TimeOfCall",
+      "PDZone",
+      "HowReported",
+      "Disposition"
+    ],
+    "required_sheet_name": "Sheet1",
+    "_sheet_note": "Backfill Excel must have this sheet name for ArcGIS Pro to import correctly"
+  },
+  "arcgis_info": {
+    "version": "3.6.1",
+    "discovery_date": "2026-02-02",
+    "tools_in_toolbox": [
+      "ConvertTimeField_tbx1",
+      "Model_tbx1",
+      "TransformCallData_tbx1",
+      "TransformCrimeData_tbx1"
+    ]
+  },
+  "staged_backfill": {
+    "_comment": "Staged backfill configuration for 754K record upload",
+    "_version": "1.0.0",
+    "_added": "2026-02-06",
+    "batch_folder": "C:\\HPD ESRI\\03_Data\\CAD\\Backfill\\Batches",
+    "batch_size": 50000,
+    "cooling_seconds": 60,
+    "cooling_seconds_adaptive": 120,
+    "expected_total_records": 754409,
+    "expected_batches": 15,
+    "checkpoint_folder": "Completed",
+    "target_service_url": "VERIFY_FROM_ARCGIS_ONLINE",
+    "_target_service_note": "Update with actual ArcGIS Online feature layer REST URL",
+    "geocoding_cache_enabled": true,
+    "watchdog": {
+      "enabled": true,
+      "max_hang_seconds": 300,
+      "heartbeat_file": "C:\\HPD ESRI\\03_Data\\CAD\\Backfill\\_STAGING\\heartbeat.txt",
+      "check_interval_seconds": 30,
+      "_note": "Watchdog kills process if heartbeat not updated within 5 minutes"
+    },
+    "quality_gates": {
+      "geocode_fail_threshold_percent": 5.0,
+      "min_disk_space_mb": 500,
+      "_note": "Halt processing if geocoding fails >5% or disk space <500MB"
+    }
+  }
+}

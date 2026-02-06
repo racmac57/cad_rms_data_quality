@@ -1,0 +1,479 @@
+290      logger.info(f"[OK] Ready for CAD_Data_Cleaning_Engine processing")
+      291 -
+      292 -    # Generate summary report
+      293 -    summary_file = Path("outputs/consolidation/consolidation_summary.txt")
+      294 -    summary_file.parent.mkdir(parents=True, exist_ok=True)
+      295 -
+      291 +
+      292 +    # Create run-specific report directory
+      293 +    report_dir = get_report_directory("consolidation")
+      294 +    logger.info(f"\n[OK] Report directory: {report_dir}")
+      295 +
+      296 +    # Prepare metrics for reports
+      297 +    unique_cases = consolidated['ReportNumberNew'].nunique() if 'ReportNumberNew' in consolidated.columns else None
+      298 +    date_min = str(consolidated['TimeOfCall'].min())
+      299 +    date_max = str(consolidated['TimeOfCall'].max())
+      300 +
+      301 +    metrics = {
+      302 +        "record_count": len(consolidated),
+      303 +        "unique_cases": unique_cases,
+      304 +        "date_range": {"start": date_min, "end": date_max},
+      305 +        "output_file": str(output_file),
+      306 +        "file_size_mb": round(output_size_mb, 2),
+      307 +        "input_files": len(all_dataframes),
+      308 +        "generated": datetime.now().isoformat()
+      309 +    }
+      310 +
+      311 +    # Generate summary report (text)
+      312 +    summary_file = report_dir / "consolidation_summary.txt"
+      313 +
+      314      with open(summary_file, 'w', encoding='utf-8') as f:
+      315          f.write("=" * 80 + "\n")
+      316          f.write("CAD DATA CONSOLIDATION SUMMARY\n")
+      317          f.write("=" * 80 + "\n")
+      300 -        f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+      318 +        f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+      319 +        f.write(f"Report Directory: {report_dir}\n\n")
+      320          f.write(f"Input Files: {len(all_dataframes)}\n")
+      321          f.write(f"Total Records: {len(consolidated):,}\n")
+      303 -        f.write(f"Date Range: {consolidated['TimeOfCall'].min()} to {consolidated['TimeOfCall'].max()}\n")
+      322 +        f.write(f"Date Range: {date_min} to {date_max}\n")
+      323          f.write(f"Output File: {output_file}\n")
+      324          f.write(f"File Size: {output_size_mb:.1f} MB\n")
+      306 -
+      307 -        if 'ReportNumberNew' in consolidated.columns:
+      308 -            f.write(f"Unique Cases: {consolidated['ReportNumberNew'].nunique():,}\n")
+      309 -
+      325 +
+      326 +        if unique_cases:
+      327 +            f.write(f"Unique Cases: {unique_cases:,}\n")
+      328 +
+      329          f.write("\n" + "-" * 80 + "\n")
+      330          f.write("SOURCE FILES:\n")
+      331          f.write("-" * 80 + "\n")
+      313 -
+      332 +
+      333          for file_rel_path, year, expected_count in YEARLY_FILES:
+      334              f.write(f"  {year}: {file_rel_path}\n")
+      316 -
+      335 +
+      336          file_rel_path, year, _ = MONTHLY_FILE
+      337          f.write(f"  {year}: {file_rel_path}\n")
+      319 -
+      338 +
+      339          f.write("\n" + "=" * 80 + "\n")
+      340          f.write("NEXT STEPS:\n")
+      341          f.write("=" * 80 + "\n")
+     ...
+      345          f.write("2. Validate output:\n")
+      346          f.write("   python scripts/validation/validate_esri_polished_dataset.py\n\n")
+      347          f.write("3. Copy results to cad_rms_data_quality project\n")
+      329 -
+      330 -    logger.info(f"\n[OK] Summary report: {summary_file}")
+      331 -
+      348 +
+      349 +    logger.info(f"[OK] Summary report: {summary_file}")
+      350 +
+      351 +    # Generate JSON metrics file
+      352 +    metrics_file = report_dir / "consolidation_metrics.json"
+      353 +    with open(metrics_file, 'w', encoding='utf-8') as f:
+      354 +        json.dump(metrics, f, indent=2)
+      355 +    logger.info(f"[OK] Metrics JSON: {metrics_file}")
+      356 +
+      357 +    # Update latest.json pointer
+      358 +    update_latest_pointer(report_dir, metrics)
+      359 +
+      360      return output_file
+      361
+      362
+
+● Now let me migrate the existing outputs/consolidation/ content to a legacy folder. ● Bash(powershell -Command "Get-ChildItem 'C:\Users\carucci_r\OneDrive - City of
+      Hackensack\02_ETL_Scripts\cad_rms_data_quality\outputs\consolidation\' | Select-Object…)
+  ⎿  Name                                      Length
+     ----                                      ------
+     CAD_CONSOLIDATION_EXECUTION_GUIDE.txt      13113
+     … +25 lines (ctrl+o to expand)
+
+● Bash(powershell -Command "New-Item -ItemType Directory -Force -Path 'C:\Users\carucci_r\OneDrive - City of
+      Hackensack\02_ETL_Scripts\cad_rms_data_quality\consolidati…)
+  ⎿      Directory: C:\Users\carucci_r\OneDrive - City of
+         Hackensack\02_ETL_Scripts\cad_rms_data_quality\consolidation\reports
+     … +4 lines (ctrl+o to expand)
+
+● Bash(powershell -Command "Get-ChildItem 'C:\Users\carucci_r\OneDrive - City of
+      Hackensack\02_ETL_Scripts\cad_rms_data_quality\consolidation\reports\2026_01_31_legacy…)
+  ⎿  26
+
+● Files migrated. Now let me test the script for syntax errors and verify it can be imported. ● Bash(cd "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality" && python -c "
+      import sys…)
+  ⎿  Error: Exit code 1
+     Traceback (most recent call last):
+       File "<string>", line 24, in <module>
+         assert 'consolidation/reports' in str(report_dir), 'Wrong report directory path'
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     AssertionError: Wrong report directory path
+
+     Test 1: Importing consolidate_cad_2019_2026...
+       [OK] Module imported successfully
+
+     … +6 lines (ctrl+o to see all)
+
+● The path is correct (Windows uses backslashes). Let me fix the test and re-run. ● Bash(cd "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality" && python -c "
+      import sys…)
+  ⎿  Test 1: Importing consolidate_cad_2019_2026...
+       [OK] Module imported successfully
+     … +20 lines (ctrl+o to expand)
+
+● All tests passed. Now let me update the documentation. ● Update(CHANGELOG.md)
+  ⎿  Added 1 line, removed 1 line
+      12  ### In Progress
+      13  - Monthly validation framework (Phase 2)
+      14  - Comprehensive validator implementation
+      15 -- Reports reorganization (Milestone 2)
+      15  - Server copy script enhancements (Milestone 3)
+      16 +- Speed optimizations (Milestone 4)
+      17
+      18  ---
+      19
+
+● Update(CHANGELOG.md)
+  ⎿  Added 21 lines
+      17
+      18  ---
+      19
+      20 +## [1.2.1] - 2026-02-01
+      21 +
+      22 +### Added - Expansion Plan Implementation (Milestone 2: Reports Reorganization)
+      23 +
+      24 +#### Reports Directory Structure
+      25 +- Reports now written to `consolidation/reports/YYYY_MM_DD_<run_type>/` instead of flat `outputs/consolidation/`
+      26 +- Each run creates its own timestamped folder (e.g., `2026_02_01_consolidation/`)
+      27 +- `consolidation/reports/latest.json` tracks most recent run for easy lookup
+      28 +
+      29 +#### Script Updates (consolidate_cad_2019_2026.py)
+      30 +- Added `get_report_directory()` function to generate run-specific report folders
+      31 +- Added `update_latest_pointer()` function to update `latest.json` after each run
+      32 +- Added `consolidation_metrics.json` output with machine-readable run stats
+      33 +- Reports include: `consolidation_summary.txt`, `consolidation_metrics.json`
+      34 +
+      35 +#### Legacy Migration
+      36 +- Migrated 26 files from `outputs/consolidation/` to `consolidation/reports/2026_01_31_legacy/`
+      37 +- Preserved all historical reports, guides, and analysis documents
+      38 +
+      39 +---
+      40 +
+      41  ## [1.2.0] - 2026-02-01
+      42
+      43  ### Added - Expansion Plan Implementation (Milestone 1: Paths and Baseline)
+
+● Update(SUMMARY.md)
+  ⎿  Added 2 lines, removed 2 lines
+      1  # Project Summary - CAD/RMS Data Quality System
+      2
+      3 -**Version:** 1.2.0
+      3 +**Version:** 1.2.1
+      4  **Last Updated:** 2026-02-01
+      5 -**Status:** Expansion Plan Milestone 1 Complete - Baseline + Incremental Mode Enabled
+      5 +**Status:** Expansion Plan Milestone 2 Complete - Reports Reorganization Done
+      6
+      7  ---
+      8
+
+● Update(SUMMARY.md)
+  ⎿  Added 12 lines, removed 6 lines
+      108  | Milestone | Description | Status |
+      109  |-----------|-------------|--------|
+      110  | 1. Paths & Baseline | Create 13_PROCESSED_DATA, baseline file, config sections | ✅ Complete |
+      111 -| 2. Reports Reorganization | consolidation/reports/YYYY_MM_DD_* structure | 🔜 Next |
+      112 -| 3. Server Copy + ArcPy | Update PowerShell to use manifest, add arcpy script | 🔜 Pending |
+      111 +| 2. Reports Reorganization | consolidation/reports/YYYY_MM_DD_* structure | ✅ Complete |
+      112 +| 3. Server Copy + ArcPy | Update PowerShell to use manifest, add arcpy script | 🔜 Next |
+      113  | 4. Speed Optimizations | Parallel loading, chunked reads, incremental mode | 🔜 Pending |
+      114  | 5. Monthly Processing | validate_cad.py, validate_rms.py, action items export | 🔜 Pending |
+      115  | 6. Legacy Archive | Move legacy projects to _Archive | 🔜 Pending |
+     ...
+      119  - ✅ Copied baseline file (724,794 records)
+      120  - ✅ Created `manifest.json` for latest file tracking
+      121  - ✅ Added baseline, incremental, performance, processed_data sections to config
+      122 -- ✅ Created `consolidation/reports/latest.json` placeholder
+      122
+      124 -### Milestone 2: Reports Reorganization (Next)
+      125 -- Update `consolidate_cad_2019_2026.py` to write reports to `consolidation/reports/YYYY_MM_DD_<run>/`
+      126 -- Migrate `outputs/consolidation/` to `consolidation/reports/2026_01_30_legacy/`
+      123 +### Milestone 2 Complete (2026-02-01)
+      124 +- ✅ Updated `consolidate_cad_2019_2026.py` with `get_report_directory()` and `update_latest_pointer()`
+      125 +- ✅ Reports now written to `consolidation/reports/YYYY_MM_DD_consolidation/`
+      126 +- ✅ Added `consolidation_metrics.json` output for machine-readable stats
+      127 +- ✅ Migrated 26 files from `outputs/consolidation/` to `consolidation/reports/2026_01_31_legacy/`
+      128 +- ✅ `consolidation/reports/latest.json` auto-updates after each run
+      129
+      130 +### Milestone 3: Server Copy + ArcPy (Next)
+      131 +- Update `copy_consolidated_dataset_to_server.ps1` to read from `manifest.json`
+      132 +- Add `docs/arcgis/import_cad_polished_to_geodatabase.py` arcpy script
+      133 +
+      134  ---
+      135
+      136  ## Repository
+
+● Update(CLAUDE.md)
+  ⎿  Added 3 lines, removed 3 lines
+      28  - Added baseline, incremental, performance, processed_data sections to config
+      29  - Config version updated to 2.0.0
+      30
+      31 -### 🚧 Expansion Plan Milestones 2-6 (In Progress)
+      31 +### 🚧 Expansion Plan Milestones 3-6 (In Progress)
+      32
+      33  | Milestone | Description | Status |
+      34  |-----------|-------------|--------|
+      35  | 1. Paths & Baseline | 13_PROCESSED_DATA, baseline file, config sections | ✅ Complete |
+      36 -| 2. Reports Reorganization | consolidation/reports/YYYY_MM_DD_* structure | 🔜 Next |
+      37 -| 3. Server Copy + ArcPy | Update PowerShell to use manifest, add arcpy script | 🔜 Pending |
+      36 +| 2. Reports Reorganization | consolidation/reports/YYYY_MM_DD_* structure | ✅ Complete |
+      37 +| 3. Server Copy + ArcPy | Update PowerShell to use manifest, add arcpy script | 🔜 Next |
+      38  | 4. Speed Optimizations | Parallel loading, chunked reads, incremental mode | 🔜 Pending |
+      39  | 5. Monthly Processing | validate_cad.py, validate_rms.py, action items | 🔜 Pending |
+      40  | 6. Legacy Archive | Move legacy projects to _Archive | 🔜 Pending |
+
+● Update(CLAUDE.md)
+  ⎿  Added 4 lines, removed 3 lines
+      575
+      576  ## Version Information
+      577
+      578 -**Current Version:** 1.2.0 (Expansion Plan - Milestone 1 Complete)
+      578 +**Current Version:** 1.2.1 (Expansion Plan - Milestone 2 Complete)
+      579  **Created:** 2026-01-29
+      580  **Last Updated:** 2026-02-01
+      581  **Author:** R. A. Carucci
+      582 -**Status:** Baseline + Incremental Mode Enabled - 724,794 Records in Production
+      582 +**Status:** Reports Reorganization Complete - 724,794 Records in Production
+      583
+      584  **Current Phase:** Expansion Plan Implementation (6 Milestones)
+      585  - ✅ Milestone 1: Paths & Baseline (Complete)
+      586 -- 🔜 Milestone 2: Reports Reorganization (Next)
+      586 +- ✅ Milestone 2: Reports Reorganization (Complete)
+      587 +- 🔜 Milestone 3: Server Copy + ArcPy (Next)
+      588  - See `docs/Plan_Review_Package_For_Claude/CAD_RMS_Data_Quality_Expansion_Plan_ENHANCED.md`
+
+● Update(README.md)
+  ⎿  Added 2 lines, removed 2 lines
+       1  # CAD/RMS Data Quality System
+       2
+       3 -**Version:** 1.2.0 (Expansion Plan - Milestone 1 Complete)
+       3 +**Version:** 1.2.1 (Expansion Plan - Milestone 2 Complete)
+       4  **Created:** 2026-01-29
+       5  **Updated:** 2026-02-01
+       6  **Author:** R. A. Carucci
+       7 -**Status:** ✅ Baseline + Incremental Mode Enabled - 724,794 Records in Production
+       7 +**Status:** ✅ Reports Reorganization Complete - 724,794 Records in Production
+       8
+       9  ---
+      10
+
+● ---
+  Milestone 2 Complete
+
+  Summary of Changes
+
+  Script Updates (consolidate_cad_2019_2026.py):
+  - Added get_report_directory() function - generates consolidation/reports/YYYY_MM_DD_<run_type>/ paths
+  - Added update_latest_pointer() function - updates latest.json after each run
+  - Added consolidation_metrics.json output with machine-readable run stats
+  - Reports now written to timestamped folders instead of flat outputs/consolidation/
+
+  Legacy Migration:
+  - Created consolidation/reports/2026_01_31_legacy/
+  - Migrated 26 files from outputs/consolidation/
+  - Preserved all historical reports, guides, and analysis documents
+
+  Report Structure:
+  consolidation/reports/
+  ├── latest.json                      # Points to most recent run
+  ├── 2026_01_31_legacy/               # Migrated historical reports (26 files)
+  │   ├── CAD_CONSOLIDATION_EXECUTION_GUIDE.txt
+  │   ├── VALIDATION_GAP_ANALYSIS_AND_SOLUTIONS.txt
+  │   └── ... (24 more files)
+  └── YYYY_MM_DD_consolidation/        # Future runs go here
+      ├── consolidation_summary.txt
+      └── consolidation_metrics.json
+
+  Tests Passed:
+  - Script imports without errors
+  - get_report_directory() creates correct folder structure
+  - update_latest_pointer() function exists
+  - Legacy migration verified (26 files)
+  - latest.json exists and is valid JSON
+
+  Documentation Updated:
+  - CHANGELOG.md - Added v1.2.1 entry
+  - README.md - Updated version
+  - SUMMARY.md - Updated milestone table, added Milestone 2 details
+  - Claude.md - Updated status and version
+
+  ---
+  Ready for Milestone 3: Server Copy + ArcPy? (yes/no)
+
+✻ Cooked for 3m 38s
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+> [Pasted text #1 +18 lines]
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle) · 50 files +131 -476                                   Context left until auto-compact: 9%
+
+
+
+
+ ▐▛███▜▌   Claude Code v2.1.29
+▝▜█████▛▘  Opus 4.5 · Claude Pro
+  ▘▘ ▝▝    ~\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality
+
+❯ I'm implementing the CAD/RMS Data Quality Expansion Plan in this repo. Use the enhanced plan and current state below to
+  continue. **Project root:**
+  c:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality
+
+  **Enhanced plan (read for full spec):**
+  docs/Plan_Review_Package_For_Claude/CAD_RMS_Data_Quality_Expansion_Plan_ENHANCED.md
+
+  **Completed milestones:**
+  1. Paths and baseline – 13_PROCESSED_DATA/ESRI_Polished/base, manifest.json, config sections (baseline, incremental,
+  performance, processed_data), baseline file copied. Docs updated (CHANGELOG v1.2.0). 2. Reports reorganization – consolidate_cad_2019_2026.py writes to consolidation/reports/YYYY_MM_DD_consolidation/,
+  get_report_directory(), update_latest_pointer(), consolidation_metrics.json. Legacy migrated to
+  consolidation/reports/2026_01_31_legacy/. Docs updated (CHANGELOG v1.2.1). **Next milestone:**
+  3. Server copy + ArcPy – Update copy_consolidated_dataset_to_server.ps1 to resolve latest polished file from
+  13_PROCESSED_DATA/ESRI_Polished (manifest.json or latest.json) and copy to \\10.0.0.157\esri\. Add
+  docs/arcgis/import_cad_polished_to_geodatabase.py (arcpy ExcelToTable script) and docs/arcgis/README.md (run location, order of
+   operations, link to REMOTE_SERVER_GUIDE.md). Then test and update CHANGELOG, README, SUMMARY, Claude.md. **Workflow:** After each milestone, test the changes, then update README, CHANGELOG, SUMMARY, and Claude.md. Pause and ask
+  "Ready for next milestone?" before proceeding. Proceed with Milestone 3: Server copy + ArcPy. After completion, test and update docs, then ask if I want to continue to
+  Milestone 4 (Speed optimizations). ● I'll start by reading the enhanced plan and the current PowerShell script to understand the full specification for Milestone 3. ● Read 3 files (ctrl+o to expand)
+  ⎿  Loaded docs\Plan_Review_Package_For_Claude\CLAUDE.md
+
+● Let me also check the existing REMOTE_SERVER_GUIDE.md for context on the server-side workflow. ● Read 2 files (ctrl+o to expand)
+
+● I have all the context needed. Let me implement Milestone 3: Server copy + ArcPy. I'll:
+  1. Update copy_consolidated_dataset_to_server.ps1 to read from manifest.json
+  2. Create docs/arcgis/import_cad_polished_to_geodatabase.py (arcpy script)
+  3. Create docs/arcgis/README.md (documentation)
+
+● Write(copy_consolidated_dataset_to_server.ps1)
+  ⎿  Added 245 lines, removed 128 lines
+        1 -# ================================================================
+        2 -# Copy Consolidated CAD Dataset to Remote Server
+        3 -# ================================================================
+        4 -# Purpose: Copy the consolidated CAD dataset (2019-2026) to the
+        5 -#          remote server for use with ArcGIS Pro dashboard
+        6 -# Date: 2026-01-31
+        7 -# Author: R. A. Carucci
+        8 -# ================================================================
+        9 -
+       10 -# Define source and destination paths
+       11 -$sourceFile = "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine\data\03_fina
+          -l\CAD_ESRI_POLISHED_20260131_004142.xlsx"
+       12 -$serverIP = "10.0.0.157"
+       13 -$serverName = "HPD2022LAWSOFT"
+       14 -$destESRIShare = "\\$serverIP\esri\CAD_Consolidated_2019_2026.xlsx"
+       15 -$destESRIShareOriginal = "\\$serverIP\esri\CAD_ESRI_POLISHED_20260131_004142.xlsx"
+       16 -
+       17 -Write-Host "================================================================" -ForegroundColor Cyan
+       18 -Write-Host "CAD CONSOLIDATED DATASET COPY TO REMOTE SERVER" -ForegroundColor Cyan
+       19 -Write-Host "================================================================" -ForegroundColor Cyan
+       20 -Write-Host ""
+       21 -
+       22 -# Verify source file exists
+       23 -Write-Host "[Step 1] Verifying source file..." -ForegroundColor Yellow
+       24 -if (Test-Path $sourceFile) {
+       25 -    $sourceInfo = Get-Item $sourceFile
+       26 -    Write-Host "  OK Source file found" -ForegroundColor Green
+       27 -    Write-Host "    Path: $sourceFile" -ForegroundColor Gray
+       28 -    Write-Host "    Size: $([math]::Round($sourceInfo.Length / 1MB, 2)) MB" -ForegroundColor Gray
+       29 -    Write-Host "    Last Modified: $($sourceInfo.LastWriteTime)" -ForegroundColor Gray
+       30 -    Write-Host ""
+       31 -}
+       32 -else {
+       33 -    Write-Host "  ERROR Source file not found: $sourceFile" -ForegroundColor Red
+       34 -    exit 1
+       35 -}
+       36 -
+       37 -# Check server connectivity
+       38 -Write-Host "[Step 2] Checking server connectivity..." -ForegroundColor Yellow
+       39 -$pingResult = Test-Connection -ComputerName $serverIP -Count 2 -Quiet
+       40 -if ($pingResult) {
+       41 -    Write-Host "  OK Server $serverName ($serverIP) is reachable" -ForegroundColor Green
+       42 -    Write-Host ""
+       43 -}
+       44 -else {
+       45 -    Write-Host "  ERROR Server $serverName ($serverIP) is NOT reachable" -ForegroundColor Red
+       46 -    Write-Host "    Please verify network connection or VPN" -ForegroundColor Yellow
+       47 -    exit 1
+       48 -}
+       49 -
+       50 -# Check ESRI share access
+       51 -Write-Host "[Step 3] Checking ESRI share access..." -ForegroundColor Yellow
+       52 -if (Test-Path "\\$serverIP\esri") {
+       53 -    Write-Host "  OK ESRI share is accessible: \\$serverIP\esri" -ForegroundColor Green
+       54 -    Write-Host ""
+       55 -}
+       56 -else {
+       57 -    Write-Host "  ERROR ESRI share is NOT accessible: \\$serverIP\esri" -ForegroundColor Red
+       58 -    Write-Host "    Please verify share permissions" -ForegroundColor Yellow
+       59 -    Write-Host ""
+       60 -}
+       61 -
+       62 -# Copy file to ESRI share with original filename
+       63 -Write-Host "[Step 4] Copying file to ESRI share (original filename)..." -ForegroundColor Yellow
+       64 -try {
+       65 -    Copy-Item -Path $sourceFile -Destination $destESRIShareOriginal -Force -ErrorAction Stop
+       66 -    Write-Host "  OK File copied successfully" -ForegroundColor Green
+       67 -    Write-Host "    Destination: $destESRIShareOriginal" -ForegroundColor Gray
+       68 -
+       69 -    if (Test-Path $destESRIShareOriginal) {
+       70 -        $destInfo = Get-Item $destESRIShareOriginal
+       71 -        Write-Host "    Size: $([math]::Round($destInfo.Length / 1MB, 2)) MB" -ForegroundColor Gray
+       72 -        Write-Host "    Copied: $($destInfo.LastWriteTime)" -ForegroundColor Gray
+       73 -    }
+       74 -    Write-Host ""
+       75 -}
+       76 -catch {
+       77 -    Write-Host "  ERROR Failed to copy file: $_" -ForegroundColor Red
+       78 -    Write-Host ""
+       79 -}
+       80 -
+       81 -# Copy file to ESRI share with friendly filename
+       82 -Write-Host "[Step 5] Copying file to ESRI share (friendly filename)..." -ForegroundColor Yellow
+       83 -try {
+       84 -    Copy-Item -Path $sourceFile -Destination $destESRIShare -Force -ErrorAction Stop
+       85 -    Write-Host "  OK File copied successfully" -ForegroundColor Green
+       86 -    Write-Host "    Destination: $destESRIShare" -ForegroundColor Gray
+       87 -
+       88 -    if (Test-Path $destESRIShare) {
+       89 -        $destInfo = Get-Item $destESRIShare
+       90 -        Write-Host "    Size: $([math]::Round($destInfo.Length / 1MB, 2)) MB" -ForegroundColor Gray
+       91 -        Write-Host "    Copied: $($destInfo.LastWriteTime)" -ForegroundColor Gray
+       92 -    }
+       93 -    Write-Host ""
+       94 -}
+       95 -catch {
+       96 -    Write-Host "  ERROR Failed to copy file: $_" -ForegroundColor Red
+       97 -    Write-Host ""
+       98 -}
+       99 -
+      100 -# Summary
+      101 -Write-Host "================================================================" -ForegroundColor Cyan
+      102 -Write-Host "COPY OPERATION COMPLETE" -ForegroundColor Cyan
+      103 -Write-Host "================================================================" -ForegroundColor Cyan
+      104 -Write-Host ""
+      105 -Write-Host "Dataset Information:" -ForegroundColor White
+      106 -Write-Host "  File: CAD_ESRI_POLISHED_20260131_004142.xlsx" -ForegroundColor Gray
+      107 -Write-Host "  Records: 716,420" -ForegroundColor Gray
+      108 -Write-Host "  Date Range: 2019-01-01 to 2026-01-16" -ForegroundColor Gray
+      109 -Write-Host "  Unique Cases: 553,624" -ForegroundColor Gray
+      110 -Write-Host "  Size: 73.9 MB" -ForegroundColor Gray
+      111 -Write-Host ""
+      112 -Write-Host "Files Available On Server:" -ForegroundColor White
+      113 -Write-Host "  Network Share: \\$serverIP\esri\CAD_Consolidated_2019_2026.xlsx" -ForegroundColor Cyan
+      114 -Write-Host "  Network Share: \\$serverIP\esri\CAD_ESRI_POLISHED_20260131_004142.xlsx" -ForegroundColor Cyan
+      115 -Write-Host ""
+      116 -Write-Host "Next Steps:" -ForegroundColor White
+      117 -Write-Host "  1. Connect to server via Remote Desktop (HPD2022LAWSOFT)" -ForegroundColor Gray
+      118 -Write-Host "  2. Open ArcGIS Pro" -ForegroundColor Gray
+      119 -Write-Host "  3. Import dataset from:" -ForegroundColor Gray
+      120 -Write-Host "     \\$serverIP\esri\CAD_Consolidated_2019_2026.xlsx" -ForegroundColor Cyan
+      121 -Write-Host "  4.

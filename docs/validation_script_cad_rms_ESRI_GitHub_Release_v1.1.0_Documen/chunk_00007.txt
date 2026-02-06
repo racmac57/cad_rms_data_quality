@@ -1,0 +1,750 @@
+## What I Found:
+
+### Complete Transformation Pipelines 📋
+
+**6 Processing Groups:**
+1. **Dataset Loading & Joining** - Column renaming strategy, merge logic
+2. **Date & Time Transformations** - Cascading date/time, TimeOfDay binning (6 categories), Seasonal classification, 7 enrichment columns
+3. **Location & Block Enhancements** - Grid/Zone conflict resolution, Block parsing from addresses
+4. **Duration Calculations** - Response time (cap 8hrs), Time spent (cap 12hrs), Formatting rules, Quality flags
+5. **Text Normalization** - CAD notes parsing, Incident type cleaning, Narrative cleaning, Crime categorization
+6. **Squad Enrichment** - 7-day rolling incidents, Repeat location %, Narrative length, TimeToDispatch, OnSceneDuration
+
+### Domain Value Validation 🎯
+
+**From `2025_12_15_cad_default_values.md`:**
+- How Reported: 12 valid values
+- Disposition: 19 valid values
+- Sex: 2 values
+- Race: 8 values
+- Post: 5 values
+
+**From `CallType_Categories.csv`:**
+- 11 ESRI Categories
+- 3 Response Types
+- 649 complete mappings
+
+### Implementation Guidance 🛠️
+
+**3-Phase Priority:**
+- **Phase 1** (Critical): Format validation, time calculations, address validation
+- **Phase 2** (Important): Call type categories, zone/grid backfill, completeness
+- **Phase 3** (Enhancements): Text normalization, derived fields, analytics
+
+**Estimated Time:** 9-12 days total
+
+## Key Files Created:
+
+1. **`VALIDATION_GAP_ANALYSIS_AND_SOLUTIONS.txt`** - Strategic overview, what's missing, what exists in Standards
+2. **`VALIDATION_LOGIC_REFERENCE_LIBRARY.txt`** - Complete catalog of transformation logic, Python implementations, validation rules
+
+These documents provide everything needed to build your production-ready monthly validation system! 🚀
+
+**Ready to implement Phase 1? ** Let me know when you want to start building the validators! ---
+
+**User**
+
+@c:\Users\carucci_r\OneDrive - City of Hackensack\09_Reference\Classifications\CallTypes\clean_calltypes.py C:\Users\carucci_r\OneDrive - City of Hackensack\09_Reference\Classifications\CallTypes\clean_calltypes.py
+ should the attached script be move to C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality ad placed in a scripts folder and/or C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine\scripts
+
+---
+
+**Cursor**
+
+Let me read the script to understand its purpose and recommend the best location for it. Based on my analysis of this script, here's my recommendation:
+
+## Script Purpose:
+This is a **reference data maintenance utility** that:
+- Normalizes call type names in the CallType_Categories.xlsx
+- Standardizes statute formatting (e.g., "2C:12-1b", "39:4-50.2")
+- Cleans whitespace and special characters
+- Generates a cleaned version and change report
+
+## Recommendation: **Keep it in 09_Reference, but also add to both projects**
+
+### Here's the strategy:
+
+**1. PRIMARY LOCATION (Current - Keep Here):**
+```
+C:\Users\carucci_r\OneDrive - City of Hackensack\09_Reference\Classifications\CallTypes\clean_calltypes.py
+```
+**Why:** This is reference data maintenance. The script operates on the source-of-truth file. **2. COPY TO cad_rms_data_quality (Recommended):**
+```
+C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\shared\utils\clean_calltypes.py
+```
+**Why:** 
+- Part of the monthly validation workflow
+- Could be used to validate/normalize incoming data
+- Belongs in shared utilities for reuse
+
+**3. SYMLINK/REFERENCE in CAD_Data_Cleaning_Engine (Optional):**
+```
+C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine\scripts\utils\clean_calltypes.py
+```
+**Why:** 
+- Already has normalization logic built-in
+- Could use for pre-processing if needed
+
+## My Specific Recommendation:
+
+### **Best Practice Approach:**
+
+1. **Keep the original in 09_Reference** (source of truth for reference data)
+
+2. **Create a generalized version for cad_rms_data_quality:**
+   - Extract the core logic into a reusable function
+   - Make it configurable (pass file paths as parameters)
+   - Add it to `shared/utils/` for use in validators
+
+3. **Document in both projects:**
+   - Add reference to this utility in validation documentation
+   - Note that canonical reference file lives in 09_Reference
+
+### Why This Approach? **09_Reference** should contain:
+- ✅ Scripts that maintain reference data
+- ✅ One-time data cleaning utilities
+- ✅ Scripts that generate/update classification files
+
+**cad_rms_data_quality** should contain:
+- ✅ Scripts that USE reference data for validation
+- ✅ Reusable utility functions
+- ✅ Monthly operational scripts
+
+**CAD_Data_Cleaning_Engine** already has:
+- ✅ Built-in normalization (enhanced_esri_output_generator.py)
+- ✅ Call type mapping logic
+- ❌ Doesn't need this specific script (redundant)
+
+## Recommendation: 
+
+**Create a generalized version in `cad_rms_data_quality/shared/utils/`** that can:
+1. Normalize call types in-memory (for validation)
+2. Optionally update reference files (if needed)
+3. Be imported by validators
+
+Would you like me to:
+1. Create the generalized version for `cad_rms_data_quality`? 2. Leave the original in 09_Reference as-is? 3. Add documentation linking the two? ---
+
+**User**
+
+provide a prompt for Claude Code to create then script and save it in the directory of your recommendation. lets have Claude Code also run the whole data set now that we have data from 01/30/2026 C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_CAD\monthly\2026\2026_01_01_to_2026_01_30_CAD_Export.xlsx C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_RMS\monthly\2026\2026_01_01_to_2026_01_30_RMS_Export.xlsx this way we get the most up to date data set and I can backfill later today. after the consolidation is complete we can have claude code make the generalized version is this a good plan should I consider anything else? ---
+
+**Cursor**
+
+Excellent plan! Let me create a comprehensive prompt for Claude Code. Here are some considerations and the prompt:
+
+## Considerations Before Running:
+
+**Good Points:**
+✅ Using most current data (through 01/30/2026)
+✅ Testing consolidation before building validators
+✅ Logical workflow: consolidate → validate → generalize
+
+**Things to Consider:**
+1. **Backup Current Work:** The consolidated file from 01/29 will be overwritten
+2. **Time Required:** Full consolidation + ESRI processing takes ~15-20 minutes
+3. **Month Boundary:** Jan 30 is a good cutoff (includes full month)
+4. **RMS Data:** Verify the RMS export (2026_01_01_to_2026_01_30_RMS_Export.xlsx) exists and is valid
+
+## Prompt for Claude Code:
+
+```markdown
+# Task: Update CAD Consolidation and Create Call Type Normalization Utility
+
+## Context
+I need to:
+1. Create a generalized call type normalization utility in the recommended location
+2. Update the consolidation script to include the most recent data (through 01/30/2026)
+3. Run the full consolidation pipeline with updated data
+4. Prepare for validation testing
+
+## Part 1: Create Call Type Normalization Utility
+
+**Location:** `C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\shared\utils\call_type_normalizer.py`
+
+**Requirements:**
+- Extract the normalization logic from the existing script at:
+  `C:\Users\carucci_r\OneDrive - City of Hackensack\09_Reference\Classifications\CallTypes\clean_calltypes.py`
+- Make it a reusable utility function that can:
+  - Accept call type values as pandas Series or individual strings
+  - Normalize statute formatting (2C:XX-XX, 39:XX-XX)
+  - Clean whitespace and special characters
+  - Return normalized values
+- Add comprehensive docstrings
+- Make it importable for use in validators
+- Do NOT change the original script in 09_Reference (keep it as reference data maintenance tool)
+
+**Function Signature:**
+```python
+def normalize_call_type(value: Union[str, pd.Series], 
+                        remove_statute: bool = False) -> Union[str, pd.Series]:
+    """
+    Normalize call type names to standard format. Args:
+        value: Single string or pandas Series of call type names
+        remove_statute: If True, remove statute suffix entirely (e.g., " - 2C:12-1b")
+                       If False, standardize statute format
+    
+    Returns:
+        Normalized call type(s)
+    """
+```
+
+## Part 2: Update Consolidation Script
+
+**File:** `C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\consolidate_cad_2019_2026.py`
+
+**Updates Needed:**
+1. Change monthly file reference from `2026_01_01_to_2026_01_29_CAD_Export.xlsx` to `2026_01_01_to_2026_01_30_CAD_Export.xlsx`
+2. Update date range filter to include through 2026-01-30
+3. Update logging messages to reflect "2019-01-01 to 2026-01-30"
+4. Keep all existing logic (Unicode fixes, error handling, etc.) **Key Changes:**
+```python
+# Update this section:
+MONTHLY_FILE = CAD_MONTHLY_DIR / "2026" / "2026_01_01_to_2026_01_30_CAD_Export.xlsx"
+
+# Update date range:
+START_DATE = pd.Timestamp("2019-01-01")
+END_DATE = pd.Timestamp("2026-01-30")
+
+# Update logging:
+logger.info("CAD DATA CONSOLIDATION: 2019-01-01 to 2026-01-30")
+```
+
+## Part 3: Run Full Consolidation Pipeline
+
+**Steps to Execute:**
+
+### Step 3.1: Run Updated Consolidation Script
+```powershell
+cd "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality"
+python consolidate_cad_2019_2026.py
+```
+
+**Expected Output:**
+- File: `CAD_Data_Cleaning_Engine\data\01_raw\2019_to_2026_01_30_CAD.csv`
+- Records: ~724,500+ (9,794 records from 01/29 + additional from 01/30)
+- Time: ~2-3 minutes
+
+### Step 3.2: Run ESRI Output Generator
+```powershell
+cd "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine"
+python scripts/enhanced_esri_output_generator.py --input "data/01_raw/2019_to_2026_01_30_CAD.csv" --output-dir "data/03_final" --format excel
+```
+
+**Expected Output:**
+- Draft: `CAD_ESRI_DRAFT_[timestamp].xlsx`
+- Polished: `CAD_ESRI_POLISHED_[timestamp].xlsx`
+- Report: `normalization_report_[timestamp].md`
+- Time: ~8-10 minutes
+
+### Step 3.3: Validate Output (Non-Parallel Version)
+```powershell
+python scripts/validation/validate_esri_polished_dataset.py --input "data/03_final/CAD_ESRI_POLISHED_[timestamp].xlsx"
+```
+
+**Expected Output:**
+- Report: `CAD_ESRI_POLISHED_[timestamp]_validation_report_[timestamp].md`
+- Issues: Should be minimal (same false alarms as before)
+
+## Part 4: Create Execution Summary
+
+After running the pipeline, create a summary report:
+
+**Location:** `C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\outputs\consolidation\CONSOLIDATION_RUN_2026_01_30.txt`
+
+**Contents:**
+- Date range processed
+- Record counts (total, unique cases)
+- Files created
+- Validation results summary
+- Next steps (RMS backfill, monthly validation setup)
+
+## Verification Checklist
+
+Before finishing, verify:
+- [ ] call_type_normalizer.py created in shared/utils/
+- [ ] consolidate_cad_2019_2026.py updated with 01/30 date
+- [ ] Consolidation completed successfully
+- [ ] ESRI polished file generated
+- [ ] Validation report shows acceptable quality
+- [ ] Summary report created
+
+## Notes
+- Keep original clean_calltypes.py in 09_Reference unchanged (it's for reference data maintenance)
+- The new call_type_normalizer.py is for runtime use in validators
+- After RMS backfill later today, we can re-run the pipeline with RMS data included
+- Next task will be creating the comprehensive monthly validator
+
+## Error Handling
+If you encounter the pandas `encoding_errors` issue again in enhanced_esri_output_generator.py:
+- The fix is already applied (line 1473: `encoding_errors='ignore'`)
+- If it reverts, reapply the fix
+
+If you encounter Unicode errors in consolidation script:
+- All Unicode characters already replaced with ASCII (✓→[OK], ✗→[ERROR], etc.) - Should run cleanly on Windows console
+```
+
+---
+
+## Additional Recommendations:
+
+### Before Running:
+1. **Close Excel** if you have any CAD/RMS files open
+2. **Check disk space** (~500MB free recommended)
+3. **Verify RMS file exists:** `C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_RMS\monthly\2026\2026_01_01_to_2026_01_30_RMS_Export.xlsx`
+
+### After Running:
+1. **Save the ESRI polished file** - this is your baseline for January 2026
+2. **Note the record count** - compare with January expectations
+3. **Review validation report** - should be similar quality to 01/29 run
+4. **Plan RMS backfill** - when you run later today, note which fields get filled
+
+### Next Steps After This:
+1. ✅ Run RMS backfill (later today)
+2. ✅ Re-run ESRI generator with RMS data
+3. ✅ Create comprehensive monthly validator (Phase 1)
+4. ✅ Test validator on February 2026 data (when available)
+
+**Your plan is solid! ** This approach gives you:
+- ✅ Most current data for testing
+- ✅ Working baseline before building validators
+- ✅ Clear separation between reference maintenance and runtime utilities
+- ✅ Incremental progress (consolidate → validate → generalize)
+
+Ready to paste this prompt into Claude Code? 🚀
+
+---
+
+**User**
+
+have Claude Code backup current work, should we have a sub-directory made for backups? I will stick around for 15-20 mins, January has 31 days but I have time to backfill this data in the arcgis pro model today and then switch the source back to the notal export so tomorrow's update will be automatic@c:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_RMS\monthly\2026\2026_01_01_to_2026_01_30_RMS_Export.xlsx the rms rata is fine. we will have to convert the cad to match the ESRI schema thoigh
+
+---
+
+**Cursor**
+
+Great thinking on the backup! Yes, let's create a proper backup structure. Here's the updated prompt with backup instructions and clarifications:
+
+---
+
+# Updated Prompt for Claude Code (with Backup Strategy)
+
+```markdown
+# Task: Backup, Update CAD Consolidation, and Create Call Type Utility
+
+## PART 0: Create Backup Structure and Backup Current Work
+
+### Step 0.1: Create Backup Directory Structure
+Create these directories if they don't exist:
+```
+C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\backups\
+C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\backups\2026_01_30\
+```
+
+### Step 0.2: Backup Current Files
+Copy these files to the backup directory with timestamp:
+
+**From cad_rms_data_quality:**
+```powershell
+# Backup consolidation script
+Copy-Item "consolidate_cad_2019_2026.py" -Destination "backups/2026_01_30/consolidate_cad_2019_2026_backup_20260130.py"
+
+# Backup any existing output summaries
+Copy-Item "outputs/consolidation/*.txt" -Destination "backups/2026_01_30/" -ErrorAction SilentlyContinue
+```
+
+**From CAD_Data_Cleaning_Engine:**
+```powershell
+cd "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine"
+
+# Backup previous raw consolidated file (01/29 version)
+Copy-Item "data/01_raw/2019_to_2026_01_29_CAD.csv" -Destination "data/01_raw/BACKUP_2019_to_2026_01_29_CAD_20260130.csv" -ErrorAction SilentlyContinue
+
+# Backup previous ESRI polished file (if exists)
+$latestPolished = Get-ChildItem "data/03_final/CAD_ESRI_POLISHED_*.xlsx" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+if ($latestPolished) {
+    Copy-Item $latestPolished.FullName -Destination "data/03_final/BACKUP_$($latestPolished.Name)"
+}
+```
+
+### Step 0.3: Create Backup Log
+Create: `backups/2026_01_30/BACKUP_LOG.txt`
+
+Contents:
+```
+================================================================================
+BACKUP LOG - 2026-01-30 Consolidation Update
+================================================================================
+
+Date: 2026-01-30
+Purpose: Backup before updating consolidation to include 01/30/2026 data
+
+FILES BACKED UP:
+- consolidate_cad_2019_2026.py → consolidate_cad_2019_2026_backup_20260130.py
+- 2019_to_2026_01_29_CAD.csv → BACKUP_2019_to_2026_01_29_CAD_20260130.csv
+- [Previous ESRI polished file]
+
+CHANGES BEING MADE:
+1. Update monthly file from 2026_01_29 to 2026_01_30
+2. Update date range filter to 2026-01-30
+3. Create call_type_normalizer.py utility
+
+NEXT RUN AFTER THIS:
+- Will include data through 2026-01-31 (full January)
+- User will backfill in ArcGIS Pro today
+- Tomorrow's update will be automatic
+
+NOTES:
+- January has 31 days (need to update to 01/31 tomorrow)
+- RMS data is ready: 2026_01_01_to_2026_01_30_RMS_Export.xlsx
+- ESRI schema conversion handled by enhanced_esri_output_generator.py
+================================================================================
+```
+
+## PART 1: Create Call Type Normalization Utility
+
+**Location:** `C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\shared\utils\call_type_normalizer.py`
+
+**Requirements:**
+- Extract the normalization logic from: `C:\Users\carucci_r\OneDrive - City of Hackensack\09_Reference\Classifications\CallTypes\clean_calltypes.py`
+- Make it reusable for runtime validation (NOT for reference data maintenance)
+- Support both pandas Series and individual strings
+- Add option to remove or standardize statute suffixes
+- Include comprehensive docstrings
+
+**Implementation:**
+```python
+"""
+Call Type Normalization Utility
+================================
+
+Normalizes call type names to standard format for validation and processing. This is the RUNTIME version for use in validators and ETL pipelines. The reference data maintenance version lives in:
+09_Reference/Classifications/CallTypes/clean_calltypes.py
+
+Author: R. A. Carucci
+Date: 2026-01-30
+"""
+
+from typing import Union
+import re
+import pandas as pd
+
+
+# Pattern for statute suffixes: " - 2C:12-1b" or " - 39:4-50.2"
+STATUTE_SUFFIX_RE = re.compile(
+    r"\s*-\s*((? :2C|39):[0-9A-Za-z.\-]+)\s*$"
+)
+
+
+def normalize_call_type(
+    value: Union[str, pd.Series], 
+    remove_statute: bool = False
+) -> Union[str, pd.Series]:
+    """
+    Normalize call type names to standard format. Performs the following normalizations:
+    - Trims whitespace
+    - Collapses internal whitespace to single spaces
+    - Replaces em dash (—) and en dash (–) with hyphen (-)
+    - Standardizes statute suffix format (e.g., " - 2C:12-1b")
+    - Optionally removes statute suffix entirely
+    
+    Args:
+        value: Single string or pandas Series of call type names
+        remove_statute: If True, remove statute suffix entirely
+                       If False (default), standardize statute format
+    
+    Returns:
+        Normalized call type(s) in same type as input
+        
+    Examples:
+        >>> normalize_call_type("Aggravated Assault - 2C: 12-1b")
+        'Aggravated Assault - 2C:12-1b'
+        
+        >>> normalize_call_type("Aggravated Assault - 2C:12-1b", remove_statute=True)
+        'Aggravated Assault'
+        
+        >>> df["Incident_Clean"] = normalize_call_type(df["Incident"])
+    """
+    if isinstance(value, pd.Series):
+        return value.apply(lambda x: _normalize_single_call_type(x, remove_statute))
+    else:
+        return _normalize_single_call_type(value, remove_statute)
+
+
+def _normalize_single_call_type(value: str, remove_statute: bool = False) -> str:
+    """Normalize a single call type value.""" if pd.isna(value):
+        return ""
+    
+    s = str(value)
+    
+    # Trim and collapse internal whitespace
+    s = s.strip()
+    s = re.sub(r"\s+", " ", s)
+    
+    # Replace em dash and en dash with plain hyphen
+    s = s.replace("\u2014", "-").replace("\u2013", "-")
+    
+    # Try to find a statute suffix
+    m = STATUTE_SUFFIX_RE.search(s)
+    if not m:
+        # No statute suffix found
+        return s
+    
+    # Text before the suffix
+    base_text = s[:m.start()].rstrip(" -")
+    
+    if remove_statute:
+        # Remove statute suffix entirely
+        return base_text
+    
+    # Statute part with spaces removed
+    statute = m.group(1).replace(" ", "")
+    
+    # Final normalized form
+    return f"{base_text} - {statute}"
+
+
+def validate_call_type_format(value: str) -> tuple[bool, str]:
+    """
+    Validate if a call type is in proper format. Args:
+        value: Call type string to validate
+        
+    Returns:
+        Tuple of (is_valid: bool, error_message: str or None)
+        
+    Examples:
+        >>> validate_call_type_format("Motor Vehicle Stop")
+        (True, None)
+        
+        >>> validate_call_type_format("Aggravated Assault - 2C: 12-1b")
+        (False, "Statute suffix has improper spacing")
+    """
+    if pd.isna(value) or not value.strip():
+        return False, "Call type is null or empty"
+    
+    s = str(value).strip()
+    
+    # Check for excessive whitespace
+    if re.search(r"\s{2,}", s):
+        return False, "Contains excessive whitespace"
+    
+    # Check for em/en dash
+    if "\u2014" in s or "\u2013" in s:
+        return False, "Contains em dash or en dash (should be hyphen)"
+    
+    # Check statute format if present
+    m = STATUTE_SUFFIX_RE.search(s)
+    if m:
+        # Statute found - check if it has proper spacing
+        statute = m.group(1)
+        if " " in statute:
+            return False, "Statute suffix has improper spacing"
+    
+    return True, None
+
+
+# Convenience function for bulk validation
+def validate_call_types(series: pd.Series) -> pd.DataFrame:
+    """
+    Validate a series of call types and return validation report. Args:
+        series: Pandas Series of call type names
+        
+    Returns:
+        DataFrame with columns: index, value, is_valid, error_message
+        
+    Example:
+        >>> report = validate_call_types(df["Incident"])
+        >>> invalid = report[~report["is_valid"]]
+    """
+    results = []
+    
+    for idx, value in series.items():
+        is_valid, error_msg = validate_call_type_format(value)
+        results.append({
+            "index": idx,
+            "value": value,
+            "is_valid": is_valid,
+            "error_message": error_msg
+        })
+    
+    return pd.DataFrame(results)
+
+
+if __name__ == "__main__":
+    # Self-test
+    test_cases = [
+        ("Aggravated Assault - 2C: 12-1b", "Aggravated Assault - 2C:12-1b"),
+        ("Motor Vehicle Stop", "Motor Vehicle Stop"),
+        ("DWI - 39: 4-50", "DWI - 39:4-50"),
+        ("  Multiple   Spaces  ", "Multiple Spaces"),
+        ("Em—Dash Test", "Em-Dash Test"),
+    ]
+    
+    print("Call Type Normalizer Self-Test")
+    print("=" * 60)
+    
+    for input_val, expected in test_cases:
+        result = normalize_call_type(input_val)
+        status = "✓" if result == expected else "✗"
+        print(f"{status} Input:    '{input_val}'")
+        print(f"  Expected: '{expected}'")
+        print(f"  Got:      '{result}'")
+        print()
+```
+
+## PART 2: Update Consolidation Script
+
+**File:** `C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\consolidate_cad_2019_2026.py`
+
+**Changes:**
+```python
+# Line ~30: Update monthly file path
+MONTHLY_FILE = CAD_MONTHLY_DIR / "2026" / "2026_01_01_to_2026_01_30_CAD_Export.xlsx"
+
+# Line ~40: Update date range
+START_DATE = pd.Timestamp("2019-01-01")
+END_DATE = pd.Timestamp("2026-01-30")  # Changed from 2026-01-29
+
+# Line ~150: Update logging
+logger.info("CAD DATA CONSOLIDATION: 2019-01-01 to 2026-01-30")
+
+# Line ~280: Update output filename
+output_file = OUTPUT_PATH / "2019_to_2026_01_30_CAD.csv"  # Changed from 01_29
+```
+
+## PART 3: Run Consolidation Pipeline
+
+**Important Notes Before Running:**
+- January has 31 days (will need to update to 01/31 tomorrow)
+- This run includes data through 01/30 only
+- User will backfill in ArcGIS Pro today
+- Tomorrow's update will be automatic (01/31 data)
+
+### Step 3.1: Run Consolidation
+```powershell
+cd "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality"
+python consolidate_cad_2019_2026.py
+```
+
+**Expected:**
+- New file: `2019_to_2026_01_30_CAD.csv` (~724,500+ records)
+- Time: 2-3 minutes
+- Console output should show [OK] indicators (ASCII-safe)
+
+### Step 3.2: Run ESRI Output Generator (Converts to ESRI Schema)
+```powershell
+cd "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine"
+
+python scripts/enhanced_esri_output_generator.py `
+  --input "data/01_raw/2019_to_2026_01_30_CAD.csv" `
+  --output-dir "data/03_final" `
+  --format excel
+```
+
+**This script automatically:**
+- Converts CAD schema to ESRI schema ✓
+- Applies RMS backfill (41,137 PDZone values from `C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine\data\01_raw\RMS_Export_2023_2025.xlsx`)
+- Applies Advanced Normalization v3.2
+- Generates ESRI-compatible output
+
+**Expected:**
+- Draft: `CAD_ESRI_DRAFT_[timestamp].xlsx`
+- Polished: `CAD_ESRI_POLISHED_[timestamp].xlsx` ← **This is ready for ArcGIS Pro**
+- Report: `normalization_report_[timestamp].md`
+- Time: 8-10 minutes
+
+### Step 3.3: Validate Output
+```powershell
+# Get the latest polished file (PowerShell will find it)
+$latestFile = Get-ChildItem "data/03_final/CAD_ESRI_POLISHED_*.xlsx" | 
+              Sort-Object LastWriteTime -Descending | 
+              Select-Object -First 1
+
+python scripts/validation/validate_esri_polished_dataset.py --input $latestFile.FullName
+```
+
+**Expected:**
+- Report: `CAD_ESRI_POLISHED_[timestamp]_validation_report_[timestamp].md`
+- Issues: 3 false alarms (PDZone, Response Type, CADNotes column mapping bugs)
+
+## PART 4: Create Summary Report
+
+**Location:** `outputs/consolidation/CONSOLIDATION_RUN_2026_01_30_SUMMARY.txt`
+
+**Template:**
+```
+================================================================================
+CAD CONSOLIDATION RUN - 2026-01-30 Update
+================================================================================
+
+Run Date: 2026-01-30
+Date Range: 2019-01-01 to 2026-01-30 (7 years + 30 days)
+
+IMPORTANT NOTES:
+- January has 31 days - need to run again tomorrow for 01/31 data
+- User will backfill in ArcGIS Pro today
+- Tomorrow's update will be automatic
+
+================================================================================
+INPUT FILES
+================================================================================
+
+Yearly Files (7):
+  2019_CAD_ALL.xlsx:   91,217 records
+  2020_CAD_ALL.xlsx:   89,400 records
+  2021_CAD_ALL.xlsx:   91,477 records
+  2022_CAD_ALL.xlsx:  105,038 records
+  2023_CAD_ALL.xlsx:  113,179 records
+  2024_CAD_ALL.xlsx:  110,313 records
+  2025_CAD_ALL.xlsx:  114,065 records
+
+Monthly File (1):
+  2026_01_01_to_2026_01_30_CAD_Export.xlsx:  [RECORD COUNT] records
+
+RMS Data:
+  Location: C:\Users\carucci_r\OneDrive - City of Hackensack\05_EXPORTS\_RMS\monthly\2026\2026_01_01_to_2026_01_30_RMS_Export.xlsx
+  Status: Ready for backfill
+
+================================================================================
+OUTPUT FILES
+================================================================================
+
+Consolidated Raw:
+  Location: CAD_Data_Cleaning_Engine/data/01_raw/2019_to_2026_01_30_CAD.csv
+  Records: [TOTAL RECORD COUNT]
+  Unique Cases: [UNIQUE CASE COUNT]
+  Size: [FILE SIZE] MB
+
+ESRI Polished (Ready for ArcGIS Pro):
+  Location: CAD_Data_Cleaning_Engine/data/03_final/CAD_ESRI_POLISHED_[timestamp].xlsx
+  Records: [TOTAL RECORD COUNT]
+  Columns: 20
+  RMS Backfill Applied: 41,137 PDZone values
+  Normalization: Advanced v3.2 applied
+
+Validation Report:
+  Location: CAD_Data_Cleaning_Engine/data/03_final/CAD_ESRI_POLISHED_[timestamp]_validation_report_[timestamp].md
+  Issues: 3 (all false alarms - column mapping bugs)
+  Quality: EXCELLENT
+
+================================================================================
+NEXT STEPS
+================================================================================
+
+TODAY:
+1. ✓ Consolidation complete through 01/30
+2. → User backfills in ArcGIS Pro with polished file
+3. → User switches source back to normal export
+
+TOMORROW (01/31):
+1. → Download 2026_01_01_to_2026_01_31_CAD_Export.xlsx
+2. → Update consolidation script to 01/31
+3. → Re-run consolidation pipeline
+4. → Automatic update in ArcGIS Pro
+
+FEBRUARY 2026:
+1. → Download monthly CAD export (2026_02_CAD.xlsx)
+2. → Download monthly RMS export (2026_02_RMS.xlsx)
+3. → Run comprehensive monthly validator (Phase 1)
+4. → Review quality report
+5.

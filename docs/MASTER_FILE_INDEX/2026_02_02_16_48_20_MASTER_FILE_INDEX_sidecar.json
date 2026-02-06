@@ -1,0 +1,73 @@
+{
+  "source_file": "MASTER_FILE_INDEX.txt",
+  "source_path": "C:\\_chunker\\02_data\\MASTER_FILE_INDEX.txt",
+  "manifest_path": "C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\KB_Shared\\04_output\\MASTER_FILE_INDEX\\2026_02_02_16_48_20_MASTER_FILE_INDEX.origin.json",
+  "created_at": "2026_02_02_16_48_20",
+  "tags": [
+    "ai",
+    "code",
+    "data",
+    "docs",
+    "excel",
+    "it-ops",
+    "markdown",
+    "police",
+    "powershell",
+    "python"
+  ],
+  "metadata": {
+    "project_name": "02_data",
+    "source_type": "notes",
+    "language": "en",
+    "department": "admin",
+    "key_terms": [
+      "txt",
+      "file",
+      "gemini",
+      "server",
+      "deployment",
+      "task"
+    ],
+    "enrichment_version": "1.0.0"
+  },
+  "summaries": {
+    "file_summary": "# ================================================================\n# COMPLETE FILE INDEX - Server Deployment & Gemini Collaboration\n# ================================================================\n# Date: 2026-01-31\n# Project: CAD Cons...",
+    "first_line": "# ================================================================"
+  },
+  "chunks": [
+    {
+      "chunk_id": "2026-02-02T16:48:20+00:00_MASTER_FILE_INDEX_chunk1",
+      "chunk_index": 1,
+      "file": "chunk_00000.txt",
+      "tags": [
+        "ai",
+        "code",
+        "data",
+        "deployment",
+        "docs",
+        "excel",
+        "file",
+        "gemini",
+        "it-ops",
+        "markdown",
+        "police",
+        "powershell",
+        "python",
+        "server",
+        "task"
+      ],
+      "key_terms": [
+        "txt",
+        "file",
+        "gemini",
+        "server",
+        "deployment",
+        "task"
+      ],
+      "summary": "# ================================================================\n# COMPLETE FILE INDEX - Server Deployment & Gemini Collaboration\n# ================================================================\n# Date: 2026-01-31\n# Project: CAD Cons...",
+      "char_length": 11460,
+      "byte_length": 11938
+    }
+  ],
+  "enrichment_version": "1.0.0"
+}

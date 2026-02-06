@@ -1,0 +1,40 @@
+{
+  "tags": [
+    "ai",
+    "code",
+    "data",
+    "docs",
+    "excel",
+    "finance",
+    "json",
+    "markdown",
+    "police",
+    "powershell",
+    "python",
+    "sql"
+  ],
+  "metadata_enrichment": {
+    "metadata": {
+      "project_name": "02_data",
+      "source_type": "documentation",
+      "language": "en",
+      "department": "admin",
+      "key_terms": [
+        "data",
+        "xlsx",
+        "value",
+        "statute",
+        "update",
+        "type"
+      ],
+      "enrichment_version": "1.0.0"
+    },
+    "summaries": {
+      "file_summary": "# Task: Backup, Update CAD Consolidation, and Create Call Type Utility## PART 0: Create Backup Structure and Backup Current Work### Step 0.1: Create Backup Directory StructureCreate these directories if they don't exist:\nC:\\Users\\carucci...",
+      "first_line": "# Task: Backup, Update CAD Consolidation, and Create Call Type Utility## PART 0: Create Backup Structure and Backup Current Work### Step 0.1: Create Backup Directory StructureCreate these directories if they don't exist:"
+    },
+    "enrichment_version": "1.0.0"
+  },
+  "last_processed_at": "2026-01-31T01:28:31.341044",
+  "department": "admin"
+}

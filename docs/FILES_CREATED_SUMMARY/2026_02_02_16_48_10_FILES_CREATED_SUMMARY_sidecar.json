@@ -1,0 +1,73 @@
+{
+  "source_file": "FILES_CREATED_SUMMARY.txt",
+  "source_path": "C:\\_chunker\\02_data\\FILES_CREATED_SUMMARY.txt",
+  "manifest_path": "C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\KB_Shared\\04_output\\FILES_CREATED_SUMMARY\\2026_02_02_16_48_10_FILES_CREATED_SUMMARY.origin.json",
+  "created_at": "2026_02_02_16_48_10",
+  "tags": [
+    "ai",
+    "code",
+    "data",
+    "docs",
+    "excel",
+    "it-ops",
+    "markdown",
+    "police",
+    "powershell",
+    "python"
+  ],
+  "metadata": {
+    "project_name": "02_data",
+    "source_type": "notes",
+    "language": "en",
+    "department": "admin",
+    "key_terms": [
+      "server",
+      "file",
+      "copy",
+      "txt",
+      "documentation",
+      "dataset"
+    ],
+    "enrichment_version": "1.0.0"
+  },
+  "summaries": {
+    "file_summary": "# ================================================================\n# FILES CREATED - REMOTE SERVER HANDOFF\n# ================================================================\n# Date: 2026-01-31\n# Session: CAD Consolidated Dataset - Remote...",
+    "first_line": "# ================================================================"
+  },
+  "chunks": [
+    {
+      "chunk_id": "2026-02-02T16:48:10+00:00_FILES_CREATED_SUMMARY_chunk1",
+      "chunk_index": 1,
+      "file": "chunk_00000.txt",
+      "tags": [
+        "ai",
+        "code",
+        "copy",
+        "data",
+        "dataset",
+        "docs",
+        "documentation",
+        "excel",
+        "file",
+        "it-ops",
+        "markdown",
+        "police",
+        "powershell",
+        "python",
+        "server"
+      ],
+      "key_terms": [
+        "server",
+        "file",
+        "copy",
+        "txt",
+        "documentation",
+        "dataset"
+      ],
+      "summary": "# ================================================================\n# FILES CREATED - REMOTE SERVER HANDOFF\n# ================================================================\n# Date: 2026-01-31\n# Session: CAD Consolidated Dataset - Remote...",
+      "char_length": 9837,
+      "byte_length": 10223
+    }
+  ],
+  "enrichment_version": "1.0.0"
+}

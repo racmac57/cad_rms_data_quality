@@ -28,12 +28,13 @@ required_fields:
     - PDZone
     - Disposition
     - HowReported
+  # RMS export: header "Case Number" -> CaseNumber; address is FullAddress (not Location); Zone (not PDZone); OffenseCode not in export
   rms:
     - CaseNumber
     - IncidentDate
     - IncidentTime
-    - Location
-    - OffenseCode
+    - FullAddress
+    - Zone
 
 # Address validation settings
 address:

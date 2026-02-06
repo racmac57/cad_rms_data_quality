@@ -1,5 +1,9 @@
 {
-  "schema_version": "1.0",
-  "created": "2026-02-02",
-  "note": "This file is automatically updated after each validation run"
+  "latest_run": "2026_01_cad",
+  "timestamp": "2026-02-02T04:43:49.910282",
+  "path": "C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\02_ETL_Scripts\\cad_rms_data_quality\\monthly_validation\\reports\\2026_01_cad",
+  "type": "cad",
+  "record_count": 10435,
+  "quality_score": 93.13,
+  "action_items_count": 1694
 }

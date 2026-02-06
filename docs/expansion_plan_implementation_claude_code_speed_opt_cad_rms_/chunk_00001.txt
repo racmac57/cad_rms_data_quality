@@ -1,0 +1,730 @@
+**Paths and baseline** (Priority 1 - Foundation):
+  686    - Create `13_PROCESSED_DATA\ESRI_Polished\base\` directory
+  687    - Copy current 2026-01-30 polished file to base
+  688    - Create `manifest.json` with baseline entry
+  689    - Add `baseline` and `incremental` sections to `config/consolidation_sou
+      rces.yaml`
+  690    - Add `processed_data` paths section
+  691
+  692 2. **Reports** (Priority 2 - Organization):
+  693    - Create `consolidation/reports/` directory structure
+  694    - Create `monthly_validation/reports/cad/` and `monthly_validation/repor
+      ts/rms/`
+  695    - Add `latest.json` files
+  696    - Migrate `outputs/consolidation/` to `consolidation/reports/2026_01_30_
+      legacy/`
+  697    - Update `consolidate_cad_2019_2026.py` to use new report paths
+  698
+  699 3. **Server + ArcPy** (Priority 3 - Deployment):
+  700    - Update `copy_consolidated_dataset_to_server.ps1` to read from manifest
+  701    - Add verification step
+  702    - Add `import_cad_polished_to_geodatabase.py` and `docs/arcgis/README.md
+      `
+  703
+  704 4. **Speed optimizations** (Priority 4 - Performance):
+  705    - Add parallel loading to `consolidate_cad_2019_2026.py`
+  706    - Add chunked reading for large files
+  707    - Add dtype optimization function
+  708    - Add `performance` section to config
+  709    - Create `consolidate_cad_incremental.py` for baseline + append mode
+  710
+  711 5. **Monthly processing** (Priority 5 - Ongoing Operations):
+  712    - Add monthly config sections to YAML files
+  713    - Implement `validate_cad.py` and `validate_rms.py` with action items ex
+      port
+  714    - Apply vectorized validation patterns from CAD_Data_Cleaning_Engine
+  715
+  716 6. **Legacy** (Priority 6 - Cleanup):
+  717    - After everything runs from cad_rms_data_quality, move legacy projects
+      to `_Archive`
+  718    - Create `_Archive\README.md`
+  719
+  720 ---
+  721
+  722 ## Diagram (ENHANCED)
+  723
+  724 ```mermaid
+  725 flowchart TB
+  726   subgraph raw [Raw Exports]
+  727     CAD_monthly[CAD monthly 2026]
+  728     RMS_monthly[RMS monthly 2026]
+  729     CAD_yearly[CAD yearly 2019-2025]
+  730   end
+  731
+  732   subgraph config [Configuration]
+  733     manifest[manifest.json<br/>Latest file registry]
+  734     yaml_config[consolidation_sources.yaml<br/>Baseline + Incremental confi
+      g]
+  735     perf_config[performance settings<br/>Parallel/chunking]
+  736   end
+  737
+  738   subgraph cad_rms_repo [cad_rms_data_quality]
+  739     consolidate[consolidate_cad_2019_2026<br/>Full mode]
+  740     incremental[consolidate_cad_incremental<br/>Baseline + append]
+  741     baseline[Baseline 2019-2026-01-30]
+  742     monthly_cad[validate_cad monthly]
+  743     monthly_rms[validate_rms monthly]
+  744     cons_reports[consolidation/reports/YYYY_MM_DD_*]
+  745     monthly_reports[monthly_validation/reports/YYYY_MM_DD_*]
+  746   end
+  747
+  748   subgraph processed [13_PROCESSED_DATA]
+  749     base[ESRI_Polished/base<br/>Immutable baseline]
+  750     incremental_out[ESRI_Polished/incremental<br/>YYYY_MM_DD_append/]
+  751   end
+  752
+  753   subgraph server [Server]
+  754     share[Network share esri]
+  755     arcpy[ArcPy ExcelToTable]
+  756     gdb[Geodatabase]
+  757   end
+  758
+  759   CAD_yearly --> consolidate
+  760   CAD_yearly --> incremental
+  761   baseline --> incremental
+  762   yaml_config --> consolidate
+  763   yaml_config --> incremental
+  764   perf_config --> consolidate
+  765   perf_config --> incremental
+  766
+  767   consolidate --> base
+  768   incremental --> incremental_out
+  769
+  770   CAD_monthly --> monthly_cad
+  771   RMS_monthly --> monthly_rms
+  772   consolidate --> cons_reports
+  773   incremental --> cons_reports
+  774   monthly_cad --> monthly_reports
+  775   monthly_rms --> monthly_reports
+  776
+  777   base --> manifest
+  778   incremental_out --> manifest
+  779   manifest --> share
+  780
+  781   share --> arcpy
+  782   arcpy --> gdb
+  783 ```
+  784
+  785 ---
+  786
+  787 ## Summary of Enhancements
+  788
+  789 ### Speed Improvements
+  790 | Enhancement | Impact | Location |
+  791 |-------------|--------|----------|
+  792 | Parallel Excel loading | 3-4x faster file load | consolidate_cad_2019_202
+      6.py |
+  793 | Chunked reading for large files | Reduced memory, handles 100MB+ | consol
+      idate_cad_2019_2026.py |
+  794 | Baseline + incremental mode | Skip re-reading 7 years of data | consolida
+      te_cad_incremental.py |
+  795 | Dtype optimization | 40-60% memory reduction | shared/utils/memory_optimi
+      zer.py |
+  796 | ESRI worker count config | Configurable parallelism | config/consolidatio
+      n_sources.yaml |
+  797
+  798 ### Organization Improvements
+  799 | Enhancement | Impact | Location |
+  800 |-------------|--------|----------|
+  801 | manifest.json for latest file | Reliable latest file resolution | 13_PROC
+      ESSED_DATA/ |
+  802 | YYYY_MM_DD_ folder structure | Auditable run history | consolidation/repo
+      rts/, ESRI_Polished/ |
+  803 | Separate cad/rms report folders | Clear separation of validation runs | m
+      onthly_validation/reports/ |
+  804 | latest.json pointers | Easy "get latest" for scripts | consolidation/repo
+      rts/, monthly_validation/reports/ |
+  805 | Action items export | Structured manual correction list | monthly_validat
+      ion/reports/*/action_items.xlsx |
+  806
+  807 ### Configuration Improvements
+  808 | Enhancement | Impact | Location |
+  809 |-------------|--------|----------|
+  810 | baseline section | Baseline file tracking | config/consolidation_sources. yaml |
+  811 | incremental section | Append mode settings | config/consolidation_sources
+      .yaml |
+  812 | performance section | Tunable parallelism | config/consolidation_sources. yaml |
+  813 | processed_data paths | Centralized path management | config/paths.yaml or
+       consolidation_sources.yaml |
+  814 | monthly_processing section | Monthly validation config | config/rms_sourc
+      es.yaml |
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Do you want to create CAD_RMS_Data_Quality_Expansion_Plan_ENHANCED.md? > 1. Yes
+   2. Yes, allow all edits during this session (shift+tab)
+   3. No
+
+ Esc to cancel · Tab to amend
+
+ ▐▛███▜▌   Claude Code v2.1.29
+▝▜█████▛▘  Opus 4.5 · Claude Pro
+  ▘▘ ▝▝    ~\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality
+
+> Read and follow the instructions in:
+  c:\Users\carucci_r\OneDrive - City of
+  Hackensack\02_ETL_Scripts\cad_rms_data_quality\docs\Plan_Review_Package_For_Claude\PROMPT_FOR_CLAUDE.md
+
+  The prompt tells you which files to read, what to enhance (speed, efficiency, organization), and where to save
+  the enhanced plan. ● Read 1 file (ctrl+o to expand)
+
+● I'll read the expansion plan and all context files to understand the current state and then produce an enhanced
+  version with speed, efficiency, and organization improvements. ● Read 12 files (ctrl+o to expand)
+
+● Now I have all the context. Let me analyze the current implementation and create an enhanced plan with specific
+  recommendations for speed, efficiency, and organization. ● Write(docs\Plan_Review_Package_For_Claude\CAD_RMS_Data_Quality_Expansion_Plan_ENHANCED.md)
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Create file
+ docs\Plan_Review_Package_For_Claude\CAD_RMS_Data_Quality_Expansion_Plan_ENHANCED.md
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+    1 # CAD/RMS Data Quality: Baseline, Paths, Monthly Processing, Archive, and Server Handoff
+    2
+    3 ## ENHANCED VERSION - Speed, Efficiency, and Organization Improvements
+    4
+    5 **Enhanced by:** Claude Code
+    6 **Date:** 2026-02-01
+    7 **Original Plan Version:** 1.0.0
+    8 **Enhanced Plan Version:** 1.1.0
+    9
+   10 ---
+   11
+   12 ## Context Summary
+   13
+   14 - **Current state**: Clean dataset 2019-01-01 through 2026-01-30 (724,794 records) produced by consolidate_cad_
+      2019_2026.py; CSV written to CAD_Data_Cleaning_Engine `data/01_raw`, ESRI polished output to `data/03_final`. Q
+      uality reports and summaries live in outputs/consolidation/ (flat). copy_consolidated_dataset_to_server.ps1 cop
+      ies a fixed path to `\\10.0.0.157\esri\`. 15 - **Legacy projects**: CAD_Data_Cleaning_Engine (ESRI generator, parallel validation, RMS backfill), Combined_C
+      AD_RMS (CAD+RMS merge, PowerBI/Excel outputs), RMS_CAD_Combined_ETL (skeleton), RMS_Data_ETL (address/usaddress
+      , quality JSON), RMS_Data_Processing (enhanced RMS, time fixes, quality reports). 16 - **ArcGIS handoff**: Gemini handoff package contains Inject/Restore PowerShell scripts and a full **arcpy** `E
+      xcelToTable` import script (with verification); paths use `C:\HPD ESRI\03_Data\...` on server. 17
+   18 ---
+   19
+   20 ## 1. Baseline dataset and faster incremental processing
+   21
+   22 ### 1.1 Save current polished dataset as baseline
+   23
+   24 - **Action**: Copy the current "complete through 2026-01-30" polished file into the new canonical location (see
+       section 2) as the **base** version (e.g. `ESRI_Polished/base/CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx
+      ` or equivalent naming you choose). Treat this as the immutable starting point; future runs only **append** new
+       date ranges. 25 - **Config**: Add a `baseline` section to config/consolidation_sources.yaml (or a small `paths.yaml`) with: pat
+      h to the baseline polished file; date range (2019-01-01, 2026-01-30) and record count (724,794) for validation. 26 - **Script**: Either a one-time copy script or a step in the consolidation workflow that, when "building from b
+      aseline," checks for this base file and uses it instead of re-processing 2019-2026 from scratch. 27
+   28 #### **ENHANCED: Baseline Configuration Structure**
+   29
+   30 Add the following section to `config/consolidation_sources.yaml`:
+   31
+   32 ```yaml
+   33 # Baseline configuration for incremental mode
+   34 baseline:
+   35   enabled: true
+   36   path: "C:/Users/carucci_r/OneDrive - City of Hackensack/13_PROCESSED_DATA/ESRI_Polished/base/CAD_ESRI_Polishe
+      d_Baseline_20190101_20260130.xlsx"
+   37   date_range:
+   38     start: "2019-01-01"
+   39     end: "2026-01-30"
+   40   record_count: 724794
+   41   unique_cases: 559202
+   42   checksum: null  # SHA-256 hash to verify file integrity (populate after baseline created)
+   43   created: "2026-01-31"
+   44
+   45 # Incremental mode settings
+   46 incremental:
+   47   enabled: true
+   48   mode: "append"  # Options: "append" (add new records), "full" (rebuild from scratch)
+   49   last_run_date: null  # Auto-populated after each run
+   50   last_run_record_count: null
+   51   dedup_strategy: "keep_latest"  # Options: "keep_latest", "keep_first", "keep_all_supplements"
+   52 ```
+   53
+   54 ### 1.2 Speed up processing (cores and chunking)
+   55
+   56 #### **ENHANCED: Parallel Excel Loading in consolidate_cad_2019_2026.py**
+   57
+   58 Current implementation loads files sequentially. Add parallel loading using `concurrent.futures`:
+   59
+   60 ```python
+   61 # Add to consolidate_cad_2019_2026.py - NEW SECTION
+   62 from concurrent.futures import ThreadPoolExecutor, as_completed
+   63 import os
+   64
+   65 # Configuration - add to top of file or load from config
+   66 PARALLEL_LOADING = True
+   67 MAX_WORKERS = min(8, os.cpu_count() or 4)  # Cap at 8 to avoid memory issues
+   68 CHUNK_SIZE = 100000  # For chunked reading of large files
+   69
+   70 def load_files_parallel(file_configs: list) -> list:
+   71     """
+   72     Load multiple Excel files in parallel using ThreadPoolExecutor. 73
+   74     Args:
+   75         file_configs: List of (file_path, year, expected_count) tuples
+   76
+   77     Returns:
+   78         List of DataFrames
+   79     """
+   80     results = []
+   81
+   82     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+   83         # Submit all load tasks
+   84         future_to_file = {
+   85             executor.submit(load_excel_file, Path(CAD_ROOT / path), year, expected): (path, year)
+   86             for path, year, expected in file_configs
+   87         }
+   88
+   89         # Collect results as they complete
+   90         for future in as_completed(future_to_file):
+   91             path, year = future_to_file[future]
+   92             try:
+   93                 df = future.result()
+   94                 df = filter_date_range(df, START_DATE, END_DATE)
+   95                 results.append((year, df))
+   96                 logger.info(f"[PARALLEL] Completed {year}: {len(df):,} records")
+   97             except Exception as e:
+   98                 logger.error(f"[PARALLEL] Failed {year}: {e}")
+   99
+  100     # Sort by year and return DataFrames only
+  101     results.sort(key=lambda x: x[0])
+  102     return [df for _, df in results]
+  103 ```
+  104
+  105 #### **ENHANCED: Chunked Reading for Large Workbooks**
+  106
+  107 Add chunked reading option for files over 100MB:
+  108
+  109 ```python
+  110 # Add to consolidate_cad_2019_2026.py
+  111 def load_excel_chunked(file_path: Path, chunk_size: int = 100000) -> pd.DataFrame:
+  112     """
+  113     Load large Excel files in chunks to reduce memory pressure. 114     Uses openpyxl read_only mode for better performance. 115
+  116     Args:
+  117         file_path: Path to Excel file
+  118         chunk_size: Number of rows per chunk
+  119
+  120     Returns:
+  121         Complete DataFrame
+  122     """
+  123     from openpyxl import load_workbook
+  124
+  125     # Check file size - only use chunked for large files
+  126     file_size_mb = file_path.stat().st_size / (1024 * 1024)
+  127
+  128     if file_size_mb < 50:
+  129         # Small file - use standard read
+  130         return pd.read_excel(file_path, engine='openpyxl')
+  131
+  132     logger.info(f"  Using chunked read for {file_size_mb:.1f} MB file")
+  133
+  134     # Use read_only mode for large files
+  135     wb = load_workbook(file_path, read_only=True, data_only=True)
+  136     ws = wb.active
+  137
+  138     # Get headers from first row
+  139     headers = [cell.value for cell in next(ws.rows)]
+  140
+  141     chunks = []
+  142     chunk_rows = []
+  143
+  144     for i, row in enumerate(ws.rows):
+  145         if i == 0:
+  146             continue  # Skip header
+  147
+  148         chunk_rows.append([cell.value for cell in row])
+  149
+  150         if len(chunk_rows) >= chunk_size:
+  151             chunk_df = pd.DataFrame(chunk_rows, columns=headers)
+  152             chunks.append(chunk_df)
+  153             chunk_rows = []
+  154             logger.info(f"    Processed chunk {len(chunks)}: {len(chunk_df):,} rows")
+  155
+  156     # Final chunk
+  157     if chunk_rows:
+  158         chunk_df = pd.DataFrame(chunk_rows, columns=headers)
+  159         chunks.append(chunk_df)
+  160
+  161     wb.close()
+  162
+  163     result = pd.concat(chunks, ignore_index=True)
+  164     logger.info(f"  Chunked load complete: {len(result):,} total rows")
+  165     return result
+  166 ```
+  167
+  168 #### **ENHANCED: Config for Parallel Processing**
+  169
+  170 Add to `config/consolidation_sources.yaml`:
+  171
+  172 ```yaml
+  173 # Performance configuration
+  174 performance:
+  175   parallel_loading:
+  176     enabled: true
+  177     max_workers: 8  # Adjust based on available cores and memory
+  178
+  179   chunked_reading:
+  180     enabled: true
+  181     threshold_mb: 50  # Use chunked reading for files over this size
+  182     chunk_size: 100000  # Rows per chunk
+  183
+  184   memory_optimization:
+  185     use_categories: true  # Convert low-cardinality strings to categorical
+  186     downcast_numeric: true  # Downcast int64/float64 to smaller types where possible
+  187
+  188   esri_generation:
+  189     n_workers: 4  # Workers for enhanced_esri_output_generator.py
+  190     enable_parallel: true
+  191     chunk_size: 10000  # Normalization chunk size
+  192 ```
+  193
+  194 #### **ENHANCED: Memory-Efficient Data Types**
+  195
+  196 Add dtype optimization function to reduce memory usage:
+  197
+  198 ```python
+  199 # Add to consolidate_cad_2019_2026.py or shared/utils/memory_optimizer.py
+  200 def optimize_dtypes(df: pd.DataFrame) -> pd.DataFrame:
+  201     """
+  202     Optimize DataFrame memory usage by downcasting types. 203
+  204     Typical memory reduction: 40-60% for CAD datasets. 205     """
+  206     logger.info(f"Memory before optimization: {df.memory_usage(deep=True).sum() / 1024**2:.1f} MB")
+  207
+  208     for col in df.columns:
+  209         col_type = df[col].dtype
+  210
+  211         # Downcast integers
+  212         if col_type in ['int64', 'int32']:
+  213             df[col] = pd.to_numeric(df[col], downcast='integer')
+  214
+  215         # Downcast floats
+  216         elif col_type in ['float64']:
+  217             df[col] = pd.to_numeric(df[col], downcast='float')
+  218
+  219         # Convert low-cardinality strings to categorical
+  220         elif col_type == 'object':
+  221             num_unique = df[col].nunique()
+  222             num_total = len(df[col])
+  223
+  224             # If less than 5% unique values, convert to categorical
+  225             if num_unique / num_total < 0.05:
+  226                 df[col] = df[col].astype('category')
+  227
+  228     logger.info(f"Memory after optimization: {df.memory_usage(deep=True).sum() / 1024**2:.1f} MB")
+  229     return df
+  230 ```
+  231
+  232 ### 1.3 Incremental append path (ENHANCED)
+  233
+  234 For "append only" runs (e.g. 2026-02-01 onward):
+  235
+  236 #### **Script Flow for Baseline + Incremental Mode**
+  237
+  238 Create `consolidate_cad_incremental.py` with the following logic:
+  239
+  240 ```python
+  241 #!/usr/bin/env python3
+  242 """
+  243 CAD Data Incremental Consolidation Script
+  244 Loads baseline + appends new monthly data without re-processing 7 years. 245
+  246 Author: R. A. Carucci
+  247 """
+  248
+  249 import yaml
+  250 from pathlib import Path
+  251
+  252 def run_incremental_consolidation():
+  253     """
+  254     Incremental consolidation flow:
+  255     1. Load config and check if baseline exists
+  256     2. If baseline exists and incremental.enabled=true:
+  257        a. Load baseline polished file (single read, ~724K records)
+  258        b. Load ONLY new monthly files (since last_run_date)
+  259        c. Apply normalization/validation to new records only
+  260        d. Concatenate baseline + new records
+  261        e. Deduplicate by ReportNumberNew (keep_latest)
+  262        f. Run ESRI generator on combined dataset
+  263        g. Update config with last_run_date
+  264     3. If no baseline or incremental.enabled=false:
+  265        a. Fall back to full consolidation
+  266     """
+  267     config = load_config('config/consolidation_sources.yaml')
+  268
+  269     if config['baseline']['enabled'] and Path(config['baseline']['path']).exists():
+  270         logger.info("Running INCREMENTAL mode (baseline + new data)")
+  271
+  272         # Step 1: Load baseline (fast - single file read)
+  273         baseline_df = pd.read_excel(config['baseline']['path'])
+  274         logger.info(f"Loaded baseline: {len(baseline_df):,} records")
+  275
+  276         # Step 2: Identify new files (since last run)
+  277         last_run = config['incremental'].get('last_run_date')
+  278         new_files = get_monthly_files_since(last_run)
+  279
+  280         if not new_files:
+  281             logger.info("No new monthly files to process")
+  282             return baseline_df
+  283
+  284         # Step 3: Load and process new files only (parallel)
+  285         new_dfs = load_files_parallel(new_files)
+  286         new_combined = pd.concat(new_dfs, ignore_index=True)
+  287         logger.info(f"New records to add: {len(new_combined):,}")
+  288
+  289         # Step 4: Apply normalization to new records
+  290         new_combined = normalize_fields(new_combined)
+  291         new_combined = backfill_from_rms(new_combined)
+  292
+  293         # Step 5: Merge with baseline
+  294         combined = pd.concat([baseline_df, new_combined], ignore_index=True)
+  295
+  296         # Step 6: Deduplicate (keeps supplements but removes true duplicates)
+  297         combined = deduplicate_records(combined, strategy=config['incremental']['dedup_strategy'])
+  298
+  299         # Step 7: Update config
+  300         update_incremental_state(config)
+  301
+  302         return combined
+  303     else:
+  304         logger.info("Running FULL mode (processing all yearly files)")
+  305         return run_full_consolidation()
+  306 ```
+  307
+  308 #### **Config Keys for Incremental Mode**
+  309
+  310 The following keys control incremental behavior (add to `config/consolidation_sources.yaml`):
+  311
+  312 | Key | Type | Description |
+  313 |-----|------|-------------|
+  314 | `baseline.enabled` | bool | Enable baseline mode |
+  315 | `baseline.path` | string | Path to baseline polished file |
+  316 | `baseline.date_range.end` | date | Last date included in baseline |
+  317 | `incremental.enabled` | bool | Enable incremental processing |
+  318 | `incremental.mode` | string | "append" or "full" |
+  319 | `incremental.last_run_date` | date | Auto-populated after each run |
+  320 | `incremental.dedup_strategy` | string | How to handle duplicates |
+  321
+  322 ---
+  323
+  324 ## 2. New directory for clean/polished data: 13_PROCESSED_DATA
+  325
+  326 ### 2.1 Structure (ENHANCED)
+  327
+  328 #### **Enhanced Directory Layout with Manifest**
+  329
+  330 ```
+  331 13_PROCESSED_DATA/
+  332 ├── README.md                           # Overview and usage
+  333 ├── manifest.json                       # Latest file registry (see below)
+  334 ├── ESRI_Polished/
+  335 │   ├── base/                          # Immutable baseline
+  336 │   │   └── CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx
+  337 │   │
+  338 │   ├── incremental/                   # Incremental run outputs (append only)
+  339 │   │   ├── 2026_02_01_append/
+  340 │   │   │   ├── CAD_ESRI_Polished_20260201.xlsx
+  341 │   │   │   ├── run_metadata.json      # Record count, date range, processing time
+  342 │   │   │   └── validation_summary.json
+  343 │   │   └── 2026_03_01_append/
+  344 │   │       └── ...
+  345 │   │
+  346 │   └── full_rebuild/                  # Full consolidation outputs (when needed)
+  347 │       ├── 2026_06_01_full/
+  348 │       │   └── ...
+  349 │       └── ...
+  350 │
+  351 └── archive/                           # Old files after schema changes
+  352     └── pre_v2_schema/
+  353         └── ...
+  354 ```
+  355
+  356 #### **Manifest File for Latest File Resolution**
+  357
+  358 Create `13_PROCESSED_DATA/manifest.json`:
+  359
+  360 ```json
+  361 {
+  362   "schema_version": "1.0",
+  363   "last_updated": "2026-02-01T10:30:00Z",
+  364   "latest": {
+  365     "path": "ESRI_Polished/incremental/2026_02_01_append/CAD_ESRI_Polished_20260201.xlsx",
+  366     "date_range": {
+  367       "start": "2019-01-01",
+  368       "end": "2026-01-31"
+  369     },
+  370     "record_count": 728500,
+  371     "unique_cases": 561000,
+  372     "checksum_sha256": "abc123...",
+  373     "run_type": "incremental"
+  374   },
+  375   "baseline": {
+  376     "path": "ESRI_Polished/base/CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx",
+  377     "date_range": {
+  378       "start": "2019-01-01",
+  379       "end": "2026-01-30"
+  380     },
+  381     "record_count": 724794,
+  382     "created": "2026-01-31"
+  383   },
+  384   "history": [
+  385     {
+  386       "path": "ESRI_Polished/base/CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx",
+  387       "date": "2026-01-31",
+  388       "run_type": "baseline_creation"
+  389     }
+  390   ]
+  391 }
+  392 ```
+  393
+  394 ### 2.2 Script changes (ENHANCED)
+  395
+  396 #### **Update copy_consolidated_dataset_to_server.ps1**
+  397
+  398 Replace hardcoded path with manifest-based lookup:
+  399
+  400 ```powershell
+  401 # ENHANCED: copy_consolidated_dataset_to_server.ps1
+  402 # Reads manifest.json to find latest polished file
+  403
+  404 $manifestPath = "C:\Users\carucci_r\OneDrive - City of Hackensack\13_PROCESSED_DATA\manifest.json"
+  405 $esriPolishedRoot = "C:\Users\carucci_r\OneDrive - City of Hackensack\13_PROCESSED_DATA\ESRI_Polished"
+  406
+  407 # Read manifest
+  408 Write-Host "[Step 1] Reading manifest..." -ForegroundColor Yellow
+  409 $manifest = Get-Content $manifestPath | ConvertFrom-Json
+  410
+  411 # Get latest file path from manifest
+  412 $latestRelativePath = $manifest.latest.path
+  413 $latestFullPath = Join-Path $esriPolishedRoot $latestRelativePath
+  414 $expectedRecords = $manifest.latest.record_count
+  415
+  416 Write-Host "  Latest file: $latestRelativePath" -ForegroundColor Gray
+  417 Write-Host "  Expected records: $expectedRecords" -ForegroundColor Gray
+  418
+  419 # Verify file exists
+  420 if (-not (Test-Path $latestFullPath)) {
+  421     Write-Host "  ERROR: Latest file not found at $latestFullPath" -ForegroundColor Red
+  422     exit 1
+  423 }
+  424
+  425 # Continue with existing copy logic...
+  426 $sourceFile = $latestFullPath
+  427 ```
+  428
+  429 #### **Config for Processed Data Paths**
+  430
+  431 Add to `config/consolidation_sources.yaml` or create new `config/paths.yaml`:
+  432
+  433 ```yaml
+  434 # Processed data paths
+  435 processed_data:
+  436   root: "C:/Users/carucci_r/OneDrive - City of Hackensack/13_PROCESSED_DATA"
+  437
+  438   esri_polished:
+  439     base_dir: "${processed_data.root}/ESRI_Polished/base"
+  440     incremental_dir: "${processed_data.root}/ESRI_Polished/incremental"
+  441     full_rebuild_dir: "${processed_data.root}/ESRI_Polished/full_rebuild"
+  442
+  443   manifest_path: "${processed_data.root}/manifest.json"
+  444
+  445   naming:
+  446     base_pattern: "CAD_ESRI_Polished_Baseline_{start_date}_{end_date}.xlsx"
+  447     incremental_pattern: "CAD_ESRI_Polished_{run_date}.xlsx"
+  448     folder_pattern: "{YYYY}_{MM}_{DD}_{run_type}"  # e.g., 2026_02_01_append
+  449 ```
+  450
+  451 ---
+  452
+  453 ## 3. Quality reports under consolidation/reports with YYYY_MM_DD_ (ENHANCED)
+  454
+  455 ### 3.1 Layout (ENHANCED)
+  456
+  457 #### **Unified Reports Structure**
+  458
+  459 After review, recommend keeping separate roots for consolidation vs monthly_validation (better separation of co
+      ncerns), but with consistent naming and a unified "latest" mechanism:
+  460
+  461 ```
+  462 cad_rms_data_quality/
+  463 ├── consolidation/
+  464 │   └── reports/
+  465 │       ├── latest.json                    # Points to most recent run
+  466 │       ├── 2026_01_31_consolidation/      # Full consolidation run
+  467 │       │   ├── consolidation_summary.txt
+  468 │       │   ├── consolidation_metrics.json
+  469 │       │   ├── quality_report.html
+  470 │       │   └── validation_results.xlsx
+  471 │       ├── 2026_02_01_incremental/        # Incremental run
+  472 │       │   └── ...
+  473 │       └── 2026_01_30_legacy/             # Migrated from outputs/consolidation/
+  474 │           └── ...
+  475 │
+  476 └── monthly_validation/
+  477     └── reports/
+  478         ├── latest.json
+  479         ├── cad/                            # CAD validation reports
+  480         │   ├── 2026_02_01_cad/
+  481         │   │   ├── validation_summary.html
+  482         │   │   ├── action_items.xlsx       # Records needing manual correction
+  483         │   │   └── metrics.json
+  484         │   └── ...
+  485         └── rms/                            # RMS validation reports
+  486             ├── 2026_02_01_rms/
+  487             │   └── ...
+  488             └── ...
+  489 ```
+  490
+  491 ### 3.2 Implementation (ENHANCED)
+  492
+  493 #### **Update consolidate_cad_2019_2026.py Report Output**
+  494
+  495 Replace the current flat `outputs/consolidation/` path with run-specific directory:
+  496
+  497 ```python
+  498 # Add to consolidate_cad_2019_2026.py
+  499 from datetime import datetime
+  500
+  501 def get_report_directory(run_type: str = "consolidation") -> Path:
+  502     """
+  503     Generate run-specific report directory with timestamp. 504
+  505     Args:
+  506         run_type: "consolidation", "incremental", or "full"
+  507
+  508     Returns:
+  509         Path to report directory (created if not exists)
+  510     """
+  511     timestamp = datetime.now().strftime("%Y_%m_%d")
+  512     report_dir = Path(f"consolidation/reports/{timestamp}_{run_type}")
+  513     report_dir.mkdir(parents=True, exist_ok=True)
+  514     return report_dir
+  515
+  516 def update_latest_pointer(report_dir: Path):
+  517     """Update latest.json to point to current run.""" 518     latest_file = Path("consolidation/reports/latest.json")
+  519     latest_data = {
+  520         "latest_run": str(report_dir.name),
+  521         "timestamp": datetime.now().isoformat(),
+  522         "path": str(report_dir)
+  523     }
+  524     with open(latest_file, 'w') as f:
+  525         json.dump(latest_data, f, indent=2)
+  526 ```
+  527
+  528 #### **Migration Script for Existing Reports**
+  529
+  530 Create one-time migration script:
+  531
+  532 ```python
+  533 # scripts/migrate_reports.py
+  534 """Migrate outputs/consolidation/ to consolidation/reports/2026_01_30_legacy/"""
+  535
+  536 import shutil
+  537 from pathlib import Path
+  538
+  539 SOURCE = Path("outputs/consolidation")
+  540 DEST = Path("consolidation/reports/2026_01_30_legacy")
+  541
+  542 if SOURCE.exists():
+  543     DEST.mkdir(parents=True, exist_ok=True)
+  544     for item in SOURCE.iterdir():
+  545         if item.is_file():
+  546             shutil.copy2(item, DEST / item.name)
+  547             print(f"Migrated: {item.name}")
+  548     print(f"Migration complete. Files copied to {DEST}")
+  549 ```
+  550
+  551 ---
+  552
+  553 ## 4.

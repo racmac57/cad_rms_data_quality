@@ -1,0 +1,111 @@
+{
+  "source_file": "GEMINI_PROMPTS_ArcGIS_Deployment.txt",
+  "source_path": "C:\\_chunker\\02_data\\GEMINI_PROMPTS_ArcGIS_Deployment.txt",
+  "manifest_path": "C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\KB_Shared\\04_output\\GEMINI_PROMPTS_ArcGIS_Deployment\\2026_02_02_16_48_10_GEMINI_PROMPTS_ArcGIS_Deployment.origin.json",
+  "created_at": "2026_02_02_16_48_10",
+  "tags": [
+    "ai",
+    "code",
+    "conversation",
+    "data",
+    "excel",
+    "it-ops",
+    "legal",
+    "markdown",
+    "police",
+    "python",
+    "sql"
+  ],
+  "metadata": {
+    "project_name": "02_data",
+    "source_type": "notes",
+    "language": "en",
+    "department": "admin",
+    "key_terms": [
+      "data",
+      "prompt",
+      "verify",
+      "dataset",
+      "records",
+      "file"
+    ],
+    "enrichment_version": "1.0.0"
+  },
+  "summaries": {
+    "file_summary": "# ================================================================\n# GEMINI AI PROMPTS - ArcGIS Pro Consolidated Dataset Deployment\n# ================================================================\n# Purpose: Expert prompts for Gemini A...",
+    "first_line": "# ================================================================"
+  },
+  "chunks": [
+    {
+      "chunk_id": "2026-02-02T16:48:10+00:00_GEMINI_PROMPTS_ArcGIS_Deployment_chunk1",
+      "chunk_index": 1,
+      "file": "chunk_00000.txt",
+      "tags": [
+        "ai",
+        "ai-chat",
+        "code",
+        "conversation",
+        "data",
+        "dataset",
+        "excel",
+        "file",
+        "it-ops",
+        "legal",
+        "markdown",
+        "police",
+        "prompt",
+        "python",
+        "records",
+        "sql",
+        "verify"
+      ],
+      "key_terms": [
+        "data",
+        "prompt",
+        "verify",
+        "dataset",
+        "records",
+        "file"
+      ],
+      "summary": "# ================================================================\n# GEMINI AI PROMPTS - ArcGIS Pro Consolidated Dataset Deployment\n# ================================================================\n# Purpose: Expert prompts for Gemini A...",
+      "char_length": 16468,
+      "byte_length": 16971
+    },
+    {
+      "chunk_id": "2026-02-02T16:48:10+00:00_GEMINI_PROMPTS_ArcGIS_Deployment_chunk2",
+      "chunk_index": 2,
+      "file": "chunk_00001.txt",
+      "tags": [
+        "2026-01-31",
+        "ai",
+        "code",
+        "conversation",
+        "created",
+        "data",
+        "document",
+        "excel",
+        "gemini",
+        "hpd2022lawsoft",
+        "it-ops",
+        "legal",
+        "markdown",
+        "police",
+        "python",
+        "server",
+        "sql"
+      ],
+      "key_terms": [
+        "gemini",
+        "document",
+        "created",
+        "2026-01-31",
+        "server",
+        "hpd2022lawsoft"
+      ],
+      "summary": "---\n\n**Document Created:** 2026-01-31  \n**For Server:** HPD2022LAWSOFT (10.0.0.157)  \n**Purpose:** Gemini AI collaboration for ArcGIS Pro dataset deployment  \n**Author:** R.",
+      "char_length": 340,
+      "byte_length": 349
+    }
+  ],
+  "enrichment_version": "1.0.0"
+}

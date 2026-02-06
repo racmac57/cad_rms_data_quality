@@ -9,7 +9,8 @@ Validates monthly CAD exports and generates:
 - Action items for manual correction (Excel)
 - Metrics for trend analysis (JSON)
 
-Reports are written to: monthly_validation/reports/YYYY_MM_DD_cad/
+Reports are written to: monthly_validation/reports/YYYY_MM_cad/
+(prefix YYYY_MM = month being reported on, e.g. January 2026 -> 2026_01_cad)
 
 Usage:
     python monthly_validation/scripts/validate_cad.py --input "path/to/monthly_cad.xlsx"
@@ -37,6 +38,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from shared.utils.call_type_normalizer import normalize_call_type, validate_call_types
+from shared.utils.report_builder import build_scrpa_report
 
 # Configure logging
 logging.basicConfig(
@@ -120,15 +122,47 @@ def get_default_validation_rules() -> Dict:
 # REPORT DIRECTORY MANAGEMENT
 # ============================================================================
 
-def get_report_directory(output_base: Path = DEFAULT_OUTPUT_BASE) -> Path:
+def parse_report_month_from_path(input_path: Path) -> Optional[str]:
     """
-    Generate run-specific report directory with timestamp.
+    Extract report month (YYYY_MM) from input file path for folder naming.
+
+    Looks for patterns like 2026_01 or 2026-01 in the filename (month being reported on).
+    Returns None if not found (caller may fall back to current date).
+
+    Examples:
+        "2026_01_CAD.xlsx" -> "2026_01"
+        "CAD_2026_01.xlsx" -> "2026_01"
+        "exports/2026-01_cad.xlsx" -> "2026_01"
+    """
+    name = input_path.name
+    # Match YYYY_MM or YYYY-MM (allow _ or - after month, e.g. 2026_01_CAD.xlsx)
+    match = re.search(r'(20\d{2})[_\-](0[1-9]|1[0-2])(?=[_\-.\\]|$)', name)
+    if match:
+        return f"{match.group(1)}_{match.group(2)}"
+    return None
+
+
+def get_report_directory(
+    output_base: Path = DEFAULT_OUTPUT_BASE,
+    report_month: Optional[str] = None,
+    suffix: str = "cad",
+) -> Path:
+    """
+    Generate report directory. Prefix is the month being reported on (YYYY_MM).
+
+    Args:
+        output_base: Base path for reports (e.g. monthly_validation/reports).
+        report_month: Optional YYYY_MM (e.g. "2026_01") from the data month; if None, uses current date.
+        suffix: Folder suffix, e.g. "cad" or "rms".
 
     Returns:
-        Path to report directory (created if not exists)
+        Path to report directory (created if not exists), e.g. reports/2026_01_cad.
     """
-    timestamp = datetime.now().strftime("%Y_%m_%d")
-    report_dir = output_base / f"{timestamp}_cad"
+    if report_month:
+        folder_name = f"{report_month}_{suffix}"
+    else:
+        folder_name = f"{datetime.now().strftime('%Y_%m')}_{suffix}"
+    report_dir = output_base / folder_name
     report_dir.mkdir(parents=True, exist_ok=True)
     return report_dir
 
@@ -521,7 +555,7 @@ def generate_validation_summary_html(df: pd.DataFrame, action_items: pd.DataFram
                                      quality_score: float, breakdown: Dict,
                                      input_file: Path, output_path: Path):
     """
-    Generate HTML validation summary report.
+    Generate SCRPA/HPD styled HTML validation summary report (shared report_builder).
 
     Args:
         df: Original DataFrame
@@ -532,122 +566,33 @@ def generate_validation_summary_html(df: pd.DataFrame, action_items: pd.DataFram
         output_path: Path to output HTML file
     """
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-    # Determine quality level
     if quality_score >= 95:
-        quality_class = "excellent"
         quality_label = "Excellent"
     elif quality_score >= 80:
-        quality_class = "good"
         quality_label = "Good"
     elif quality_score >= 60:
-        quality_class = "warning"
         quality_label = "Needs Attention"
     else:
-        quality_class = "critical"
         quality_label = "Critical"
 
-    html_content = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CAD Validation Report - {timestamp}</title>
-    <style>
-        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-               margin: 40px; background: #f5f5f5; }}
-        .container {{ max-width: 1200px; margin: 0 auto; background: white;
-                     padding: 40px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
-        h1 {{ color: #333; border-bottom: 2px solid #0066cc; padding-bottom: 10px; }}
-        h2 {{ color: #555; margin-top: 30px; }}
-        .quality-score {{ font-size: 48px; font-weight: bold; text-align: center;
-                         padding: 20px; border-radius: 8px; margin: 20px 0; }}
-        .excellent {{ background: #d4edda; color: #155724; }}
-        .good {{ background: #d1ecf1; color: #0c5460; }}
-        .warning {{ background: #fff3cd; color: #856404; }}
-        .critical {{ background: #f8d7da; color: #721c24; }}
-        table {{ width: 100%; border-collapse: collapse; margin: 20px 0; }}
-        th, td {{ padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }}
-        th {{ background: #f8f9fa; font-weight: 600; }}
-        .metric {{ display: inline-block; padding: 15px 25px; margin: 5px;
-                  background: #f8f9fa; border-radius: 4px; text-align: center; }}
-        .metric-value {{ font-size: 24px; font-weight: bold; color: #0066cc; }}
-        .metric-label {{ font-size: 12px; color: #666; text-transform: uppercase; }}
-        .footer {{ margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd;
-                  font-size: 12px; color: #666; }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>CAD Monthly Validation Report</h1>
+    output_folder_name = output_path.parent.name if output_path.parent else ""
 
-        <p><strong>Input File:</strong> {input_file.name}<br>
-        <strong>Validation Date:</strong> {timestamp}</p>
+    html_content = build_scrpa_report(
+        report_title="CAD Data Quality Validation",
+        input_file_name=input_file.name,
+        timestamp=timestamp,
+        total_records=len(df),
+        quality_score=quality_score,
+        quality_label=quality_label,
+        breakdown=breakdown,
+        action_items=action_items,
+        script_name="monthly_validation/scripts/validate_cad.py",
+        accent_color="#0d233c",
+        output_folder_name=output_folder_name,
+        data_source="cad",
+    )
 
-        <div class="quality-score {quality_class}">
-            {quality_score}/100 - {quality_label}
-        </div>
-
-        <h2>Summary Metrics</h2>
-        <div style="text-align: center;">
-            <div class="metric">
-                <div class="metric-value">{len(df):,}</div>
-                <div class="metric-label">Total Records</div>
-            </div>
-            <div class="metric">
-                <div class="metric-value">{breakdown.get('priority_1_issues', 0):,}</div>
-                <div class="metric-label">Critical Issues</div>
-            </div>
-            <div class="metric">
-                <div class="metric-value">{breakdown.get('priority_2_issues', 0):,}</div>
-                <div class="metric-label">Warnings</div>
-            </div>
-            <div class="metric">
-                <div class="metric-value">{breakdown.get('priority_3_issues', 0):,}</div>
-                <div class="metric-label">Info</div>
-            </div>
-        </div>
-
-        <h2>Score Breakdown</h2>
-        <table>
-            <tr><th>Category</th><th>Score</th><th>Max</th></tr>
-            <tr><td>Required Fields</td><td>{breakdown.get('required_fields', 0):.2f}</td><td>30</td></tr>
-            <tr><td>Valid Formats</td><td>{breakdown.get('valid_formats', 0):.2f}</td><td>25</td></tr>
-            <tr><td>Address Quality</td><td>{breakdown.get('address_quality', 0):.2f}</td><td>20</td></tr>
-            <tr><td>Domain Compliance</td><td>{breakdown.get('domain_compliance', 0):.2f}</td><td>15</td></tr>
-            <tr><td>Consistency Checks</td><td>{breakdown.get('consistency_checks', 0):.2f}</td><td>10</td></tr>
-            <tr style="font-weight: bold;"><td>Total</td><td>{quality_score:.2f}</td><td>100</td></tr>
-        </table>
-
-        <h2>Action Items Summary</h2>
-        <p>See <code>action_items.xlsx</code> for detailed list of records requiring manual correction.</p>
-
-        <table>
-            <tr><th>Priority</th><th>Category</th><th>Count</th></tr>
-"""
-
-    # Add category breakdown
-    if not action_items.empty:
-        category_counts = action_items.groupby(['priority', 'category']).size().reset_index(name='count')
-        for _, row in category_counts.iterrows():
-            html_content += f"""            <tr><td>P{row['priority']}</td><td>{row['category']}</td><td>{row['count']:,}</td></tr>
-"""
-    else:
-        html_content += """            <tr><td colspan="3" style="text-align: center; color: #28a745;">No issues found!</td></tr>
-"""
-
-    html_content += f"""        </table>
-
-        <div class="footer">
-            <p>Generated by CAD/RMS Data Quality System v1.2.4<br>
-            Report: monthly_validation/scripts/validate_cad.py</p>
-        </div>
-    </div>
-</body>
-</html>
-"""
-
-    with open(output_path, 'w', encoding='utf-8') as f:
+    with open(output_path, "w", encoding="utf-8") as f:
         f.write(html_content)
 
     logger.info(f"[OK] Validation summary exported: {output_path}")
@@ -718,9 +663,10 @@ def run_validation(input_file: Path, output_dir: Optional[Path] = None) -> Dict:
     config = load_config()
     rules = load_validation_rules()
 
-    # Setup output directory
+    # Setup output directory (prefix YYYY_MM = month being reported on)
     if output_dir is None:
-        output_dir = get_report_directory()
+        report_month = parse_report_month_from_path(input_file)
+        output_dir = get_report_directory(report_month=report_month, suffix="cad")
     else:
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -848,7 +794,7 @@ Examples:
 
     parser.add_argument(
         '--output', '-o',
-        help='Output directory for reports (default: auto-generated YYYY_MM_DD_cad)'
+        help='Output directory for reports (default: YYYY_MM_cad from input file month)'
     )
 
     parser.add_argument(

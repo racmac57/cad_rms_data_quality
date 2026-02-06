@@ -1,0 +1,1387 @@
+(Given the "How Reported" data quality issues discovered)
+
+
+
+Phase 2: Archive Management
+
+2.1 Create Archive Structure
+
+Move all -PD_BCI_01 files to archive before consolidation:
+
+archive/
+└── PD_BCI_01_versions/
+    ├── root/                    [Root-level -PD_BCI_01 files]
+    ├── schemas/
+    ├── mappings/
+    ├── src/
+    ├── tests/
+    ├── docs/
+    └── README_ARCHIVE.md        [Document what these versions were]
+
+2.2 Backup unified_data_dictionary
+
+Before any moves:
+
+archive/unified_data_dictionary_backup/
+└── [Complete copy of unified_data_dictionary/ as of consolidation date]
+
+2.3 Archive SCRPA Directories
+
+Move SCRPA contents to appropriate locations:
+
+From CAD/SCRPA/:
+
+
+
+
+
+Assignment_Master_V2.csv → reference/Assignment_Master_V2.csv
+
+
+
+cad_data_quality_report.md → CAD/DataDictionary/current/docs/quality_reports/cad_data_quality_report.md
+
+From RMS/SCRPA/:
+
+
+
+
+
+SCRPA_7Day_Data_Dictionary.md → RMS/DataDictionary/current/docs/transformations/SCRPA_7Day_transforms.md
+
+
+
+rms_data_quality_report.md → RMS/DataDictionary/current/docs/quality_reports/rms_data_quality_report.md
+
+
+
+rms_data_quality_report (1).md → DELETE (duplicate)
+
+
+
+Phase 3: Schema Consolidation
+
+3.1 Fix Misnamed Files
+
+CRITICAL: These files have wrong content:
+
+
+
+
+
+schemas/udd/cad_rms_schema_registry.yaml → Rename to cad_quality_report_misnamed.yaml and move to archive
+
+
+
+schemas/udd/transformation_spec.json → Rename to rms_quality_report_misnamed.json and move to archive
+
+3.2 Establish Canonical Schema Location
+
+Move to CAD_RMS/DataDictionary/current/schemas/:
+
+
+
+
+
+[unified_data_dictionary/schemas/canonical_schema.json](unified_data_dictionary/schemas/canonical_schema.json) → PRIMARY canonical reference
+
+
+
+[unified_data_dictionary/schemas/cad_rms_schema_registry.yaml](unified_data_dictionary/schemas/cad_rms_schema_registry.yaml) → Schema registry
+
+
+
+[unified_data_dictionary/schemas/transformation_spec.json](unified_data_dictionary/schemas/transformation_spec.json) → ETL transformation spec
+
+Move to CAD/DataDictionary/current/schemas/:
+
+
+
+
+
+[unified_data_dictionary/schemas/cad_fields_schema_latest.json](unified_data_dictionary/schemas/cad_fields_schema_latest.json)
+
+
+
+[unified_data_dictionary/schemas/cad_fields_schema_v2.json](unified_data_dictionary/schemas/cad_fields_schema_v2.json)
+
+
+
+Keep existing: [CAD/DataDictionary/current/schema/cad_export_field_definitions.md](CAD/DataDictionary/current/schema/cad_export_field_definitions.md)
+
+Move to RMS/DataDictionary/current/schemas/:
+
+
+
+
+
+[unified_data_dictionary/schemas/rms_fields_schema_latest.json](unified_data_dictionary/schemas/rms_fields_schema_latest.json)
+
+3.3 Consolidate Mapping Files
+
+Decision: Use CAD_RMS v2.0 enhanced mappings as canonical (most recent, 2025-12-30)
+
+Keep in CAD_RMS/DataDictionary/current/mappings/:
+
+
+
+
+
+[CAD_RMS/DataDictionary/current/schema/cad_to_rms_field_map.json](CAD_RMS/DataDictionary/current/schema/cad_to_rms_field_map.json) (v2.0, 280 lines)
+
+
+
+[CAD_RMS/DataDictionary/current/schema/rms_to_cad_field_map.json](CAD_RMS/DataDictionary/current/schema/rms_to_cad_field_map.json) (v2.0, 258 lines)
+
+Archive older versions:
+
+
+
+
+
+[CAD/DataDictionary/current/schema/cad_to_rms_field_map.json](CAD/DataDictionary/current/schema/cad_to_rms_field_map.json) (v1.0) → archive
+
+
+
+[unified_data_dictionary/mappings/cad_to_rms_field_map_latest.json](unified_data_dictionary/mappings/cad_to_rms_field_map_latest.json) → archive
+
+Move to CAD/DataDictionary/current/mappings/:
+
+
+
+
+
+[unified_data_dictionary/mappings/cad_field_map_latest.json](unified_data_dictionary/mappings/cad_field_map_latest.json)
+
+
+
+[unified_data_dictionary/mappings/cad_field_map_v2.json](unified_data_dictionary/mappings/cad_field_map_v2.json)
+
+Move to RMS/DataDictionary/current/mappings/:
+
+
+
+
+
+[unified_data_dictionary/mappings/rms_field_map_latest.json](unified_data_dictionary/mappings/rms_field_map_latest.json)
+
+Move to CAD_RMS/DataDictionary/current/merge_policies/:
+
+
+
+
+
+[unified_data_dictionary/mappings/cad_rms_merge_policy_latest.json](unified_data_dictionary/mappings/cad_rms_merge_policy_latest.json)
+
+
+
+[unified_data_dictionary/mappings/mapping_rules.md](unified_data_dictionary/mappings/mapping_rules.md)
+
+
+
+Phase 4: Script Consolidation
+
+4.1 Organize Scripts by Function
+
+Move to CAD/DataDictionary/current/scripts/:
+
+
+
+
+
+[CAD/DataDictionary/current/scripts/clean_howreported_data.py](CAD/DataDictionary/current/scripts/clean_howreported_data.py)
+
+
+
+[CAD/DataDictionary/current/scripts/update_howreported_domain.py](CAD/DataDictionary/current/scripts/update_howreported_domain.py)
+
+
+
+[CAD/DataDictionary/current/scripts/analyze_howreported_data.py](CAD/DataDictionary/current/scripts/analyze_howreported_data.py)
+
+
+
+[unified_data_dictionary/src/standardize_cads.py](unified_data_dictionary/src/standardize_cads.py) → Rename to clean_cad_exports.py
+
+Move to CAD_RMS/DataDictionary/current/scripts/:
+
+
+
+
+
+[CAD_RMS/DataDictionary/scripts/cad_rms_merge_loader.py](CAD_RMS/DataDictionary/scripts/cad_rms_merge_loader.py)
+
+
+
+[unified_data_dictionary/src/build_dictionary.py](unified_data_dictionary/src/build_dictionary.py)
+
+
+
+[unified_data_dictionary/src/extract_from_repos.py](unified_data_dictionary/src/extract_from_repos.py)
+
+Move to scripts/chatlog_processors/:
+
+
+
+
+
+[unified_data_dictionary/scripts/Process_UDD_Chatlog.bat](unified_data_dictionary/scripts/Process_UDD_Chatlog.bat)
+
+
+
+[unified_data_dictionary/scripts/process_chatlog.bat](unified_data_dictionary/scripts/process_chatlog.bat)
+
+
+
+[unified_data_dictionary/scripts/quick_process_chatlog.bat](unified_data_dictionary/scripts/quick_process_chatlog.bat)
+
+
+
+DELETE: Process_UDD_Chatlog (1).bat (duplicate)
+
+Move to scripts/validation/:
+
+
+
+
+
+All files from [unified_data_dictionary/tests/](unified_data_dictionary/tests/)
+
+
+
+All files from [unified_data_dictionary/validators/](unified_data_dictionary/validators/)
+
+4.2 Update Script Paths
+
+Create a path update script that modifies all automation files:
+
+Files requiring path updates:
+
+
+
+
+
+Batch files - Update PROJECT_ROOT variable:
+
+
+
+
+
+From: C:\...\Standards\unified_data_dictionary
+
+
+
+To: C:\...\Standards\scripts\chatlog_processors
+
+
+
+PowerShell scripts - Update source/target paths:
+
+
+
+
+
+Sync_UDD_Processors_local_run.ps1: Update both $SourceDir and $DestDir
+
+
+
+Cleanup scripts: Update $TargetDir or $root as needed
+
+
+
+config.yaml - Update all paths:
+
+
+
+
+
+base_path: Keep as C:/Users/carucci_r/OneDrive - City of Hackensack
+
+
+
+schema_registry: Change to CAD_RMS/DataDictionary/current/schemas/cad_rms_schema_registry.yaml
+
+
+
+reference_data_directory: Change to 09_Reference/Standards/reference
+
+
+
+Python scripts - Update default paths:
+
+
+
+
+
+build_dictionary.py: Change schema path from docs/schema/ to ../CAD_RMS/DataDictionary/current/schemas/
+
+
+
+cli.py: Update default schema path
+
+
+
+extract_from_repos.py: Update output directories
+
+
+
+Phase 5: Documentation Consolidation
+
+5.1 Organize Documentation
+
+Move to docs/planning/:
+
+
+
+
+
+Non-suffixed versions from unified_data_dictionary/docs/planning/
+
+
+
+Archive -PD_BCI_01 versions
+
+Move to docs/standards/:
+
+
+
+
+
+[CAD/DataDictionary/current/HOW_REPORTED_REFERENCE.md](CAD/DataDictionary/current/HOW_REPORTED_REFERENCE.md)
+
+
+
+[CAD/DataDictionary/current/HOW_REPORTED_FIX_SUMMARY.md](CAD/DataDictionary/current/HOW_REPORTED_FIX_SUMMARY.md)
+
+
+
+Other standards documentation
+
+Keep in system-specific docs:
+
+
+
+
+
+CAD/DataDictionary/current/docs/ - CAD-specific documentation
+
+
+
+RMS/DataDictionary/current/docs/ - RMS-specific documentation  
+
+
+
+CAD_RMS/DataDictionary/current/docs/ - Integration documentation
+
+5.2 Consolidate Chatlogs
+
+Move to docs/chat_logs/:
+
+
+
+
+
+Merge content from unified_data_dictionary/docs/chatlogs/chunked/ and docs/chat_logs/
+
+
+
+Organize by date/topic
+
+
+
+Archive -PD_BCI_01 chunked versions
+
+5.3 Create Master README
+
+Create [Standards/README.md](Standards/README.md) documenting:
+
+
+
+
+
+Repository structure and purpose
+
+
+
+Location of canonical schemas (CAD_RMS/)
+
+
+
+How to find system-specific standards (CAD/, RMS/)
+
+
+
+Automation script usage
+
+
+
+Path to configuration files
+
+
+
+Phase 6: Validation & Testing
+
+6.1 Pre-Move Validation
+
+Before moving any files:
+
+
+
+
+
+Run comprehensive data quality audit:
+
+
+
+
+
+Create script to validate ALL fields against canonical schemas
+
+
+
+Check CAD data: C:\...\13_PROCESSED_DATA\ESRI_Polished\base\CAD_ESRI_Polished_Baseline.xlsx
+
+
+
+Check RMS data sources
+
+
+
+Document all data quality issues (not just "How Reported")
+
+
+
+Verify canonical schema correctness:
+
+
+
+
+
+Review [canonical_schema.json](unified_data_dictionary/schemas/canonical_schema.json) line 292 (HowReported values)
+
+
+
+Verify with CAD system documentation
+
+
+
+Verify with RMS system documentation
+
+
+
+Get stakeholder sign-off on valid values
+
+
+
+Document schema versions:
+
+
+
+
+
+Clarify relationship between _latest, _v2, and base versions
+
+
+
+Document which is authoritative for each system
+
+6.2 Post-Move Validation
+
+After consolidation:
+
+
+
+
+
+Test all automation scripts:
+
+
+
+
+
+Run each batch file to verify paths resolve
+
+
+
+Test Python scripts with new schema locations
+
+
+
+Verify config.yaml paths are correct
+
+
+
+Validate schema references:
+
+
+
+
+
+Grep for old paths (e.g., unified_data_dictionary/schemas/)
+
+
+
+Update any documentation references
+
+
+
+Check Markdown links
+
+
+
+Run data quality tests:
+
+
+
+
+
+Use validation scripts against new schema locations
+
+
+
+Verify field mappings work correctly
+
+
+
+Test CAD-RMS merge functionality
+
+
+
+Phase 7: Cleanup
+
+7.1 Remove Empty Directories
+
+After moving files:
+
+
+
+
+
+Delete empty unified_data_dictionary/ subdirectories
+
+
+
+Remove empty mappings/field_mappings/
+
+
+
+Clean up any remaining empty directories
+
+7.2 Remove Root-Level Duplicates
+
+Delete or archive:
+
+
+
+
+
+schemas/udd/ (after fixing misnamed files)
+
+
+
+mappings/field_mappings/ (after moving files)
+
+
+
+Any remaining duplicate directories from the merge
+
+7.3 Final Archive
+
+Move to archive/merge_artifacts/:
+
+
+
+
+
+Any remaining files that don't fit the new structure
+
+
+
+Duplicate markdown documentation
+
+
+
+Temporary/generated files
+
+
+
+Implementation Order
+
+
+
+
+
+STOP - Do Pre-Move Validation First (Phase 6.1)
+
+
+
+
+
+Audit data quality across ALL fields
+
+
+
+Verify canonical schemas are correct
+
+
+
+Get stakeholder approval
+
+
+
+Create Archives (Phase 2)
+
+
+
+
+
+Backup entire unified_data_dictionary/
+
+
+
+Archive -PD_BCI_01 versions
+
+
+
+Document what's being archived
+
+
+
+Fix Critical Issues (Phase 3.1)
+
+
+
+
+
+Rename misnamed files in schemas/udd/
+
+
+
+Document the errors for future reference
+
+
+
+Move Schemas & Mappings (Phase 3.2-3.3)
+
+
+
+
+
+Move to new locations
+
+
+
+Test that files are accessible
+
+
+
+Update Automation (Phase 4.2)
+
+
+
+
+
+Update all script paths BEFORE moving scripts
+
+
+
+Test each script after update
+
+
+
+Move Scripts (Phase 4.1)
+
+
+
+
+
+Move to organized locations
+
+
+
+Verify scripts still run
+
+
+
+Consolidate Documentation (Phase 5)
+
+
+
+
+
+Move non-suffixed versions
+
+
+
+Create master README
+
+
+
+Test Everything (Phase 6.2)
+
+
+
+
+
+Run all automation
+
+
+
+Validate schemas work
+
+
+
+Check data quality
+
+
+
+Cleanup (Phase 7)
+
+
+
+
+
+Remove empty directories
+
+
+
+Final archive of artifacts
+
+
+
+Critical Decisions Needed Before Proceeding
+
+1. Schema Version Authority
+
+Which is the authoritative mapping format? Option A: CAD_RMS v2.0 (2025-12-30, multi-column matching)
+
+
+
+Option B: unified_data_dictionary format (different structure)
+
+
+
+Recommendation: Option A (CAD_RMS v2.0) - most recent, explicitly enhanced
+
+2. PD_BCI_01 File Handling
+
+What to do with -PD_BCI_01 suffixed files? Option A: Archive all (scripts reference non-suffixed)
+
+
+
+Option B: Merge content where PD_BCI_01 is newer (e.g., pyproject.toml v1.0.0)
+
+
+
+Recommendation: Option B - selectively keep newer versions, archive rest
+
+3. Data Quality Remediation Scope
+
+Should we fix "How Reported" data quality BEFORE or AFTER consolidation? Option A: Fix now (one field), then consolidate
+
+
+
+Option B: Consolidate, then comprehensive data quality audit on all fields
+
+
+
+Recommendation: Option B - consolidate first to establish single source of truth, then systematic data quality remediation
+
+4. Validation Requirements
+
+How thorough should canonical schema validation be? Option A: Quick review of critical fields only
+
+
+
+Option B: Comprehensive review with CAD/RMS vendor documentation
+
+
+
+Option C: Stakeholder workshop to validate all canonical values
+
+
+
+Recommendation: Option C - given data quality issues discovered, comprehensive validation is warranted
+
+
+
+Success Criteria
+
+Consolidation is complete when:
+
+
+
+
+
+Single Source of Truth:
+
+
+
+
+
+No duplicate schema/mapping files
+
+
+
+Clear canonical location for each file type
+
+
+
+All -PD_BCI_01 files resolved (kept, merged, or archived)
+
+
+
+Clean Structure:
+
+
+
+
+
+CAD/, RMS/, CAD_RMS/ clearly separated
+
+
+
+No SCRPA directories (content moved to appropriate locations)
+
+
+
+Reference data centralized
+
+
+
+Documentation organized by topic
+
+
+
+Working Automation:
+
+
+
+
+
+All batch scripts run without path errors
+
+
+
+Python scripts find schemas/mappings
+
+
+
+Config.yaml paths resolve correctly
+
+
+
+No broken references in code
+
+
+
+Validated Standards:
+
+
+
+
+
+Canonical schemas reviewed and approved
+
+
+
+Data quality issues documented
+
+
+
+Schema versions clearly documented
+
+
+
+Mapping conflicts resolved
+
+
+
+Comprehensive Documentation:
+
+
+
+
+
+Master README explains structure
+
+
+
+Archive README documents what was moved
+
+
+
+Migration history preserved
+
+
+
+Path update guide for future scripts
+
+
+
+Risk Mitigation
+
+High Risk Items:
+
+
+
+
+
+Batch/PowerShell scripts breaking due to path changes
+
+
+
+
+
+Mitigation: Update paths first, test each script before moving files
+
+
+
+Losing track of which schema version is canonical
+
+
+
+
+
+Mitigation: Document decisions in Phase 6.1, create VERSION.md in each schema directory
+
+
+
+Data quality issues beyond "How Reported"
+
+
+
+
+
+Mitigation: Comprehensive audit in Phase 6.1 before any consolidation
+
+
+
+Breaking external dependencies (dashboards, reports)
+
+
+
+
+
+Mitigation: You indicated only a few scripts depend on paths - update those first
+
+Rollback Plan:
+
+
+
+
+
+Full backup in archive/unified_data_dictionary_backup/
+
+
+
+Document all moves in archive/MIGRATION_LOG.md
+
+
+
+Git commit before each phase
+
+
+
+Can restore from backup if critical issues arise
+
+
+
+Estimated Effort
+
+
+
+
+
+Phase 1 (Assessment): 2-3 hours
+
+
+
+Phase 2 (Archives): 1 hour
+
+
+
+Phase 3 (Schemas): 3-4 hours
+
+
+
+Phase 4 (Scripts): 4-5 hours (most complex - path updates + testing)
+
+
+
+Phase 5 (Docs): 2 hours
+
+
+
+Phase 6 (Validation): 3-4 hours
+
+
+
+Phase 7 (Cleanup): 1 hour
+
+Total: 16-20 hours spread across multiple sessions
+
+Recommendation: Do this in phases over several days, testing thoroughly between each phase. how can this process be sped up? Add more cores, parallel processes
+
+---
+
+**Cursor**
+
+## How to Speed Up: The Real Answer
+
+**The honest truth:** This consolidation is **NOT a computational task** - it's a **decision-making and validation task**. Adding CPU cores won't help because 90% of the time is spent on:
+
+1. **Human decisions** (which version is canonical?) 2. **Human validation** (are these schemas correct?) 3. **Human testing** (do scripts still work?) 4. **Human review** (did we break anything?) You can't parallelize thinking. ## Actual Speed-Up Strategies
+
+### Strategy 1: **Aggressive Automation** (Cut time by 50%)
+
+Instead of manually moving files, create scripts to do the heavy lifting:
+
+```powershell
+# Single script to do all moves at once
+# Time saved: 8-10 hours → 2-3 hours
+
+# Phase 3: Schema moves (5 minutes vs 3 hours)
+$moves = @(
+    @{Src="unified_data_dictionary/schemas/canonical_schema.json"; Dst="CAD_RMS/DataDictionary/current/schemas/"}
+    @{Src="unified_data_dictionary/schemas/cad_fields_schema_latest.json"; Dst="CAD/DataDictionary/current/schemas/"}
+    # ... 50 more moves
+)
+
+foreach ($move in $moves) {
+    Move-Item $move.Src $move.Dst -Force
+}
+
+# Phase 4: Batch path updates (10 minutes vs 4 hours)
+$files = Get-ChildItem -Recurse -Include *.bat,*.ps1,*.py,*.yaml
+foreach ($file in $files) {
+    (Get-Content $file) -replace 'unified_data_dictionary/schemas/', 'CAD_RMS/DataDictionary/current/schemas/' | Set-Content $file
+}
+```
+
+**Time reduction: 16 hours → 6-8 hours**
+
+### Strategy 2: **Skip Low-Value Activities** (Cut time by 30%)
+
+**What you can skip without risk:**
+
+1. ❌ **Skip stakeholder workshop** (Phase 6.1, Option C) - **Save 3 hours**
+   - You already know HowReported has issues
+   - Fix the known issue, validate later
+   
+2. ❌ **Skip comprehensive vendor documentation review** - **Save 2 hours**
+   - Your data IS the documentation (7 years of actual values)
+   
+3. ❌ **Skip organizing old chatlogs** (Phase 5.2) - **Save 1 hour**
+   - Low value - just archive the whole folder as-is
+
+4. ❌ **Skip individual script testing** (Phase 6.2) - **Save 2 hours**
+   - Test only critical scripts (batch files that run daily)
+   - Let errors surface naturally over next week
+
+**Time reduction: 16 hours → 8 hours**
+
+### Strategy 3: **Do Minimum Viable Consolidation** (Cut time by 70%)
+
+**The 3-hour version:**
+
+1. **Fix the immediate problem** (1 hour):
+   - Add missing HowReported mappings to `enhanced_esri_output_generator.py`
+   - Re-run ESRI polishing on baseline
+   - Push to dashboard
+
+2. **Archive the duplication** (1 hour):
+   ```powershell
+   # Move entire unified_data_dictionary to archive
+   Move-Item unified_data_dictionary archive/unified_data_dictionary_2026_02_04
+   
+   # Move -PD_BCI_01 files to archive
+   Get-ChildItem -Recurse *-PD_BCI_01. * | Move-Item -Destination archive/PD_BCI_01_versions/
+   
+   # Update 3 critical scripts that broke
+   # (batch files + config.yaml)
+   ```
+
+3. **Document what you did** (1 hour):
+   - Create archive/README.md explaining the move
+   - Update Standards/README.md with new structure
+   - Done
+
+**Time reduction: 16 hours → 3 hours**
+
+**Risk:** Incomplete consolidation, some scripts may break later
+**Benefit:** Dashboard is fixed TODAY
+
+### Strategy 4: **Two-Person Pair Work** (Cut time by 40%)
+
+If you can work with the other agent simultaneously:
+
+- **You:** Validate schemas and make decisions (Phase 1, 6.1)
+- **Other agent:** Execute moves and update paths (Phase 2-5)
+- **Both:** Test together (Phase 6.2)
+
+**Time reduction: 16 hours → 10 hours** (not 8 hours because coordination overhead)
+
+## My Recommendation: **Strategy 3 + Strategy 1 hybrid**
+
+### The "Fix Dashboard Today, Consolidate Over Time" Approach (4-5 hours)
+
+**Session 1 (Now): Fix Critical Issue (2 hours)**
+1. Add missing HowReported mappings
+2. Re-run ESRI polishing
+3. Validate dashboard shows correct values
+4. DONE - dashboard is fixed
+
+**Session 2 (This week): Quick Archive (1 hour)**
+1. Run automated script to move unified_data_dictionary to archive
+2. Update 3-5 critical script paths
+3. Test batch files still work
+
+**Session 3 (Next week): Schema Consolidation (2 hours)**
+1. Run automated script to move schemas to CAD/RMS/CAD_RMS structure
+2. Update config.yaml paths
+3. Test one script from each category
+
+**Sessions 4-6 (Over next month): Polish (optional, 1 hour each)**
+- Organize documentation
+- Update remaining scripts
+- Comprehensive validation
+
+## What WON'T Speed This Up
+
+❌ **More CPU cores** - File moves are I/O bound, not CPU bound
+❌ **Parallel processing** - OneDrive sync would conflict with parallel file moves
+❌ **Better hardware** - Decision-making is the bottleneck, not compute
+
+## The Real Bottleneck
+
+The 16-20 hour estimate assumes you're being **thorough and careful** because this is a production system with active dashboards. If you're willing to accept:
+- Higher risk of breaking something
+- Fixing issues reactively instead of proactively  
+- Incomplete consolidation
+
+Then **Strategy 3 gets you a working dashboard in 3 hours**. **My recommendation:** Do Strategy 3 now to fix the dashboard, then do Strategy 1 over the next 2 weeks to properly consolidate. Would you like me to:
+1. Create the automated move script (Strategy 1)? 2. Just fix HowReported mappings and re-run polishing (Strategy 3)? 3. Proceed with full careful consolidation plan (original 16 hours)? ---
+
+**User**
+
+review the below recommendations from Gemini, pleasue intergrate the point you think are best into a prompt for the other cursor ai agent
+To ensure Cursor AI aligns with your high-stakes dashboard rollout while maintaining the "speed-run" efficiency we discussed, you need a prompt that establishes **guardrails** for data integrity without falling back into the 20-hour manual trap. Copy and paste the prompt below into Cursor AI. It is designed to force the agent to prioritize the **GIS Data Cleaning path** while automating the structural cleanup. ---
+
+### **Prompt for Cursor AI**
+
+**Subject: Standards Repository Consolidation — GIS Dashboard Priority Execution**
+
+I need to execute the **Standards Repository Consolidation Plan** as a high-speed "Emergency Evacuation" rather than a manual migration. **Context & Critical Priorities:**
+
+* **Dashboard Integrity:** This repository feeds critical data cleaning scripts for an **ArcGIS Pro dashboard backfill** and a new dashboard rollout. Accuracy in the **CAD_RMS v2.0 mappings** is non-negotiable. * **Timeline:** I want this structural consolidation done in **3 hours**, with validation extending into tomorrow. * **The "Authority":** Establish **CAD_RMS v2.0 (2025-12-30)** as the absolute canonical source for mappings and schemas. **Tasks for you to perform immediately:**
+
+1. **Refactor the Execution Plan:**
+* **Phase 1 (Archive):** Move all `-PD_BCI_01` files and the current `unified_data_dictionary/` folder to a structured `/archive` immediately to clear the workspace. * **Phase 2 (Structure):** Promote the canonical schemas and the **v2.0 mappings** to the new `CAD/`, `RMS/`, and `CAD_RMS/` structure as defined in the Proposed Directory Structure. * **Phase 3 (Path Surgery):** Use global search-and-replace to update paths in all `.bat`, `.ps1`, `.py`, and `.yaml` files, replacing `unified_data_dictionary/` with the new hierarchy. 2. **Generate a "Master Consolidation Script":**
+* Provide a single, comprehensive **PowerShell script** that performs all file moves, directory creations, and path replacements in one execution. * Include a "Fix" for the misnamed files in `schemas/udd/` as part of this script. 3. **Targeted Data Validation:**
+* Identify the exact files required for the **ESRI Polished Baseline** workflow. * Focus validation efforts *only* on these critical paths (specifically `HowReported` field values) to ensure the ArcGIS backfill is "buttoned up" and correct. **Output Requirement:** Do not give me a list of manual steps. Give me the **consolidated plan adjustments** and the **automation scripts** I need to run to finish the structural work today. ---
+
+### **What this prompt does for you:**
+
+* **Forces Decisions:** It tells Cursor to stop asking which version is better and just use **v2.0**. * **Drives Automation:** It shifts the work from you "moving files" to you "running a script" that Cursor writes. * **Protects the Dashboard:** By explicitly mentioning the **ArcGIS Pro backfill**, it ensures Cursor doesn't accidentally archive a file that your GIS dashboard depends on. **Would you like me to analyze the "Master Consolidation Script" once Cursor generates it to ensure the path replacements are 100% accurate? **
+
+---
+
+**Cursor**
+
+## Integrated Prompt for Other Cursor AI Agent
+
+I'll combine the best elements from Gemini's recommendations with the technical accuracy from our analysis. Here's the optimized prompt:
+
+---
+
+# PROMPT FOR CURSOR AI AGENT
+
+## Mission: Fix Production Dashboard Data Quality (Emergency Priority)
+
+**CONTEXT - HIGH STAKES:**
+- **Production Impact:** ArcGIS Pro dashboard is displaying invalid data in the "Call Source" (HowReported) field
+- **Root Cause:** CAD baseline was consolidated but NOT normalized - the ESRI polishing step was skipped
+- **Timeline:** Dashboard needs corrected data TODAY. Repository cleanup can follow. **CRITICAL FILES & LOCATIONS:**
+```
+Source of Truth (Normalization Logic):
+- CAD_Data_Cleaning_Engine/scripts/enhanced_esri_output_generator.py
+  - Contains HOW_REPORTED_MAPPING (280 lines, comprehensive)
+  - Lines 137-297: The canonical normalization rules
+
+Input Data:
+- 13_PROCESSED_DATA/ESRI_Polished/base/CAD_ESRI_Polished_Baseline.xlsx
+  - 724,794 records (2019-01-01 to 2026-01-30)
+  - Currently contains RAW unnormalized HowReported values
+
+Dashboard Data Source:
+- Feature Service pointing to above baseline
+```
+
+---
+
+## PHASE 1: EMERGENCY DATA FIX (Execute Immediately - 2 hours)
+
+### Task 1.1: Validate Current Normalization Mapping (15 minutes)
+
+**Action:** Audit `HOW_REPORTED_MAPPING` in `enhanced_esri_output_generator.py` against actual data
+
+**Missing mappings identified from dashboard:**
+```python
+# Add these to HOW_REPORTED_MAPPING (around line 282):
+'HACKENSACK': 'Phone',      # Location reference/typo
+'PHONE/911': 'Phone',       # Mixed value - default to Phone  
+'MAIL': 'Mail',             # Case-insensitive variant already exists but verify uppercase works
+```
+
+**Validation Questions:**
+1. Does the mapping already handle case-insensitive matching? (Check line 326: `str.upper()`)
+2. Are there other unmapped values? Run this query on baseline:
+   ```python
+   import pandas as pd
+   df = pd.read_excel('CAD_ESRI_Polished_Baseline.xlsx', sheet_name='Sheet1')
+   unmapped = df['How Reported'].str.upper().value_counts()
+   # Compare against HOW_REPORTED_MAPPING.keys()
+   ```
+
+### Task 1.2: Add Missing Mappings (15 minutes)
+
+**File:** `CAD_Data_Cleaning_Engine/scripts/enhanced_esri_output_generator.py`
+
+**Insert at line 296 (before closing brace of HOW_REPORTED_MAPPING):**
+```python
+    # Additional mappings from dashboard validation (2026-02-04)
+    'HACKENSACK': 'Phone',
+    'PHONE/911': 'Phone',
+    'MAIL': 'Mail',  # Uppercase variant
+}
+```
+
+### Task 1.3: Re-run ESRI Polishing (45 minutes runtime)
+
+**Locate the consolidated CSV that needs polishing:**
+```powershell
+# Should be in CAD_Data_Cleaning_Engine/data/01_raw/
+# File: 2019_to_2026_01_30_CAD.csv or similar
+```
+
+**Execute polishing:**
+```powershell
+cd "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine"
+
+python scripts/enhanced_esri_output_generator.py `
+  --input "data/01_raw/2019_to_2026_01_30_CAD.csv" `
+  --output-dir "data/03_final" `
+  --format excel `
+  --enable-parallel true `
+  --n-workers 4
+```
+
+**Expected output:** `CAD_ESRI_POLISHED_[timestamp].xlsx` in `data/03_final/`
+
+### Task 1.4: Validate Polished Output (30 minutes)
+
+**Run validation script:**
+```python
+# Quick validation of HowReported field
+import pandas as pd
+
+df = pd.read_excel('data/03_final/CAD_ESRI_POLISHED_20260204_HHMMSS.xlsx')
+
+# Check HowReported unique values
+print("HowReported unique values:")
+print(df['How Reported'].value_counts())
+
+# Should ONLY show these values:
+valid_values = ['9-1-1', 'Phone', 'Walk-In', 'Self-Initiated', 'Radio', 
+                'eMail', 'Mail', 'Other - See Notes', 'Fax', 'Teletype',
+                'Virtual Patrol', 'Canceled Call']
+
+invalid = df[~df['How Reported'].isin(valid_values)]['How Reported'].value_counts()
+print(f"\nInvalid values found: {len(invalid)}")
+if len(invalid) > 0:
+    print(invalid)
+```
+
+**Success criteria:**
+- ✅ No invalid values in HowReported
+- ✅ Record count unchanged (724,794)
+- ✅ No new NULL values introduced
+
+### Task 1.5: Deploy to 13_PROCESSED_DATA (15 minutes)
+
+```powershell
+cd "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality"
+
+python scripts/copy_polished_to_processed_and_update_manifest.py `
+  --source "../CAD_Data_Cleaning_Engine/data/03_final/CAD_ESRI_POLISHED_[timestamp].xlsx" `
+  --mode baseline `
+  --update-manifest
+```
+
+**Result:** Dashboard will pick up corrected data on next refresh. ---
+
+## PHASE 2: REPOSITORY CONSOLIDATION (Execute Tomorrow - 3-4 hours)
+
+### Task 2.1: Create Master Consolidation Script (30 minutes)
+
+**Requirements for the script:**
+
+1. **Establish CAD_RMS v2.0 (2025-12-30) as canonical authority:**
+   - Multi-column matching strategy
+   - Enhanced field mappings (280 lines for cad_to_rms, 258 for rms_to_cad)
+   - Location: `CAD_RMS/DataDictionary/current/schema/`
+
+2. **Archive duplicates BEFORE moving:**
+   ```powershell
+   # Create archive structure
+   New-Item -ItemType Directory -Path "archive/unified_data_dictionary_backup_20260204"
+   New-Item -ItemType Directory -Path "archive/PD_BCI_01_versions"
+   
+   # Backup entire unified_data_dictionary
+   Copy-Item -Recurse "unified_data_dictionary" "archive/unified_data_dictionary_backup_20260204/"
+   
+   # Move -PD_BCI_01 files
+   Get-ChildItem -Recurse -Filter "*-PD_BCI_01. *" | ForEach-Object {
+       Move-Item $_.FullName "archive/PD_BCI_01_versions/"
+   }
+   ```
+
+3. **Execute schema/mapping moves:**
+   ```powershell
+   # Canonical schemas → CAD_RMS/
+   Move-Item "unified_data_dictionary/schemas/canonical_schema.json" `
+             "CAD_RMS/DataDictionary/current/schemas/"
+   
+   # CAD-specific → CAD/
+   Move-Item "unified_data_dictionary/schemas/cad_fields_schema_latest.json" `
+             "CAD/DataDictionary/current/schemas/"
+   
+   # RMS-specific → RMS/
+   Move-Item "unified_data_dictionary/schemas/rms_fields_schema_latest.json" `
+             "RMS/DataDictionary/current/schemas/"
+   
+   # Archive older v1.0 mappings
+   Move-Item "CAD/DataDictionary/current/schema/cad_to_rms_field_map.json" `
+             "archive/mapping_v1.0/"
+   ```
+
+4. **Path surgery (global replace):**
+   ```powershell
+   # Get all script files
+   $files = Get-ChildItem -Recurse -Include *.bat,*.ps1,*.py,*.yaml
+   
+   # Replace paths
+   foreach ($file in $files) {
+       $content = Get-Content $file.FullName -Raw
+       $content = $content -replace 'unified_data_dictionary/schemas/', 'CAD_RMS/DataDictionary/current/schemas/'
+       $content = $content -replace 'unified_data_dictionary/mappings/', 'CAD_RMS/DataDictionary/current/mappings/'
+       Set-Content $file.FullName $content
+   }
+   ```
+
+### Task 2.2: Critical Path Validation (1 hour)
+
+**Files that MUST work after consolidation:**
+1. `cad_rms_data_quality/config/schemas.yaml` - Update schema paths
+2.

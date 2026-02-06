@@ -1,0 +1,74 @@
+● Bash(cd "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality" && git status)
+  ⎿  On branch main
+     Changes not staged for commit:
+       (use "git add/rm <file>..." to update what will be committed)
+     … +33 lines (ctrl+o to expand)
+
+● Bash(cd "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality" && git add CHANGELOG.md Claude.md
+      README.md SUMMARY.md && git diff --s…)
+  ⎿   CHANGELOG.md | 34 ++++++++++++++++++++++++++++++++--
+      Claude.md    | 45 +++++++++++++++++++++++++++------------------
+      README.md    |  4 ++--
+     … +2 lines (ctrl+o to expand)
+
+● Bash(cd "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality" && git commit -m "feat: Expansion
+      Plan Milestone 6 - Legacy archive (v…)
+  ⎿  [main b378afd] feat: Expansion Plan Milestone 6 - Legacy archive (v1.2.5)
+      4 files changed, 73 insertions(+), 25 deletions(-)
+
+● Bash(cd "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality" && git log --oneline -6)
+  ⎿  b378afd feat: Expansion Plan Milestone 6 - Legacy archive (v1.2.5)
+     84f112e feat: Expansion Plan Milestone 5 - Monthly processing (v1.2.4)
+     cb31bff feat: Expansion Plan Milestone 4 - Speed optimizations (v1.2.3)
+     … +3 lines (ctrl+o to expand)
+
+● ---
+  Expansion Plan Implementation Complete. All 6 Milestones Done. ✅
+
+  Milestone 6: Legacy Archive - Summary
+
+  What was done:
+  - Moved 5 legacy projects to 02_ETL_Scripts/_Archive/:
+    - CAD_Data_Cleaning_Engine - Validation framework, ESRI generator
+    - Combined_CAD_RMS - CAD+RMS matching, PowerBI dashboards
+    - RMS_CAD_Combined_ETL - Empty skeleton project
+    - RMS_Data_ETL - Address standardization, ArcGIS guides
+    - RMS_Data_Processing - Time artifact fixes, quality reporting
+  - Created _Archive/README.md with:
+    - Detailed description of each archived project
+    - What components were migrated to cad_rms_data_quality
+    - Why each project was archived
+    - Reference to active project entry points
+
+  Verified:
+  - ✅ _Archive exists with all 5 projects + README.md
+  - ✅ cad_rms_data_quality imports work
+  - ✅ validate_cad.py CLI works
+  - ✅ Documentation updated (CHANGELOG, README, SUMMARY, Claude.md)
+
+  Commit:
+  b378afd feat: Expansion Plan Milestone 6 - Legacy archive (v1.2.5)
+
+  ---
+  Complete Expansion Plan Summary
+  ┌───────────────────────────┬─────────┬───────────────────────────────────────────────────────┐
+  │         Milestone         │ Version │                      Description                      │
+  ├───────────────────────────┼─────────┼───────────────────────────────────────────────────────┤
+  │ 1. Paths & Baseline       │ v1.2.0  │ 13_PROCESSED_DATA, baseline file, manifest.json       │
+  ├───────────────────────────┼─────────┼───────────────────────────────────────────────────────┤
+  │ 2. Reports Reorganization │ v1.2.1  │ consolidation/reports/YYYY_MM_DD_* structure          │
+  ├───────────────────────────┼─────────┼───────────────────────────────────────────────────────┤
+  │ 3. Server Copy + ArcPy    │ v1.2.2  │ PowerShell manifest support, arcpy import script      │
+  ├───────────────────────────┼─────────┼───────────────────────────────────────────────────────┤
+  │ 4. Speed Optimizations    │ v1.2.3  │ Parallel loading, chunked reads, 66% memory reduction │
+  ├───────────────────────────┼─────────┼───────────────────────────────────────────────────────┤
+  │ 5. Monthly Processing     │ v1.2.4  │ validate_cad.py, validate_rms.py, action items        │
+  ├───────────────────────────┼─────────┼───────────────────────────────────────────────────────┤
+  │ 6. Legacy Archive         │ v1.2.5  │ 5 projects archived, README.md created                │
+  └───────────────────────────┴─────────┴───────────────────────────────────────────────────────┘
+  cad_rms_data_quality is now the unified, production-ready system for CAD/RMS data quality. ✻ Brewed for 4m 33s
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle) · 50 files +29 -476                                                  Now using extra usage

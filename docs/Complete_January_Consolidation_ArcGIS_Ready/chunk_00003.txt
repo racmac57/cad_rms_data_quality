@@ -1,0 +1,580 @@
+Export. that can be used as a backfill for the information and dashboards from 2019 until yesterday's date. matter of fact can you find the cad data in C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine that is the best quality and most complete
+
+---
+
+**Cursor**
+
+I'll check what's already been processed in the CAD_Data_Cleaning_Engine directory to find the best quality output. Let me search for output directories and processed data:
+
+Now let me find the actual data outputs:
+
+Let me search more directly for the data folder and recent output files:
+
+Great! Now let me check the data/ESRI_CADExport folder:
+
+Perfect! Let me get better details on the most recent files:
+
+Now let me check for the actual files:
+
+Let me look at the raw data file that was mentioned:
+
+Based on my investigation, I now have a clear picture. Let me create a comprehensive plan:
+
+## ✅ **Analysis Complete - Ready for Your Decision**
+
+I've analyzed the `CAD_Data_Cleaning_Engine` directory and created a comprehensive execution plan. Here's what I found:
+
+### **Current State:**
+
+1. **CAD_Data_Cleaning_Engine is production-ready** ✅
+   - Last run: December 22, 2025 (710,625 records processed)
+   - Quality score: **99-100/100**
+   - RMS backfill working (28.5% PDZone coverage)
+   - Advanced normalization v3.2 deployed
+   - Processing time: ~8-15 minutes for 700K records
+
+2. **What's missing:** 2026 data (Jan 1-29)
+   - File exists: `05_EXPORTS\_CAD\monthly\2026\2026_01_01_to_2026_01_29_CAD_Export.xlsx`
+   - Need to add ~5,500 records to the consolidation
+
+### **Two Options:**
+
+**OPTION A: Use Existing CAD_Data_Cleaning_Engine (FAST ⭐)**
+- **Time:** 30-45 minutes total
+- Create consolidation script to merge 2019-2025 + 2026-01-29
+- Run proven pipeline with RMS backfill
+- Get clean ESRI-ready output
+- **Best quality available** (battle-tested on 710K records)
+
+**OPTION B: Extract Code to cad_rms_data_quality First (SLOW)**
+- **Time:** 4-6 hours
+- Extract ~5,100 lines of Python from chat transcripts
+- Test and debug
+- Then run consolidation
+
+### **My Recommendation:**
+
+**Use Option A** - The CAD_Data_Cleaning_Engine pipeline is proven, fast, and will give you the best quality output today. We can extract code to the new project later as a Phase 2 cleanup task. ### **What I Need from You:**
+
+1. **Confirm date range:** 2019-01-01 to 2026-01-29 ✓
+2. **Output format:** XLSX, CSV, or both? 3. **Geocoding:** Leave lat/long blank for ArcGIS Pro, or populate now? 4. **Which option:** A (fast) or B (slow)? **Ready to proceed when you confirm! ** 🚀
+
+---
+
+**User**
+
+one last check review C:\Users\carucci_r\OneDrive - City of Hackensack\09_Reference\Standards\unified_data_dictionary\examples
+C:\Users\carucci_r\OneDrive - City of Hackensack\09_Reference\Standards\unified_data_dictionary\mappings
+C:\Users\carucci_r\OneDrive - City of Hackensack\09_Reference\Standards\unified_data_dictionary\output
+C:\Users\carucci_r\OneDrive - City of Hackensack\09_Reference\Standards\unified_data_dictionary\schemas
+C:\Users\carucci_r\OneDrive - City of Hackensack\09_Reference\Standards\unified_data_dictionary\scripts
+C:\Users\carucci_r\OneDrive - City of Hackensack\09_Reference\Standards\unified_data_dictionary\src
+C:\Users\carucci_r\OneDrive - City of Hackensack\09_Reference\Standards\unified_data_dictionary\README.md
+C:\Users\carucci_r\OneDrive - City of Hackensack\09_Reference\Standards\unified_data_dictionary\SUMMARY.md
+
+to understand how to map the rms to the cad, to understand the schema and review the scriots used
+
+---
+
+**Cursor**
+
+I'll review the unified data dictionary to understand the RMS-to-CAD mapping structure and available scripts. Now let me check the examples and output directories:
+
+Perfect! Now let me create a comprehensive summary document:
+
+## ✅ **Unified Data Dictionary Review Complete**
+
+Perfect! I've thoroughly reviewed the `09_Reference\Standards\unified_data_dictionary` and here's what I found:
+
+### **KEY FINDINGS:**
+
+1. **Comprehensive Mapping Framework** ✅
+   - **7 mapping types** defined (DIRECT_MAP, CONDITIONAL_FILL, ADDRESS_BACKFILL, INCIDENT_BACKFILL, TEXT_APPEND, VOCABULARY_MAP, DATETIME_EXTRACT)
+   - Complete **merge policy** JSON configuration
+   - **Field precedence rules** documented
+   - **Validation rules** (pre/post-merge)
+
+2. **Critical Mapping Files:**
+   - `mappings/mapping_rules.md` - Master documentation (340 lines)
+   - `mappings/cad_rms_merge_policy_latest.json` - Merge configuration
+   - `mappings/cad_to_rms_field_map_latest.json` - Bidirectional mappings
+   - `schemas/canonical_schema.json` - Single source of truth
+
+3. **Join Strategy:**
+   - **LEFT JOIN**: `CAD.ReportNumberNew ↔ RMS.CaseNumber`
+   - **Deduplication**: Keep best (sort by Report Date/Time DESC)
+   - **Audit fields**: Full provenance tracking
+
+4. **Most Important Backfill Rules:**
+   - **Address**: CAD → Rule-based → RMS.Location
+   - **Incident**: CAD.Incident → RMS.IncidentType1/2/3 (cascade)
+   - **PDZone**: CAD → RMS (28.5% coverage expected)
+   - **Officer**: Parse CAD list → RMS.OfficerName
+
+### **CRITICAL DISCOVERY:**
+
+**CAD_Data_Cleaning_Engine ALREADY uses these standards! ** ✅
+
+The existing pipeline:
+- ✅ References `09_Reference\Standards` schemas
+- ✅ Uses `cad_fields_schema_latest.json`
+- ✅ Uses `cad_rms_merge_policy_latest.json`
+- ✅ Implements all mapping rules
+- ✅ 28.5% PDZone backfill achieved
+- ✅ Quality score: 99-100/100
+
+### **WHAT THIS MEANS:**
+
+You can **proceed with Option A** (use existing CAD_Data_Cleaning_Engine) with confidence:
+- No need to rebuild RMS mapping logic
+- Standards are already integrated
+- Battle-tested on 710K records
+- Just need to add 2026 data and run
+
+### **COMPLETE DOCUMENTATION CREATED:**
+
+I've created `UNIFIED_DATA_DICTIONARY_REVIEW.txt` (93KB) with:
+- Complete mapping rules explained
+- All 7 mapping types with examples
+- ETL pipeline order (9 steps)
+- Edge case handling
+- Performance optimization
+- Integration verification
+
+**Ready to proceed with consolidation when you confirm! ** 🚀
+
+---
+
+**User**
+
+proceed after the consolidation is complete we can test the quality of the consolidation with the scripts provided by Claude AI in the chat we had today which you read the chunks of@docs/Claude-Data_cleaning_project_implementation_roadmap @config/consolidation_sources.yaml 
+
+---
+
+**Cursor**
+
+Perfect! I'll create the consolidation script now and prepare everything for the CAD_Data_Cleaning_Engine pipeline. After it runs, we'll use the validation scripts from the Claude chat to verify quality. ---
+
+**User**
+
+@c:\_chunker\07_docs\chunked\ChromaDB_Fix_KB_Consolidation_And_Documentation_Update @c:\_chunker\07_docs\chunked\Documentation_Consolidation_And_Config_Merge_Task please read these I may have combines topics during the chat. I want to make sure the consolidation script has not been created 
+
+---
+
+**Cursor**
+
+I'll check those chat logs to verify whether the consolidation script was already created. Let me read the relevant chunks to check what consolidation-related content was discussed:
+
+Perfect! I can see from the chat logs that:
+
+1. **ChromaDB Fix & KB Consolidation chat** - This was about consolidating the chunker knowledge base files and fixing ChromaDB integration (NOT about CAD data consolidation)
+
+2. **Documentation Consolidation chat** - This was about merging duplicate README/CHANGELOG files in the chunker project (NOT about CAD data consolidation)
+
+## ✅ **CONFIRMED: No CAD Consolidation Script Created Yet**
+
+The chats you referenced were about **entirely different topics**:
+- Chunker knowledge base consolidation
+- ChromaDB integration fixes  
+- Documentation file merging
+
+**None of them created `consolidation/scripts/consolidate_cad.py` for the CAD/RMS data quality project. **
+
+### **What This Means:**
+
+We're ready to proceed with **Option A** (use existing CAD_Data_Cleaning_Engine) as planned:
+
+1. ✅ Create consolidation input script (2019-2026-01-29)
+2. ✅ Run CAD_Data_Cleaning_Engine pipeline  
+3. ✅ Validate with quality checks
+4. ✅ Copy output to cad_rms_data_quality
+
+**Ready to create the consolidation script and proceed! ** 🚀
+
+Shall I create the Python script to consolidate 2019-2025 + 2026-01-29 CAD data? ---
+
+**User**
+
+proceed please
+
+---
+
+**Cursor**
+
+Perfect! I'll create the consolidation script to prepare the 2019-2026-01-29 CAD data for processing. ## ✅ **Ready to Execute! Files Created**
+
+I've created the consolidation system:
+
+### **1. Consolidation Script** ✅
+**File**: `consolidate_cad_2019_2026.py` (267 lines)
+
+**What it does**:
+- Loads 7 yearly files (2019-2025) + 1 monthly file (2026-01-29)
+- Merges ~720,000 records into single CSV
+- Filters date range: 2019-01-01 to 2026-01-29
+- Validates record counts against expected
+- Exports to CAD_Data_Cleaning_Engine input folder
+- Generates detailed logs and summary report
+
+**Features**:
+- ✅ Error handling and validation
+- ✅ Progress logging
+- ✅ Record count verification
+- ✅ Date range filtering
+- ✅ Summary report generation
+
+### **2. Execution Guide** ✅
+**File**: `outputs/consolidation/CAD_CONSOLIDATION_EXECUTION_GUIDE.txt`
+
+**Complete 5-step process**:
+1. Run consolidation script (5-10 min)
+2. Run CAD_Data_Cleaning_Engine pipeline (15-20 min)
+3. Validate output (5 min)
+4. Copy results back (2 min)
+5. Final verification (3 min)
+
+**Includes**:
+- Step-by-step commands
+- Expected output for each step
+- Troubleshooting guide
+- Success criteria
+- Timeline estimates
+
+---
+
+## 🚀 **Quick Start - Copy & Paste**
+
+```powershell
+# Navigate to project
+cd "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality"
+
+# Run consolidation
+python consolidate_cad_2019_2026.py
+```
+
+**That's it! ** The script will:
+1. Load 8 files (~720K records)
+2. Merge and filter to 2019-01-29
+3. Export to CAD_Data_Cleaning_Engine
+4. Generate summary report
+
+**Expected output file**: `CAD_Data_Cleaning_Engine/data/01_raw/2019_to_2026_01_29_CAD.csv` (~115 MB)
+
+---
+
+## 📋 **What Happens Next**
+
+After consolidation completes, follow the execution guide to:
+1. Run CAD_Data_Cleaning_Engine (RMS backfill + normalization)
+2. Validate output (quality checks)
+3. Copy ESRI-ready file back to this project
+
+**Total time: ~30-45 minutes**
+**Final output**: `outputs/consolidation/2019_2026_CAD_ESRI_Ready.xlsx` (ready for ArcGIS Pro)
+
+**Ready to run when you are! ** 🎯
+
+---
+
+**User**
+
+Windows PowerShell
+Copyright (C) Microsoft Corporation. All rights reserved. Install the latest PowerShell for new features and improvements! https://aka.ms/PSWindows
+
+PS U:\> # Navigate to project
+PS U:\> cd "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality"
+PS C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality>
+PS C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality> # Run consolidation
+PS C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality> python consolidate_cad_2019_2026.py
+2026-01-30 23:30:38,461 - INFO - ================================================================================
+2026-01-30 23:30:38,461 - INFO - CAD DATA CONSOLIDATION: 2019-01-01 to 2026-01-29
+2026-01-30 23:30:38,461 - INFO - ================================================================================
+--- Logging error ---
+Traceback (most recent call last):
+  File "C:\Users\carucci_r\scoop\apps\python\current\Lib\logging\__init__.py", line 1154, in emit
+    stream.write(msg + self.terminator)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\carucci_r\scoop\apps\python\current\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2713' in position 33: character maps to <undefined>
+Call stack:
+  File "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\consolidate_cad_2019_2026.py", line 294, in <module>
+    output_file = consolidate_cad_data()
+  File "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\consolidate_cad_2019_2026.py", line 161, in consolidate_cad_data
+    create_directories()
+  File "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\consolidate_cad_2019_2026.py", line 61, in create_directories
+    logger.info(f"✓ Output directory ready: {OUTPUT_PATH}")
+Message: '✓ Output directory ready: C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\02_ETL_Scripts\\CAD_Data_Cleaning_Engine\\data\\01_raw'
+Arguments: ()
+2026-01-30 23:30:38,462 - INFO - ✓ Output directory ready: C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine\data\01_raw
+--- Logging error ---
+Traceback (most recent call last):
+  File "C:\Users\carucci_r\scoop\apps\python\current\Lib\logging\__init__.py", line 1154, in emit
+    stream.write(msg + self.terminator)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\carucci_r\scoop\apps\python\current\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode characters in position 35-114: character maps to <undefined>
+Call stack:
+  File "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\consolidate_cad_2019_2026.py", line 294, in <module>
+    output_file = consolidate_cad_data()
+  File "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\consolidate_cad_2019_2026.py", line 167, in consolidate_cad_data
+    logger.info("\n" + "─" * 80)
+Message: '\n────────────────────────────────────────────────────────────────────────────────'
+Arguments: ()
+2026-01-30 23:30:38,471 - INFO -
+────────────────────────────────────────────────────────────────────────────────
+2026-01-30 23:30:38,472 - INFO - LOADING YEARLY FILES (2019-2025)
+--- Logging error ---
+Traceback (most recent call last):
+  File "C:\Users\carucci_r\scoop\apps\python\current\Lib\logging\__init__.py", line 1154, in emit
+    stream.write(msg + self.terminator)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\carucci_r\scoop\apps\python\current\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode characters in position 33-112: character maps to <undefined>
+Call stack:
+  File "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\consolidate_cad_2019_2026.py", line 294, in <module>
+    output_file = consolidate_cad_data()
+  File "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\consolidate_cad_2019_2026.py", line 169, in consolidate_cad_data
+    logger.info("─" * 80)
+Message: '────────────────────────────────────────────────────────────────────────────────'
+Arguments: ()
+2026-01-30 23:30:38,472 - INFO - ────────────────────────────────────────────────────────────────────────────────
+2026-01-30 23:30:38,473 - INFO - Loading 2019: 2019_CAD_ALL.xlsx
+C:\Users\carucci_r\scoop\apps\python\current\Lib\site-packages\openpyxl\styles\stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+
+
+---
+
+**Cursor**
+
+I see the Unicode encoding issue (same as before with Windows console). Let me fix the script quickly:
+
+## ✅ **Script Fixed - Unicode Removed**
+
+I've replaced all Unicode characters with ASCII-safe alternatives:
+- `✓` → `[OK]`
+- `✗` → `[ERROR]`
+- `⚠` → `[WARN]`
+- `─` → `-` (hyphens)
+
+**The script is actually still running in your console! ** I can see it loaded the 2019 file despite the logging errors. ### **You have two options:**
+
+**Option 1: Let it finish** (if it's still running)
+- The script will continue processing files
+- The log file won't have Unicode errors
+- Just wait for it to complete
+
+**Option 2: Re-run with fixed script**
+- Press `Ctrl+C` to stop current run
+- Run again: `python consolidate_cad_2019_2026.py`
+- Should run cleanly without Unicode errors
+
+**The script should complete in 5-10 minutes** and create the consolidated CSV file ready for the CAD_Data_Cleaning_Engine pipeline. Let me know if you want to wait for it to finish or if you've restarted it! 🚀
+
+---
+
+**User**
+
+PS C:\Users\carucci_r> # Navigate to project
+PS C:\Users\carucci_r> cd "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality"
+PS C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality>
+PS C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality> # Run consolidation
+PS C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality> python consolidate_cad_2019_2026.py
+2026-01-30 23:32:20,001 - INFO - ================================================================================
+2026-01-30 23:32:20,002 - INFO - CAD DATA CONSOLIDATION: 2019-01-01 to 2026-01-29
+2026-01-30 23:32:20,002 - INFO - ================================================================================
+2026-01-30 23:32:20,003 - INFO - [OK] Output directory ready: C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine\data\01_raw
+2026-01-30 23:32:20,003 - INFO -
+--------------------------------------------------------------------------------
+2026-01-30 23:32:20,003 - INFO - LOADING YEARLY FILES (2019-2025)
+2026-01-30 23:32:20,003 - INFO - --------------------------------------------------------------------------------
+2026-01-30 23:32:20,004 - INFO - Loading 2019: 2019_CAD_ALL.xlsx
+C:\Users\carucci_r\scoop\apps\python\current\Lib\site-packages\openpyxl\styles\stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+
+
+---
+
+**Cursor**
+
+Perfect! ✅ **The script is now running cleanly** without Unicode errors! ## 🟢 **Current Status: Processing**
+
+The script is:
+- ✅ Successfully loaded 2019 file
+- 🔄 Currently processing remaining files (2020-2026)
+- ⏱️ Expected completion: 5-10 minutes
+
+### **What's Happening Now:**
+
+```
+Step 1/8: Loading 2019 ✅
+Step 2/8: Loading 2020 🔄 (in progress)
+Step 3/8: Loading 2021 ⏳
+Step 4/8: Loading 2022 ⏳
+Step 5/8: Loading 2023 ⏳
+Step 6/8: Loading 2024 ⏳
+Step 7/8: Loading 2025 ⏳
+Step 8/8: Loading 2026-01-29 ⏳
+```
+
+### **Expected Console Output:**
+
+You'll see messages like:
+```
+Loading 2020: 2020_CAD_ALL.xlsx
+  Size: 14.8 MB
+  Rows: 89,400
+  [OK] Record count within 5% of expected
+  [OK] Successfully loaded 2020: 89,400 records
+```
+
+...repeated for each year, then:
+
+```
+CONSOLIDATING DATA
+Merging 8 files...
+[OK] Consolidated total: ~720,000 records
+
+EXPORTING TO CSV
+[OK] Export complete: 115.3 MB
+
+[SUCCESS] CONSOLIDATION COMPLETE
+```
+
+### **Output Files Being Created:**
+
+1. `CAD_Data_Cleaning_Engine/data/01_raw/2019_to_2026_01_29_CAD.csv` (~115 MB)
+2. `logs/consolidate_2019_2026.log` (full log)
+3. `outputs/consolidation/consolidation_summary.txt` (summary)
+
+### **Next Step After Completion:**
+
+Once you see `[SUCCESS] CONSOLIDATION COMPLETE`, run:
+```powershell
+cd "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine"
+python scripts/enhanced_esri_output_generator.py
+```
+
+**Just let it run! ** 🚀 It's processing the data correctly now. ---
+
+**User**
+
+Windows PowerShell
+Copyright (C) Microsoft Corporation. All rights reserved. Install the latest PowerShell for new features and improvements! https://aka.ms/PSWindows
+
+PS C:\Users\carucci_r> # Navigate to project
+PS C:\Users\carucci_r> cd "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality"
+PS C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality>
+PS C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality> # Run consolidation
+PS C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality> python consolidate_cad_2019_2026.py
+2026-01-30 23:32:20,001 - INFO - ================================================================================
+2026-01-30 23:32:20,002 - INFO - CAD DATA CONSOLIDATION: 2019-01-01 to 2026-01-29
+2026-01-30 23:32:20,002 - INFO - ================================================================================
+2026-01-30 23:32:20,003 - INFO - [OK] Output directory ready: C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine\data\01_raw
+2026-01-30 23:32:20,003 - INFO -
+--------------------------------------------------------------------------------
+2026-01-30 23:32:20,003 - INFO - LOADING YEARLY FILES (2019-2025)
+2026-01-30 23:32:20,003 - INFO - --------------------------------------------------------------------------------
+2026-01-30 23:32:20,004 - INFO - Loading 2019: 2019_CAD_ALL.xlsx
+C:\Users\carucci_r\scoop\apps\python\current\Lib\site-packages\openpyxl\styles\stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+2026-01-30 23:32:35,144 - INFO -   Size: 13.1 MB
+2026-01-30 23:32:35,144 - INFO -   Rows: 91,217
+2026-01-30 23:32:35,144 - INFO -   Columns: 20
+2026-01-30 23:32:35,145 - INFO -   [OK] Record count within 5% of expected 91,217
+2026-01-30 23:32:35,146 - INFO - [OK] Successfully loaded 2019: 91,217 records
+2026-01-30 23:32:35,153 - INFO -   Kept: 91,217 records within 2019-01-01 to 2026-01-29
+2026-01-30 23:32:35,154 - INFO - Loading 2020: 2020_CAD_ALL.xlsx
+C:\Users\carucci_r\scoop\apps\python\current\Lib\site-packages\openpyxl\styles\stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+2026-01-30 23:32:51,674 - INFO -   Size: 12.5 MB
+2026-01-30 23:32:51,674 - INFO -   Rows: 89,400
+2026-01-30 23:32:51,675 - INFO -   Columns: 20
+2026-01-30 23:32:51,675 - INFO -   [OK] Record count within 5% of expected 89,400
+2026-01-30 23:32:51,676 - INFO - [OK] Successfully loaded 2020: 89,400 records
+2026-01-30 23:32:51,682 - INFO -   Kept: 89,400 records within 2019-01-01 to 2026-01-29
+2026-01-30 23:32:51,682 - INFO - Loading 2021: 2021_CAD_ALL.xlsx
+2026-01-30 23:33:00,990 - INFO -   Size: 11.7 MB
+2026-01-30 23:33:00,991 - INFO -   Rows: 91,477
+2026-01-30 23:33:00,991 - INFO -   Columns: 20
+2026-01-30 23:33:00,991 - INFO -   [OK] Record count within 5% of expected 91,477
+2026-01-30 23:33:00,992 - INFO - [OK] Successfully loaded 2021: 91,477 records
+2026-01-30 23:33:00,998 - INFO -   Kept: 91,477 records within 2019-01-01 to 2026-01-29
+2026-01-30 23:33:00,998 - INFO - Loading 2022: 2022_CAD_ALL.xlsx
+C:\Users\carucci_r\scoop\apps\python\current\Lib\site-packages\openpyxl\styles\stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+2026-01-30 23:33:18,380 - INFO -   Size: 14.6 MB
+2026-01-30 23:33:18,380 - INFO -   Rows: 105,038
+2026-01-30 23:33:18,381 - INFO -   Columns: 20
+2026-01-30 23:33:18,381 - INFO -   [OK] Record count within 5% of expected 105,038
+2026-01-30 23:33:18,382 - INFO - [OK] Successfully loaded 2022: 105,038 records
+2026-01-30 23:33:18,387 - INFO -   Kept: 105,038 records within 2019-01-01 to 2026-01-29
+2026-01-30 23:33:18,387 - INFO - Loading 2023: 2023_CAD_ALL.xlsx
+C:\Users\carucci_r\scoop\apps\python\current\Lib\site-packages\openpyxl\styles\stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+2026-01-30 23:33:36,830 - INFO -   Size: 15.5 MB
+2026-01-30 23:33:36,830 - INFO -   Rows: 113,179
+2026-01-30 23:33:36,830 - INFO -   Columns: 20
+2026-01-30 23:33:36,830 - INFO -   [OK] Record count within 5% of expected 113,179
+2026-01-30 23:33:36,831 - INFO - [OK] Successfully loaded 2023: 113,179 records
+2026-01-30 23:33:36,837 - INFO -   Kept: 113,179 records within 2019-01-01 to 2026-01-29
+2026-01-30 23:33:36,837 - INFO - Loading 2024: 2024_CAD_ALL.xlsx
+C:\Users\carucci_r\scoop\apps\python\current\Lib\site-packages\openpyxl\styles\stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+2026-01-30 23:33:55,048 - INFO -   Size: 16.9 MB
+2026-01-30 23:33:55,048 - INFO -   Rows: 110,313
+2026-01-30 23:33:55,048 - INFO -   Columns: 20
+2026-01-30 23:33:55,048 - INFO -   [OK] Record count within 5% of expected 110,313
+2026-01-30 23:33:55,049 - INFO - [OK] Successfully loaded 2024: 110,313 records
+2026-01-30 23:33:55,055 - INFO -   Kept: 110,313 records within 2019-01-01 to 2026-01-29
+2026-01-30 23:33:55,055 - INFO - Loading 2025: 2025_CAD_ALL.xlsx
+2026-01-30 23:34:07,745 - INFO -   Size: 15.8 MB
+2026-01-30 23:34:07,745 - INFO -   Rows: 114,065
+2026-01-30 23:34:07,746 - INFO -   Columns: 20
+2026-01-30 23:34:07,746 - INFO -   [OK] Record count within 5% of expected 114,065
+2026-01-30 23:34:07,747 - INFO - [OK] Successfully loaded 2025: 114,065 records
+2026-01-30 23:34:07,754 - INFO -   Kept: 114,065 records within 2019-01-01 to 2026-01-29
+2026-01-30 23:34:07,754 - INFO -
+--------------------------------------------------------------------------------
+2026-01-30 23:34:07,754 - INFO - LOADING MONTHLY FILE (2026-01-01 to 2026-01-29)
+2026-01-30 23:34:07,754 - INFO - --------------------------------------------------------------------------------
+2026-01-30 23:34:07,754 - INFO - Loading 2026: 2026_01_01_to_2026_01_29_CAD_Export.xlsx
+C:\Users\carucci_r\scoop\apps\python\current\Lib\site-packages\openpyxl\styles\stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+2026-01-30 23:34:09,444 - INFO -   Size: 1.4 MB
+2026-01-30 23:34:09,444 - INFO -   Rows: 9,794
+2026-01-30 23:34:09,444 - INFO -   Columns: 20
+2026-01-30 23:34:09,445 - INFO - [OK] Successfully loaded 2026: 9,794 records
+2026-01-30 23:34:09,450 - INFO -   Kept: 9,794 records within 2019-01-01 to 2026-01-29
+2026-01-30 23:34:09,450 - INFO -
+--------------------------------------------------------------------------------
+2026-01-30 23:34:09,451 - INFO - CONSOLIDATING DATA
+2026-01-30 23:34:09,451 - INFO - --------------------------------------------------------------------------------
+2026-01-30 23:34:09,451 - INFO - Merging 8 files...
+2026-01-30 23:34:09,677 - INFO - [OK] Consolidated total: 724,483 records
+2026-01-30 23:34:09,688 - INFO -   Kept: 724,483 records within 2019-01-01 to 2026-01-29
+2026-01-30 23:34:09,779 - INFO - Unique case numbers: 558,953
+2026-01-30 23:34:09,780 - INFO - Duplicate records (supplements/units): 165,530
+2026-01-30 23:34:09,780 - INFO -
+--------------------------------------------------------------------------------
+2026-01-30 23:34:09,780 - INFO - EXPORTING TO CSV
+2026-01-30 23:34:09,780 - INFO - --------------------------------------------------------------------------------
+2026-01-30 23:34:09,780 - INFO - Output file: C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine\data\01_raw\2019_to_2026_01_29_CAD.csv
+2026-01-30 23:34:16,713 - INFO - [OK] Export complete: 208.6 MB
+2026-01-30 23:34:16,713 - INFO -
+================================================================================
+2026-01-30 23:34:16,714 - INFO - CONSOLIDATION SUMMARY
+2026-01-30 23:34:16,714 - INFO - ================================================================================
+2026-01-30 23:34:16,714 - INFO - Total records: 724,483
+2026-01-30 23:34:16,734 - INFO - Date range: 2019-01-01 00:04:21 to 2026-01-29 23:56:35
+2026-01-30 23:34:16,734 - INFO - Output file: C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine\data\01_raw\2019_to_2026_01_29_CAD.csv
+2026-01-30 23:34:16,735 - INFO - File size: 208.6 MB
+2026-01-30 23:34:16,805 - INFO - Unique cases: 558,953
+2026-01-30 23:34:16,806 - INFO -
+[OK] Consolidation complete!

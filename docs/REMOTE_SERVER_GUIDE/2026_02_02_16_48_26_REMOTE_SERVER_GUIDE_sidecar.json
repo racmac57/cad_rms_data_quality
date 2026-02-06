@@ -1,0 +1,77 @@
+{
+  "source_file": "REMOTE_SERVER_GUIDE.md",
+  "source_path": "C:\\_chunker\\02_data\\REMOTE_SERVER_GUIDE.md",
+  "manifest_path": "C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\KB_Shared\\04_output\\REMOTE_SERVER_GUIDE\\2026_02_02_16_48_26_REMOTE_SERVER_GUIDE.origin.json",
+  "created_at": "2026_02_02_16_48_26",
+  "tags": [
+    "ai",
+    "code",
+    "data",
+    "docs",
+    "excel",
+    "it-ops",
+    "json",
+    "markdown",
+    "police",
+    "powershell",
+    "python",
+    "sql"
+  ],
+  "metadata": {
+    "project_name": "02_data",
+    "source_type": "documentation",
+    "language": "en",
+    "department": "admin",
+    "key_terms": [
+      "esri",
+      "xlsx",
+      "file",
+      "cad_consolidated_2019_2026",
+      "data",
+      "server"
+    ],
+    "enrichment_version": "1.0.0"
+  },
+  "summaries": {
+    "file_summary": "# CAD Consolidated Dataset - Remote Server Guide\n# ================================================================\n# Working with the Consolidated CAD Dataset (2019-2026) on Remote Server\n# ==============================================...",
+    "first_line": "# CAD Consolidated Dataset - Remote Server Guide"
+  },
+  "chunks": [
+    {
+      "chunk_id": "2026-02-02T16:48:26+00:00_REMOTE_SERVER_GUIDE_chunk1",
+      "chunk_index": 1,
+      "file": "chunk_00000.txt",
+      "tags": [
+        "ai",
+        "cad_consolidated_2019_2026",
+        "code",
+        "data",
+        "docs",
+        "esri",
+        "excel",
+        "file",
+        "it-ops",
+        "json",
+        "markdown",
+        "police",
+        "powershell",
+        "python",
+        "server",
+        "sql",
+        "xlsx"
+      ],
+      "key_terms": [
+        "esri",
+        "xlsx",
+        "file",
+        "cad_consolidated_2019_2026",
+        "data",
+        "server"
+      ],
+      "summary": "# CAD Consolidated Dataset - Remote Server Guide\n# ================================================================\n# Working with the Consolidated CAD Dataset (2019-2026) on Remote Server\n# ==============================================...",
+      "char_length": 15323,
+      "byte_length": 15913
+    }
+  ],
+  "enrichment_version": "1.0.0"
+}

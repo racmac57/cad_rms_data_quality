@@ -1,0 +1,79 @@
+{
+  "source_file": "REMOTE_SERVER_HANDOFF_SUMMARY.txt",
+  "source_path": "C:\\_chunker\\02_data\\REMOTE_SERVER_HANDOFF_SUMMARY.txt",
+  "manifest_path": "C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\KB_Shared\\04_output\\REMOTE_SERVER_HANDOFF_SUMMARY\\2026_02_02_16_48_10_REMOTE_SERVER_HANDOFF_SUMMARY.origin.json",
+  "created_at": "2026_02_02_16_48_10",
+  "tags": [
+    "ai",
+    "code",
+    "data",
+    "docs",
+    "excel",
+    "it-ops",
+    "json",
+    "markdown",
+    "police",
+    "powershell",
+    "python",
+    "sql",
+    "training"
+  ],
+  "metadata": {
+    "project_name": "02_data",
+    "source_type": "notes",
+    "language": "en",
+    "department": "admin",
+    "key_terms": [
+      "file",
+      "xlsx",
+      "server",
+      "data",
+      "copy",
+      "cad_consolidated_2019_2026"
+    ],
+    "enrichment_version": "1.0.0"
+  },
+  "summaries": {
+    "file_summary": "# ================================================================\n# CAD CONSOLIDATION - REMOTE SERVER HANDOFF SUMMARY\n# ================================================================\n# Date: 2026-01-31\n# Purpose: Summary of consolidat...",
+    "first_line": "# ================================================================"
+  },
+  "chunks": [
+    {
+      "chunk_id": "2026-02-02T16:48:10+00:00_REMOTE_SERVER_HANDOFF_SUMMARY_chunk1",
+      "chunk_index": 1,
+      "file": "chunk_00000.txt",
+      "tags": [
+        "ai",
+        "cad_consolidated_2019_2026",
+        "code",
+        "copy",
+        "data",
+        "docs",
+        "excel",
+        "file",
+        "it-ops",
+        "json",
+        "markdown",
+        "police",
+        "powershell",
+        "python",
+        "server",
+        "sql",
+        "training",
+        "xlsx"
+      ],
+      "key_terms": [
+        "file",
+        "xlsx",
+        "server",
+        "data",
+        "copy",
+        "cad_consolidated_2019_2026"
+      ],
+      "summary": "# ================================================================\n# CAD CONSOLIDATION - REMOTE SERVER HANDOFF SUMMARY\n# ================================================================\n# Date: 2026-01-31\n# Purpose: Summary of consolidat...",
+      "char_length": 14097,
+      "byte_length": 14672
+    }
+  ],
+  "enrichment_version": "1.0.0"
+}

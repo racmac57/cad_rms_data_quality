@@ -1,0 +1,40 @@
+{
+  "tags": [
+    "ai",
+    "code",
+    "data",
+    "docs",
+    "excel",
+    "it-ops",
+    "json",
+    "markdown",
+    "police",
+    "powershell",
+    "python",
+    "sql"
+  ],
+  "metadata_enrichment": {
+    "metadata": {
+      "project_name": "02_data",
+      "source_type": "documentation",
+      "language": "en",
+      "department": "admin",
+      "key_terms": [
+        "esri",
+        "xlsx",
+        "file",
+        "cad_consolidated_2019_2026",
+        "data",
+        "server"
+      ],
+      "enrichment_version": "1.0.0"
+    },
+    "summaries": {
+      "file_summary": "# CAD Consolidated Dataset - Remote Server Guide\n# ================================================================\n# Working with the Consolidated CAD Dataset (2019-2026) on Remote Server\n# ==============================================...",
+      "first_line": "# CAD Consolidated Dataset - Remote Server Guide"
+    },
+    "enrichment_version": "1.0.0"
+  },
+  "last_processed_at": "2026-02-02T16:48:26.009730",
+  "department": "admin"
+}

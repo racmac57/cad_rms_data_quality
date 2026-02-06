@@ -1,0 +1,41 @@
+{
+  "tags": [
+    "ai",
+    "code",
+    "conversation",
+    "data",
+    "docs",
+    "excel",
+    "it-ops",
+    "json",
+    "markdown",
+    "police",
+    "powershell",
+    "python",
+    "sql"
+  ],
+  "metadata_enrichment": {
+    "metadata": {
+      "project_name": "02_data",
+      "source_type": "documentation",
+      "language": "en",
+      "department": "admin",
+      "key_terms": [
+        "file",
+        "server",
+        "copy",
+        "xlsx",
+        "write-host",
+        "you"
+      ],
+      "enrichment_version": "1.0.0"
+    },
+    "summaries": {
+      "file_summary": "# Condensed data and ArcGIS Pro remote server setup\n_Exported on 2/2/2026 at 16:40:21 EST from Cursor (2.4.23)_\n\n---\n\n**User**\n\nI need to copy the condenced data set (01/01/2019 to 01/30/2026) we did eariler today to a remote server read...",
+      "first_line": "# Condensed data and ArcGIS Pro remote server setup"
+    },
+    "enrichment_version": "1.0.0"
+  },
+  "last_processed_at": "2026-02-02T16:42:23.975753",
+  "department": "admin"
+}

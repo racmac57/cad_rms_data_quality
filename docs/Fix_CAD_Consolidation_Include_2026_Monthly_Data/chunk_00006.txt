@@ -1,0 +1,647 @@
+**
+
+---
+
+## Question 2: Data Gap for 01/31 and 02/01/2026
+
+### Current Situation:
+- ✅ **Baseline:** 2019-01-01 to **2026-01-30** (724,794 records)
+- ❌ **Missing:** 2026-01-31 and 2026-02-01 (2 days)
+
+### Available Files:
+- `2026_01_CAD.xlsx` - Contains January data (including 01/31)
+- `2026_02_CAD.xlsx` - Contains February data (including 02/01)
+
+### Solution Options:
+
+**Option A: Use baseline as-is for now** (RECOMMENDED)
+- Your baseline through 01/30 is fine for initial backfill
+- Add 01/31 and 02/01 in next incremental run
+- **Why:** You already have 7 years of data; 2 days won't significantly impact dashboard launch
+
+**Option B: Create updated polished file through 02/01**
+- Run incremental consolidation to add 01/31 and 02/01
+- Use `consolidate_cad_2019_2026.py` with incremental mode
+- Process through CAD_Data_Cleaning_Engine to get polished output
+- **Time:** ~30-60 minutes depending on data volume
+
+### Quick Incremental Update (If you want 02/01 data):
+
+```powershell
+# On your local machine
+cd "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality"
+
+# Run incremental consolidation (adds January records after 01/30, plus February 01)
+python consolidate_cad_2019_2026.py
+
+# Then run through cleaning engine
+cd "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\CAD_Data_Cleaning_Engine"
+python main.py --input "<path_to_consolidated>" --output-dir "output"
+
+# Copy new polished file to 13_PROCESSED_DATA and update manifest
+cd "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality"
+python scripts/copy_polished_to_processed_and_update_manifest.py
+```
+
+---
+
+## Question 3: Baseline vs New Version
+
+### Strategy: **Keep baseline + create incremental versions**
+
+```
+13_PROCESSED_DATA/
+├── manifest.json          # Points to latest file
+└── ESRI_Polished/
+    ├── base/              # IMMUTABLE baseline (never replace)
+    │   └── CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx
+    ├── incremental/       # Incremental updates go here
+    │   └── 2026_02_02_append/
+    │       └── CAD_ESRI_Polished_20190101_20260202.xlsx  # NEW FILE HERE
+    └── full_rebuild/      # Full consolidations (if needed)
+```
+
+**DO NOT replace the baseline file. ** Here's why:
+
+### Why Keep Baseline Immutable:
+1. **Baseline is your anchor** - Known-good state with verified counts
+2. **Incremental efficiency** - Future updates only process new data
+3. **Audit trail** - You can always go back to baseline
+4. **Manifest tracks latest** - `manifest.json` always points to current file
+
+### When You Create Updated File:
+
+**New file naming convention:**
+- `CAD_ESRI_Polished_20190101_20260201.xlsx` (through Feb 1)
+- Goes in: `incremental/2026_02_02_append/`
+- **Manifest.json updates to point to new file**
+
+### Manifest Updates Automatically:
+
+After running `copy_polished_to_processed_and_update_manifest.py`:
+
+```json
+{
+  "latest": {
+    "path": "ESRI_Polished/incremental/2026_02_02_append/CAD_ESRI_Polished_20190101_20260201.xlsx",
+    "full_path": "C:\\...\\13_PROCESSED_DATA\\ESRI_Polished\\incremental\\2026_02_02_append\\CAD_ESRI_Polished_20190101_20260201.xlsx",
+    "date_range": {
+      "start": "2019-01-01",
+      "end": "2026-02-01"
+    },
+    "record_count": 727000,  # Example - would be actual count
+    "run_type": "incremental"
+  },
+  "baseline": {
+    // Stays unchanged - still points to original baseline
+  }
+}
+```
+
+---
+
+## My Recommendation
+
+**For immediate dashboard launch:**
+1. ✅ Use existing baseline (through 01/30) - 2 days won't matter
+2. ✅ Choose **Option A (ChatGPT's swap)** for speed
+3. ✅ Get dashboard live TODAY
+4. ✅ Add 01/31 and 02/01 in next incremental update (this week)
+
+**For long-term setup:**
+1. After successful backfill, implement staging pattern (Option B)
+2. Run incremental consolidation to add missing 2 days
+3. Set up monthly incremental workflow
+
+---
+
+## Next Steps - Your Choice:
+
+**Fast Track (2-3 hours total):**
+```
+1. Copy baseline to server → 10 min
+2. Run ChatGPT swap script → 15 min  
+3. Verify dashboard → 10 min
+4. Done - dashboard live with 7 years of data
+```
+
+**Complete Setup (4-5 hours total):**
+```
+1. Set up staging pattern → 45 min
+2. Run incremental for 01/31 & 02/01 → 60 min
+3. Copy new polished to server → 10 min
+4. Run backfill with staging pattern → 20 min
+5. Verify and document → 15 min
+```
+
+Which approach fits your timeline? ---
+
+**User**
+
+Is this correct, I will go to arcgis project next:
+PS C:\Users\administrator.HPD> .\Invoke-CADBackfillPublish.ps1 -BackfillFile "C:\HPD ESRI\03_Data\CAD\Backfill\CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx" -DryRun
+>> cd "C:\HPD ESRI\04_Scripts"
+>> # Step 5: Test dry-run (5 minutes)
+>>
+>> # Add daily staging refresh as FIRST action in LawSoftESRICADExport
+>> # Step 4: Update scheduled task (10 minutes - editing task)
+>>
+>>     "C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\ESRI_CADExport.xlsx"
+>> Copy-Item "C:\Program Files\FileMaker\FileMaker Server\Data\Documents\ESRI\ESRI_CADExport.xlsx" `
+>> # Step 3: Initialize staging with current daily export (2 minutes)
+>>
+>> #        discover_tool_info.py, README_Backfill_Process.md
+>> #        Invoke-CADBackfillPublish.ps1, Copy-PolishedToServer.ps1,
+>> # Files: config.json, run_publish_call_data.py, Test-PublishReadiness.ps1,
+>> # Step 2: Copy 7 script files from your local docs\arcgis\ to server (5 minutes)
+>>
+>> New-Item -ItemType Directory -Path "C:\HPD ESRI\05_Reports" -Force
+>> New-Item -ItemType Directory -Path "C:\HPD ESRI\04_Scripts" -Force
+>> New-Item -ItemType Directory -Path "C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING" -Force
+>> # Step 1: Create directories (2 minutes)
+.\Invoke-CADBackfillPublish.ps1 : The term '.\Invoke-CADBackfillPublish.ps1' is not recognized as the name of a
+cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify
+that the path is correct and try again. At line:1 char:1
++ .\Invoke-CADBackfillPublish.ps1 -BackfillFile "C:\HPD ESRI\03_Data\CA ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (.\Invoke-CADBackfillPublish.ps1:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\ESRI_CADExport.xlsx
+
+
+    Directory: C:\HPD ESRI
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----          2/2/2026   9:36 PM                05_Reports
+d-----          2/2/2026   9:36 PM                04_Scripts
+
+
+    Directory: C:\HPD ESRI\03_Data\CAD\Backfill
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----          2/2/2026   7:51 PM                _STAGING
+
+
+PS C:\HPD ESRI\04_Scripts>
+
+---
+
+**Cursor**
+
+**Almost there! You're missing Step 2 - the scripts need to be copied to the server first. **
+
+## Current Status:
+
+✅ **Step 1 DONE:** Directories created  
+✅ **Step 3 DONE:** Staging initialized  
+❌ **Step 2 MISSING:** Scripts not copied yet  
+❌ **Step 5 BLOCKED:** Can't run script that doesn't exist yet
+
+---
+
+## What to do now:
+
+### Copy the 7 files from your local machine to the server:
+
+**On your local machine**, open File Explorer and navigate to:
+```
+C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\docs\arcgis\
+```
+
+**Copy these 7 files:**
+1. `config.json`
+2. `run_publish_call_data.py`
+3. `Test-PublishReadiness.ps1`
+4. `Invoke-CADBackfillPublish.ps1`
+5. `Copy-PolishedToServer.ps1`
+6. `discover_tool_info.py`
+7. `README_Backfill_Process.md`
+
+**Via RDP:** 
+- In your RDP session, paste them into: `C:\HPD ESRI\04_Scripts\`
+- Or drag-and-drop if RDP clipboard is enabled
+
+---
+
+### After copying, verify files exist:
+
+```powershell
+# On server (you're already in the right directory)
+Get-ChildItem "C:\HPD ESRI\04_Scripts" | Select-Object Name
+
+# Should show:
+# config.json
+# run_publish_call_data.py
+# Test-PublishReadiness.ps1
+# Invoke-CADBackfillPublish.ps1
+# Copy-PolishedToServer.ps1
+# discover_tool_info.py
+# README_Backfill_Process.md
+```
+
+---
+
+### Then copy your polished file to server:
+
+```powershell
+# Create destination directory
+New-Item -ItemType Directory -Path "C:\HPD ESRI\03_Data\CAD\Backfill" -Force
+
+# Copy polished file (via RDP clipboard or network share)
+# From: C:\Users\carucci_r\OneDrive - City of Hackensack\13_PROCESSED_DATA\ESRI_Polished\base\CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx
+# To: C:\HPD ESRI\03_Data\CAD\Backfill\CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx
+```
+
+---
+
+### Then test dry-run:
+
+```powershell
+cd "C:\HPD ESRI\04_Scripts"
+
+.\Invoke-CADBackfillPublish.ps1 `
+    -BackfillFile "C:\HPD ESRI\03_Data\CAD\Backfill\CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx" `
+    -DryRun
+```
+
+---
+
+### After successful dry-run, proceed to ArcGIS Pro:
+
+**In ArcGIS Pro:**
+1. Open: `C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.aprx`
+2. Find "Publish Call Data" tool in Catalog
+3. Right-click → Edit
+4. Change Input Spreadsheet from:
+   - OLD: `C:\Program Files\FileMaker\FileMaker Server\Data\Documents\ESRI\ESRI_CADExport.xlsx`
+   - NEW: `C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\ESRI_CADExport.xlsx`
+5. Save the project
+
+---
+
+**Your sequence should be:**
+1. ✅ Copy 7 scripts to server
+2. ✅ Copy polished file to server
+3. ✅ Test dry-run
+4. ✅ Update ArcGIS Pro model
+5. ✅ Update scheduled task
+6. ✅ Run actual backfill
+
+Let me know once the files are copied and I'll help with the next steps! ---
+
+**User**
+
+PS C:\Users\administrator.HPD> .\Invoke-CADBackfillPublish.ps1 -BackfillFile "C:\HPD ESRI\03_Data\CAD\Backfill\CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx" -DryRun
+>> cd "C:\HPD ESRI\04_Scripts"
+>> # Step 5: Test dry-run (5 minutes)
+>>
+>> # Add daily staging refresh as FIRST action in LawSoftESRICADExport
+>> # Step 4: Update scheduled task (10 minutes - editing task)
+>>
+>>     "C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\ESRI_CADExport.xlsx"
+>> Copy-Item "C:\Program Files\FileMaker\FileMaker Server\Data\Documents\ESRI\ESRI_CADExport.xlsx" `
+>> # Step 3: Initialize staging with current daily export (2 minutes)
+>>
+>> #        discover_tool_info.py, README_Backfill_Process.md
+>> #        Invoke-CADBackfillPublish.ps1, Copy-PolishedToServer.ps1,
+>> # Files: config.json, run_publish_call_data.py, Test-PublishReadiness.ps1,
+>> # Step 2: Copy 7 script files from your local docs\arcgis\ to server (5 minutes)
+>>
+>> New-Item -ItemType Directory -Path "C:\HPD ESRI\05_Reports" -Force
+>> New-Item -ItemType Directory -Path "C:\HPD ESRI\04_Scripts" -Force
+>> New-Item -ItemType Directory -Path "C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING" -Force
+>> # Step 1: Create directories (2 minutes)
+.\Invoke-CADBackfillPublish.ps1 : The term '.\Invoke-CADBackfillPublish.ps1' is not recognized as the name of a
+cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify
+that the path is correct and try again. At line:1 char:1
++ .\Invoke-CADBackfillPublish.ps1 -BackfillFile "C:\HPD ESRI\03_Data\CA ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (.\Invoke-CADBackfillPublish.ps1:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\ESRI_CADExport.xlsx
+
+
+    Directory: C:\HPD ESRI
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----          2/2/2026   9:36 PM                05_Reports
+d-----          2/2/2026   9:36 PM                04_Scripts
+
+
+    Directory: C:\HPD ESRI\03_Data\CAD\Backfill
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----          2/2/2026   7:51 PM                _STAGING
+
+
+PS C:\HPD ESRI\04_Scripts> # On server (you're already in the right directory)
+>> Get-ChildItem "C:\HPD ESRI\04_Scripts" | Select-Object Name
+>>
+>> # Should show:
+>> # config.json
+>> # run_publish_call_data.py
+>> # Test-PublishReadiness.ps1
+>> # Invoke-CADBackfillPublish.ps1
+>> # Copy-PolishedToServer.ps1
+>> # discover_tool_info.py
+>> # README_Backfill_Process.md
+
+Name
+----
+_out
+Check-ExcelInstalled.ps1
+config.json
+Copy-PolishedToServer.ps1
+discover_tool_info.py
+ESRI_CADExport.xlsx
+Get-LawSoftTaskDetails.ps1
+import_cad_polished_to_geodatabase.py
+Invoke-CADBackfillPublish.ps1
+Make-TestCADCsv.ps1
+make_test_csv_from_xlsx.py
+probe_tool_input_formats.py
+README.md
+README_Backfill_Process.md
+run_publish_call_data.py
+run_tool_and_capture_messages.py
+run_transform_call_data_and_log.py
+Test-PublishReadiness.ps1
+Write-HpdEsriTree.ps1
+
+
+PS C:\HPD ESRI\04_Scripts> # Create destination directory
+>> New-Item -ItemType Directory -Path "C:\HPD ESRI\03_Data\CAD\Backfill" -Force
+>>
+>> # Copy polished file (via RDP clipboard or network share)
+>> # From: C:\Users\carucci_r\OneDrive - City of Hackensack\13_PROCESSED_DATA\ESRI_Polished\base\CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx
+>> # To: C:\HPD ESRI\03_Data\CAD\Backfill\CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx
+
+
+    Directory: C:\HPD ESRI\03_Data\CAD
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----          2/2/2026   7:44 PM                Backfill
+
+
+PS C:\HPD ESRI\04_Scripts>     -DryRun
+>>     -BackfillFile "C:\HPD ESRI\03_Data\CAD\Backfill\CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx" `
+>> .\Invoke-CADBackfillPublish.ps1 `
+>>
+>> cd "C:\HPD ESRI\04_Scripts"
+-DryRun : The term '-DryRun' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again. At line:1 char:5
++     -DryRun
++     ~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (-DryRun:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+-BackfillFile : The term '-BackfillFile' is not recognized as the name of a cmdlet, function, script file, or operable
+program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again. At line:2 char:5
++     -BackfillFile "C:\HPD ESRI\03_Data\CAD\Backfill\CAD_ESRI_Polished ...
++     ~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (-BackfillFile:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+PS C:\HPD ESRI\04_Scripts> cd "C:\HPD ESRI\04_Scripts"
+>>
+>> .\Invoke-CADBackfillPublish.ps1 `
+>>     -BackfillFile "C:\HPD ESRI\03_Data\CAD\Backfill\CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx" `
+>>     -DryRun
+At C:\HPD ESRI\04_Scripts\Invoke-CADBackfillPublish.ps1:250 char:6
++     } else {
++      ~
+The Try statement is missing its Catch or Finally block. At C:\HPD ESRI\04_Scripts\Invoke-CADBackfillPublish.ps1:286 char:10
++         }
++          ~
+The Try statement is missing its Catch or Finally block. At C:\HPD ESRI\04_Scripts\Invoke-CADBackfillPublish.ps1:315 char:71
++ ... "1. Verify dashboard shows expected date range (2019-01-01 to 2026-02 ...
++                                                                ~~
+Unexpected token 'to' in expression or statement. At C:\HPD ESRI\04_Scripts\Invoke-CADBackfillPublish.ps1:315 char:70
++ ... st "1. Verify dashboard shows expected date range (2019-01-01 to 2026 ...
++                                                                  ~
+Missing closing ')' in expression. At C:\HPD ESRI\04_Scripts\Invoke-CADBackfillPublish.ps1:68 char:5
++ try {
++     ~
+Missing closing '}' in statement block or type definition. At C:\HPD ESRI\04_Scripts\Invoke-CADBackfillPublish.ps1:315 char:84
++ ... dashboard shows expected date range (2019-01-01 to 2026-02-01)" -Fore ...
++                                                                  ~
+The Try statement is missing its Catch or Finally block. At C:\HPD ESRI\04_Scripts\Invoke-CADBackfillPublish.ps1:315 char:84
++ ... ashboard shows expected date range (2019-01-01 to 2026-02-01)" -Foreg ...
++                                                                 ~
+Unexpected token ')' in expression or statement. At C:\HPD ESRI\04_Scripts\Invoke-CADBackfillPublish.ps1:316 char:13
++ Write-Host "2. Check record counts match expected values" -Foreground ...
++             ~~
+Unexpected token '2.' in expression or statement. At C:\HPD ESRI\04_Scripts\Invoke-CADBackfillPublish.ps1:316 char:16
++ Write-Host "2. Check record counts match expected values" -Foreground ...
++                ~~~~~
+Unexpected token 'Check' in expression or statement. At C:\HPD ESRI\04_Scripts\Invoke-CADBackfillPublish.ps1:318 char:15
++ Write-Host ("=" * 70) -ForegroundColor Green
++               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The string is missing the terminator: ". + CategoryInfo          : ParserError: (:) [], ParseException
+    + FullyQualifiedErrorId : MissingCatchOrFinally
+
+PS C:\HPD ESRI\04_Scripts>
+
+---
+
+**Cursor**
+
+Good news - scripts are there! But there's a **syntax error** in the `Invoke-CADBackfillPublish.ps1` script. The error is on line 315 - PowerShell is interpreting the date range incorrectly. Let me fix the script:
+
+I see the issue. The script has a syntax error with the date range. Let me fix it by updating that line:
+
+Perfect! Now you need to **recopy the fixed script to the server**:
+
+## Quick Fix:
+
+**On your local machine:**
+1. Copy the updated file: `C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\docs\arcgis\Invoke-CADBackfillPublish.ps1`
+2. Via RDP, paste it to server: `C:\HPD ESRI\04_Scripts\Invoke-CADBackfillPublish.ps1` (overwrite existing)
+
+**Then on the server, verify the polished file exists:**
+
+```powershell
+# Check if polished file is on the server
+Test-Path "C:\HPD ESRI\03_Data\CAD\Backfill\CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx"
+# Should return: True
+
+# If False, copy it from your local machine via RDP clipboard
+```
+
+**Then run the dry-run:**
+
+```powershell
+cd "C:\HPD ESRI\04_Scripts"
+
+.\Invoke-CADBackfillPublish.ps1 -BackfillFile "C:\HPD ESRI\03_Data\CAD\Backfill\CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx" -DryRun
+```
+
+This should work now! Let me know what happens with the dry-run. ---
+
+**User**
+
+its faluse because we have not updated the new version of the polished ESRI data, right? PS C:\Users\administrator.HPD> # Check if polished file is on the server
+>> Test-Path "C:\HPD ESRI\03_Data\CAD\Backfill\CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx"
+>> # Should return: True
+>>
+>> # If False, copy it from your local machine via RDP clipboard
+False
+PS C:\Users\administrator.HPD> # Check if polished file is on the server
+>> Test-Path "C:\HPD ESRI\03_Data\CAD\Backfill\CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx"
+>> # Should return: True
+>>
+>> # If False, copy it from your local machine via RDP clipboard
+False
+
+---
+
+**Cursor**
+
+**No - it's False because the file hasn't been copied to the SERVER yet! **
+
+The baseline file exists on your **LOCAL machine**, but you need to copy it TO THE SERVER. ## What you need to do:
+
+### Copy the polished file from local to server:
+
+**File location on LOCAL machine:**
+```
+C:\Users\carucci_r\OneDrive - City of Hackensack\13_PROCESSED_DATA\ESRI_Polished\base\CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx
+```
+
+**Where it needs to go on SERVER:**
+```
+C:\HPD ESRI\03_Data\CAD\Backfill\CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx
+```
+
+---
+
+## Two ways to copy:
+
+### Option 1: Via RDP Clipboard (Easiest)
+1. On your **local machine**, navigate to:
+   ```
+   C:\Users\carucci_r\OneDrive - City of Hackensack\13_PROCESSED_DATA\ESRI_Polished\base\
+   ```
+2. Right-click `CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx` → Copy
+3. In your **RDP session**, navigate to:
+   ```
+   C:\HPD ESRI\03_Data\CAD\Backfill\
+   ```
+4. Right-click → Paste
+
+### Option 2: Via PowerShell on local machine
+```powershell
+# On your LOCAL machine (not in RDP)
+Copy-Item `
+    "C:\Users\carucci_r\OneDrive - City of Hackensack\13_PROCESSED_DATA\ESRI_Polished\base\CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx" `
+    "\\HPD2022LAWSOFT\c$\HPD ESRI\03_Data\CAD\Backfill\CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx"
+```
+
+---
+
+## After copying, verify on server:
+
+```powershell
+# On server (in RDP)
+Test-Path "C:\HPD ESRI\03_Data\CAD\Backfill\CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx"
+# Should return: True
+
+# Check file size
+Get-Item "C:\HPD ESRI\03_Data\CAD\Backfill\CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx" | Select-Object Length, LastWriteTime
+# Should show: ~71 MB file
+```
+
+---
+
+**To answer your question:** 
+- The baseline file (through 01/30) is **already good enough** for the backfill
+- You don't need to "update to a new version" first
+- You just need to **copy the existing file** to the server
+- Adding 01/31 and 02/01 can be done later as an incremental update
+
+Copy the file now and then we can proceed with the dry-run! ---
+
+**User**
+
+@c:\Users\carucci_r\OneDrive - City of Hackensack\13_PROCESSED_DATA\ESRI_Polished\CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx @c:\Users\carucci_r\OneDrive - City of Hackensack\13_PROCESSED_DATA\ESRI_Polished\CAD_Consolidated_2019_2026.xlsx both of the attached files are locayted in C:\HPD ESRI\03_Data\CAD
+
+PS C:\Users\administrator.HPD> # On server (in RDP)
+>> Test-Path "C:\HPD ESRI\03_Data\CAD\Backfill\CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx"
+>> # Should return: True
+>>
+>> # Check file size
+>> Get-Item "C:\HPD ESRI\03_Data\CAD\Backfill\CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx" | Select-Object Length, LastWriteTime
+>> # Should show: ~71 MB file
+False
+Get-Item : Cannot find path 'C:\HPD ESRI\03_Data\CAD\Backfill\CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx'
+because it does not exist. At line:6 char:1
++ Get-Item "C:\HPD ESRI\03_Data\CAD\Backfill\CAD_ESRI_Polished_Baseline ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (C:\HPD ESRI\03_...1_20260130.xlsx:String) [Get-Item], ItemNotFoundExcep
+   tion
+    + FullyQualifiedErrorId : PathNotFound,Microsoft.PowerShell.Commands.GetItemCommand
+
+PS C:\Users\administrator.HPD>
+
+---
+
+**Cursor**
+
+Ah! The files are in the **parent directory** `C:\HPD ESRI\03_Data\CAD\`, not in the `Backfill` subdirectory! Let me verify where they actually are:
+
+```powershell
+# Check the parent CAD directory
+Get-ChildItem "C:\HPD ESRI\03_Data\CAD\" | Where-Object { $_.Name -like "*Polished*" -or $_.Name -like "*Consolidated*" } | Select-Object Name, Length, LastWriteTime
+```
+
+**Two options:**
+
+### Option 1: Move files to Backfill subdirectory (Recommended)
+
+```powershell
+# Move both files to the Backfill directory
+Move-Item "C:\HPD ESRI\03_Data\CAD\CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx" `
+    "C:\HPD ESRI\03_Data\CAD\Backfill\CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx"
+
+Move-Item "C:\HPD ESRI\03_Data\CAD\CAD_Consolidated_2019_2026.xlsx" `
+    "C:\HPD ESRI\03_Data\CAD\Backfill\CAD_Consolidated_2019_2026.xlsx"
+
+# Verify they're there
+Get-ChildItem "C:\HPD ESRI\03_Data\CAD\Backfill\" | Select-Object Name, Length
+```
+
+### Option 2: Update script to use current location
+
+```powershell
+# Use the file where it currently is
+.\Invoke-CADBackfillPublish.ps1 `
+    -BackfillFile "C:\HPD ESRI\03_Data\CAD\CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx" `
+    -DryRun
+```
+
+**I recommend Option 1** (move to Backfill subdirectory) to keep things organized as designed. Which option would you like to use? ---
+
+**User**
+
+Name                                                Length LastWriteTime
+----                                                ------ -------------
+CAD_Consolidated_2019_2026.xlsx                   73986755 1/31/2026 12:52:31 AM
+CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx 74844671 1/31/2026 1:53:26 AM
+ do option 1
+
+---
+
+**Cursor**
+
+Perfect!
