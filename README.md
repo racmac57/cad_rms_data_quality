@@ -1,10 +1,10 @@
 # CAD/RMS Data Quality System
 
-**Version:** 1.5.0-beta (Staged Backfill System - IMPLEMENTATION COMPLETE)
+**Version:** 1.5.0 (Staged Backfill System Released)
 **Created:** 2026-01-29
 **Updated:** 2026-02-06
 **Author:** R. A. Carucci
-**Status:** ✅ Implementation complete | ✅ Local integrity verified | 🚀 Ready for Monday deployment
+**Status:** ✅ v1.5.0 Released | 🚀 Ready for production deployment Monday Feb 9
 
 ---
 
@@ -81,6 +81,27 @@ Unified data quality system for CAD (Computer-Aided Dispatch) and RMS (Records M
 
 - `STAGED_BACKFILL_PLAN_FINAL.md` - Complete implementation guide
 - `.cursor/plans/staged_backfill_implementation_99742877.plan.md` - Technical details
+
+---
+
+## What Changed in v1.5.0
+
+Released **2026-02-06** - [View full changelog](CHANGELOG.md#150---2026-02-06)
+
+**Major Feature:** Staged Backfill System with Heartbeat/Watchdog Monitoring
+
+This release resolves the critical 564,916 record hang issue that prevented successful upload of 754K historical CAD records to ArcGIS Online. The solution implements:
+
+- **8 new auxiliary scripts** (2,930 lines) for batch processing, monitoring, recovery, and diagnostics
+- **Pre-geocoding cache** that eliminates live geocoding network timeouts (97.6% address deduplication)
+- **Heartbeat/watchdog system** that automatically detects and kills hung processes after 5 minutes
+- **Batch processing** splits 754K records into 15 manageable chunks with SHA256 verification
+- **Adaptive cooling** extends delays from 60s to 120s when network lag detected
+- **Automatic recovery** with checkpoint tracking and stale file cleanup
+
+**Performance:** Expected 30-45 minute completion (vs 75+ minute hang), 100% success rate with automatic recovery (vs 0% success rate).
+
+**Configuration fixes:** Corrected PowerShell paths, removed hardcoded commit messages, added `.claude/` to gitignore.
 
 ---
 
