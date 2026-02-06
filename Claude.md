@@ -821,35 +821,71 @@ See `_Archive/README.md` for detailed migration notes per project.
 
 ## Version Information
 
-**Current Version:** 1.3.4 (Backfill Investigation)
+**Current Version:** 1.5.0-beta (Staged Backfill Implementation)
 **Created:** 2026-01-29  
-**Last Updated:** 2026-02-05  
+**Last Updated:** 2026-02-06  
 **Author:** R. A. Carucci  
-**Status:** System Stable - Backfill Investigation Underway
+**Status:** 🚀 Implementing Staged Backfill System | ✅ Planning Complete | ⏳ Geocoding & Batch Creation Today
 
-**Recent Work:**
-- ⚠️ Backfill investigation (v1.3.4) - 754K record publish failed twice at feature 564916
-- ✅ Comprehensive data quality validation system (v1.4.0)
+**Current Work (v1.5.0-beta):**
+- 🚀 **Staged Backfill System** - Comprehensive solution to resolve 564,916 record hang
+- ✅ **Planning Complete** - Two detailed documents created with Gemini AI collaboration
+- ⏳ **Phase 0 Today**: Pre-geocoding cache with quality gates (30 min)
+- ⏳ **Phase 1 Today**: Batch splitting with SHA256 hashes (5 min)
+- ⏳ **Script Creation**: 7 new files + 3 modifications (1 hour)
+- ⏳ **Proof of Concept**: Two-batch test with watchdog (15 min)
+- ⏳ **Pre-Weekend Verification**: Hash integrity check (10 min)
+- 📅 **Monday**: Full 15-batch backfill + validation (1 hour)
+
+**Solution Architecture (Five Strategies):**
+1. **Pre-Geocoding Cache** - Geocode ~100-200K unique addresses offline, eliminate network timeout
+2. **Batch Processing** - 15 batches × 50K records with SHA256 integrity verification
+3. **Heartbeat/Watchdog** - 5-minute timeout detection, auto-kill silent hangs
+4. **Adaptive Cooling** - 60-120s delays based on network lag detection
+5. **Post-Watchdog Recovery** - Automatic cleanup, marker restoration, resume capability
+
+**Problem Being Solved:**
+- **Issue**: Monolithic 754K record upload hangs at feature 564,916 after 75 minutes
+- **Root Cause**: Network session exhaustion during live geocoding (Esri World Geocoder timeout)
+- **Current Success Rate**: 0% (consistent hang, requires manual kill)
+- **Proposed Success Rate**: 100% with automatic recovery
+
+**Recent Completed Work:**
+- ✅ Comprehensive data quality validation system (v1.4.0) - 98.3% quality score
 - ✅ Phone/911 dashboard fix verified (v1.3.3)
 - ✅ February 2026 data inclusion (v1.3.2)
 - ✅ ArcGIS automation workflow (v1.3.0)
+- ✅ Backfill investigation documented (v1.3.4)
 
-**Current Challenge:**
-- **Issue**: One-time backfill hangs at geocoding completion (feature 564916)
-- **Data**: ✅ 754,409 records, 99.97% quality, ready for deployment
-- **System**: ✅ Stable, emergency restore successful, nightly task unaffected
-- **Next**: Test smaller dataset or implement batch processing
+**Implementation Timeline:**
+- **Today (Feb 6, 2h 45m)**: Foundation work - geocoding, batching, testing
+- **Weekend**: Data at rest, hash-verified, ready for Monday
+- **Monday (Feb 9, 1h)**: Execute full 15-batch backfill, validate, document
 
-**Expansion Plan Implementation Complete:**
-- ✅ Milestone 1: Paths & Baseline (v1.2.0)
-- ✅ Milestone 2: Reports Reorganization (v1.2.1)
-- ✅ Milestone 3: Server Copy + ArcPy (v1.2.2)
-- ✅ Milestone 4: Speed Optimizations (v1.2.3)
-- ✅ Milestone 5: Monthly Processing (v1.2.4)
-- ✅ Milestone 6: Legacy Archive (v1.2.5)
-- v1.2.6: Incremental 2026 monthly (Jan/Feb), copy script, ReportNumberNew validation fix
-- v1.3.0: ArcGIS Pro backfill automation workflow (staging pattern + orchestration)
-- v1.3.3: Phone/911 dashboard data quality fix
-- v1.3.4: Backfill investigation, emergency restore mechanism verified
-- v1.4.0: Comprehensive validation system (9 validators, 2 drift detectors, 98.3% quality score)
-- See `BACKFILL_INVESTIGATION_20260205.md`, `docs/arcgis/README_Backfill_Process.md`, and `validation/README.md`
+**Documentation Created:**
+- `STAGED_BACKFILL_PLAN_FINAL.md` - Complete implementation guide
+- `.cursor/plans/staged_backfill_implementation_99742877.plan.md` - Technical plan
+- `BACKFILL_INVESTIGATION_20260205.md` - Root cause analysis
+- `BACKFILL_PERFORMANCE_OPTIMIZATION_PLAN.md` - Strategic optimization goals
+
+**Key Innovation - Heartbeat/Watchdog System:**
+```
+Python Runner                    PowerShell Watchdog
+-------------                    -------------------
+update_heartbeat()         -->   Monitor every 30s
+  (timestamp written)            
+                                 if (age > 5 min):
+Run ArcGIS Tool                    Kill process
+  (may hang at 564916)             Clean staging
+                                   Preserve batch
+update_heartbeat()                 Enable resume
+  (unreached if hung)
+```
+
+**Expected Results:**
+- Completion Time: 30-45 minutes (vs 75-minute hang)
+- Success Rate: 100% (vs 0%)
+- Recovery Time: 5 minutes automatic (vs manual intervention)
+- Batch Granularity: 50K records (vs 754K all-or-nothing)
+
+---

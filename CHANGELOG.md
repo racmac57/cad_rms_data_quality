@@ -9,7 +9,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- (No changes yet.)
+### In Progress - Staged Backfill System (v1.5.0)
+
+**Status:** Planning complete, implementation starting 2026-02-06
+
+Comprehensive staged backfill system to resolve 564,916 record hang during ArcGIS Online upload. Implementation uses phased approach with pre-geocoding cache, heartbeat/watchdog monitoring, and automatic recovery.
+
+**Key Enhancements (Gemini AI Collaboration):**
+1. Pre-Geocoding Cache with 5% quality gate
+2. Heartbeat/Watchdog system (5-minute timeout detection)
+3. SHA256 hash verification for file integrity
+4. Adaptive cooling period (60s → 120s based on network lag)
+5. Post-watchdog recovery with automatic cleanup
+6. Batch processing: 15 batches × 50K records each
+
+**Today's Scope (2h 45m):**
+- Phase 0: Geocoding cache (30 min)
+- Phase 1: Batch splitting with hashes (5 min)
+- Script creation (1 hour)
+- Two-batch proof of concept (15 min)
+- Pre-weekend verification (10 min)
+
+**Monday's Scope (1 hour):**
+- Full 15-batch backfill (45 min)
+- Validation and documentation (15 min)
+
+**Documentation Created:**
+- `STAGED_BACKFILL_PLAN_FINAL.md` - Complete implementation plan
+- `.cursor/plans/staged_backfill_implementation_99742877.plan.md` - Detailed technical plan
+
+**Expected Results:**
+- Current: 75-minute run → hang at 564,916 → 0% success
+- Proposed: 30-45 minutes → automatic recovery → 100% success
 
 ---
 

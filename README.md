@@ -1,10 +1,10 @@
 # CAD/RMS Data Quality System
 
-**Version:** 1.4.0 (Comprehensive Validation System Complete)
+**Version:** 1.5.0-beta (Staged Backfill Implementation)
 **Created:** 2026-01-29
-**Updated:** 2026-02-04
+**Updated:** 2026-02-06
 **Author:** R. A. Carucci
-**Status:** ✅ Comprehensive validation system complete | ✅ 98.3% quality score (754k records) | ✅ Reference data synced | 🚀 Production-ready
+**Status:** 🚀 Implementing staged backfill system | ✅ Comprehensive validation (98.3% quality) | ✅ 754,409 records ready for upload
 
 ---
 
@@ -14,9 +14,71 @@ Unified data quality system for CAD (Computer-Aided Dispatch) and RMS (Records M
 
 ### Purpose
 
-1. **Historical Consolidation** (Component 1): Merge 2019-2026 CAD data (753K+ records through Feb 1, 2026) into single validated dataset for ArcGIS Pro dashboards
+1. **Historical Consolidation** (Component 1): Merge 2019-2026 CAD data (754,409 records through Feb 3, 2026) into single validated dataset for ArcGIS Pro dashboards
 2. **Monthly Validation** (Component 2): Provide reusable validation scripts for ongoing CAD and RMS exports
 3. **Single Source of Truth**: Replace fragmented legacy projects with unified, maintainable system
+4. **Staged Backfill System** (NEW - Component 3): Resolve 564,916 record hang with heartbeat/watchdog monitoring
+
+---
+
+## Current Initiative: Staged Backfill System (v1.5.0)
+
+### The Challenge
+
+**Problem:** Monolithic 754K record upload to ArcGIS Online consistently hangs at feature 564,916
+- Duration: 75+ minutes before hang
+- CPU Activity: Drops to 0% (silent hang)
+- Error Logs: None (network session timeout)
+- Success Rate: 0%
+
+### The Solution
+
+**Five-Strategy Staged Backfill** developed with Gemini AI:
+
+1. **Pre-Geocoding Cache** - Geocode ~100-200K unique addresses offline once, eliminating live geocoding network timeout risk
+2. **Batch Processing** - Split 754K into 15 batches of 50K records with SHA256 hash verification
+3. **Heartbeat/Watchdog** - Python updates timestamp, PowerShell monitors, auto-kills after 5 min freeze
+4. **Adaptive Cooling** - 60s default, extends to 120s if network lag detected
+5. **Post-Watchdog Recovery** - Automatic cleanup of stale files, marker restoration, immediate resume
+
+### Implementation Status
+
+**Today (Feb 6, 2h 45m before weekend):**
+- ✅ Planning complete (2 comprehensive documents created)
+- ⏳ Phase 0: Create geocoding cache script
+- ⏳ Phase 0: Run geocoding (30 min)
+- ⏳ Phase 1: Create batch splitter
+- ⏳ Phase 1: Run batch splitting (5 min)
+- ⏳ Create 7 new scripts + modify 3 existing
+- ⏳ Two-batch proof of concept test
+- ⏳ Pre-weekend verification (hash checks)
+
+**Monday (Feb 9, 1 hour):**
+- Full 15-batch backfill (45 min)
+- Validation and audit (15 min)
+- CHANGELOG update
+
+### Key Scripts Being Created
+
+**New Scripts:**
+1. `scripts/create_geocoding_cache.py` - Offline geocoding with quality gates
+2. `scripts/split_baseline_into_batches.py` - Batch splitter with SHA256 hashes
+3. `scripts/Verify-BatchIntegrity.py` - Pre-weekend lockdown verification
+4. `docs/arcgis/Resume-CADBackfillPublish.ps1` - Post-watchdog recovery
+5. `docs/arcgis/Validate-CADBackfillCount.py` - Final count verification
+6. `docs/arcgis/Rollback-CADBackfill.py` - Emergency truncate
+7. `docs/arcgis/Generate-BackfillReport.ps1` - Audit log generator
+8. `docs/arcgis/Analyze-WatchdogHangs.ps1` - Diagnostic analyzer
+
+**Modified Scripts:**
+1. `docs/arcgis/run_publish_call_data.py` - Add heartbeat updates
+2. `docs/arcgis/Invoke-CADBackfillPublish.ps1` - Add watchdog monitoring
+3. `docs/arcgis/config.json` - Add staged_backfill section
+
+### Documentation
+
+- `STAGED_BACKFILL_PLAN_FINAL.md` - Complete implementation guide
+- `.cursor/plans/staged_backfill_implementation_99742877.plan.md` - Technical details
 
 ---
 
