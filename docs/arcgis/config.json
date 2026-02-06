@@ -77,5 +77,32 @@
       "TransformCallData_tbx1",
       "TransformCrimeData_tbx1"
     ]
+  },
+  "staged_backfill": {
+    "_comment": "Staged backfill configuration for 754K record upload",
+    "_version": "1.0.0",
+    "_added": "2026-02-06",
+    "batch_folder": "C:\\HPD ESRI\\03_Data\\CAD\\Backfill\\Batches",
+    "batch_size": 50000,
+    "cooling_seconds": 60,
+    "cooling_seconds_adaptive": 120,
+    "expected_total_records": 754409,
+    "expected_batches": 15,
+    "checkpoint_folder": "Completed",
+    "target_service_url": "VERIFY_FROM_ARCGIS_ONLINE",
+    "_target_service_note": "Update with actual ArcGIS Online feature layer REST URL",
+    "geocoding_cache_enabled": true,
+    "watchdog": {
+      "enabled": true,
+      "max_hang_seconds": 300,
+      "heartbeat_file": "C:\\HPD ESRI\\03_Data\\CAD\\Backfill\\_STAGING\\heartbeat.txt",
+      "check_interval_seconds": 30,
+      "_note": "Watchdog kills process if heartbeat not updated within 5 minutes"
+    },
+    "quality_gates": {
+      "geocode_fail_threshold_percent": 5.0,
+      "min_disk_space_mb": 500,
+      "_note": "Halt processing if geocoding fails >5% or disk space <500MB"
+    }
   }
 }
