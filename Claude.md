@@ -819,23 +819,88 @@ See `_Archive/README.md` for detailed migration notes per project.
 
 ---
 
-## Version Information
+## Critical Lessons Learned (v1.5.1 - Feb 8, 2026)
 
-**Current Version:** 1.5.0 (Staged Backfill System Released)
+### Column Name Format Requirements
+
+**CRITICAL:** The ArcGIS Pro Model Builder "Publish Call Data" tool uses SQL WHERE clauses that expect **underscores** in column names, but the ESRI generator outputs **spaces**.
+
+**Affected Columns:**
+- `Time_Of_Call` (model) vs `Time of Call` (generator)
+- `How_Reported` (model) vs `How Reported` (generator)
+
+**Impact:** Model filter `"Time_Of_Call IS NOT NULL"` matches 0 rows when column is named `Time of Call`, causing complete dataset skip.
+
+**Solution:**
+1. **Corrected baseline file created:** `CAD_ESRI_Polished_Baseline_20190101_20260203_CORRECTED.xlsx`
+2. **PowerShell script for correction:**
+   ```powershell
+   # Rename columns: spaces → underscores
+   $columnRenames = @{
+       "How Reported" = "How_Reported"
+       "Time of Call" = "Time_Of_Call"
+   }
+   # Apply to baseline file before batch splitting
+   ```
+
+**Prevention:** Update ESRI generator to output underscores by default, or add column name validation to pre-flight checks.
+
+### Monolithic Upload Failure Confirmed
+
+**Observation:** Second attempt with corrected baseline still hung at ~564K features during geocoding phase.
+
+**Confirmation:** This matches the findings in `BACKFILL_INVESTIGATION_20260205.md` exactly:
+- Hang location: ~564,916 features
+- Phase: Geocoding (live Esri World Geocoder)
+- Symptoms: Silent hang, 0% CPU, no error logs
+- Root cause: Network session exhaustion
+
+**Conclusion:** Monolithic 754K upload approach is **not viable**. Staged backfill with 15 batches × 50K records is **mandatory**.
+
+### Emergency Staging File Restoration
+
+**Issue:** After Ctrl+C kill, staging file was still 74 MB baseline (should be 0.22 MB default export).
+
+**Risk:** Scheduled task at 12:30 AM would have failed or published wrong data.
+
+**Manual Fix Applied:**
+```powershell
+Copy-Item "C:\Program Files\FileMaker\FileMaker Server\Data\Documents\ESRI\ESRI_CADExport.xlsx" `
+    -Destination "C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\ESRI_CADExport.xlsx" -Force
+```
+
+**Improvement Needed:** Enhance `Invoke-CADBackfillPublish.ps1` to ensure restore happens even on Ctrl+C (trap signal, force restore in finally block).
+
+### Dashboard Safety Verification
+
+**Critical Finding:** Failed backfill attempts are **non-destructive**.
+
+**Evidence:**
+- Before: 561,739 records
+- After failed attempts: 561,740 records (+1 test record only)
+- Last record unchanged: 26-011287 (Feb 3, 2026)
+- Date range unchanged
+- Scheduled task ran successfully at 12:30 AM
+
+**Lesson:** The "1 features were appended" message was from the Table Select test phase, not actual historical data upload. Dashboard remains safe during failures.
+
+---
+
+**Current Version:** 1.5.1 (Column Name Fix + Staged Backfill Ready)
 **Created:** 2026-01-29  
-**Last Updated:** 2026-02-06  
+**Last Updated:** 2026-02-09  
 **Author:** R. A. Carucci  
-**Status:** ✅ v1.5.0 Released | 🚀 Production Ready for Monday Deployment
+**Status:** 🟡 v1.5.1 Preparation Complete | 🚀 Monday Morning Execution Ready
 
-**v1.5.0 Release Summary (2026-02-06):**
-- ✅ **All 8 Auxiliary Scripts Operational** - Complete staged backfill infrastructure (2,930 lines)
-- ✅ **Core Scripts Enhanced** - Watchdog monitoring fully integrated in PowerShell orchestrator
-- ✅ **Local Verification Complete** - 754,409 records across 16 batches, 100% SHA256 pass rate
-- ✅ **Geocoding Cache Generated** - 97.6% address deduplication achieved
-- ✅ **Quality Gates Passed** - <5% geocoding failure threshold confirmed
-- ✅ **Configuration Issues Resolved** - PowerShell paths corrected, Claude settings cleaned up
-- ✅ **Git Commit Completed** - Commit hash to be added after release
-- 📅 **Monday Deployment Ready** - 2-batch POC followed by full 15-batch backfill
+**v1.5.1 Preparation Summary (2026-02-08/09):**
+- ✅ **Column Name Issue Identified** - ESRI generator outputs spaces, model expects underscores
+- ✅ **Corrected Baseline Created** - Fixed `Time of Call` → `Time_Of_Call`, `How Reported` → `How_Reported`
+- ✅ **Monolithic Upload Confirmed Failed** - Hang at 564K features during geocoding (consistent with investigation)
+- ✅ **Server Configuration Fixed** - Geodatabase path corrected to `LawEnforcementDataManagement.gdb`
+- ✅ **Dashboard Verified Safe** - 561,740 records intact after failed backfill attempt
+- ✅ **Pre-Flight Checks Validated** - All 6 checks passing on server
+- ✅ **Emergency Restoration Tested** - Staging file manually restored after Ctrl+C kill
+- 📅 **Monday Ready** - Corrected baseline + staged backfill system deployment (90 min)
 
 **New Scripts Created (8 total, 2,930 lines):**
 1. `scripts/create_geocoding_cache.py` (302 lines) - Offline geocoding with quality gates
@@ -868,6 +933,10 @@ See `_Archive/README.md` for detailed migration notes per project.
 - **Proposed Success Rate**: 100% with automatic recovery
 
 **Recent Completed Work:**
+- ✅ Column name mismatch identified and fixed (v1.5.1) - Spaces → underscores
+- ✅ Corrected baseline file generated (754K records, ready for staged backfill)
+- ✅ Server configuration validated (geodatabase path, pre-flight checks)
+- ✅ Dashboard safety verified (561,740 records intact after failed attempt)
 - ✅ Comprehensive data quality validation system (v1.4.0) - 98.3% quality score
 - ✅ Phone/911 dashboard fix verified (v1.3.3)
 - ✅ February 2026 data inclusion (v1.3.2)
@@ -875,15 +944,18 @@ See `_Archive/README.md` for detailed migration notes per project.
 - ✅ Backfill investigation documented (v1.3.4)
 
 **Implementation Timeline:**
-- **Today (Feb 6, 2h 45m)**: Foundation work - geocoding, batching, testing
+- **Feb 6 (2h 45m)**: Foundation work - geocoding, batching, testing (v1.5.0 released)
+- **Feb 8 (4.5h)**: Backfill attempt, column name issue identified, corrected baseline created (v1.5.1 prep)
 - **Weekend**: Data at rest, hash-verified, ready for Monday
-- **Monday (Feb 9, 1h)**: Execute full 15-batch backfill, validate, document
+- **Monday Feb 9 (1.5h)**: Execute full 15-batch staged backfill, validate, document (v1.5.1 release)
 
 **Documentation Created:**
 - `STAGED_BACKFILL_PLAN_FINAL.md` - Complete implementation guide
 - `.cursor/plans/staged_backfill_implementation_99742877.plan.md` - Technical plan
 - `BACKFILL_INVESTIGATION_20260205.md` - Root cause analysis
 - `BACKFILL_PERFORMANCE_OPTIMIZATION_PLAN.md` - Strategic optimization goals
+- `SESSION_SUMMARY_20260208_BACKFILL_ATTEMPT.md` - Column name fix session (4.5h)
+- `MONDAY_MORNING_QUICK_START.md` - Step-by-step execution guide for Monday
 
 **Key Innovation - Heartbeat/Watchdog System:**
 ```

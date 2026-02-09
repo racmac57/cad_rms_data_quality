@@ -1,0 +1,305 @@
+# Re-create the HTML attachment under a new filename to provide a fresh download link.
+
+html_content = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Publish Call Data Backfill Support Package</title>
+<style>
+  :root{
+    --hpd-navy:#0d233c;
+    --ink:#111;
+    --muted:#555;
+    --card:#f3f5f7;
+    --panel:#ffffff;
+    --line:#d9dde3;
+    --warn:#b45309;
+    --ok:#0f766e;
+    --bg:#f7f8fa;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"DIN","DIN Next","DIN Condensed","Arial Narrow","Segoe UI",Arial,sans-serif;
+    line-height:1.35;
+  }
+  .page{max-width:1100px;margin:0 auto;padding:28px 18px 60px}
+  .header{background:var(--hpd-navy);color:#fff;padding:22px 22px 18px;border-radius:10px}
+  .header h1{margin:0 0 6px 0;font-size:22px;letter-spacing:.2px}
+  .header .meta{font-size:13px;opacity:.95}
+  .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px;margin-top:14px}
+  .kpi,.panel,.card{border:1px solid var(--line);border-radius:10px}
+  .kpi{background:var(--card);padding:14px 14px 12px}
+  .kpi .label{color:var(--muted);font-size:12px;margin-bottom:6px;text-transform:uppercase;letter-spacing:.6px}
+  .kpi .value{font-size:18px;font-weight:700;color:var(--hpd-navy);margin-bottom:6px}
+  .kpi .sub{color:var(--muted);font-size:12px}
+  .panel{background:var(--panel);padding:16px 16px 14px}
+  .card{background:var(--card);padding:14px 14px 12px}
+  h2{margin:0 0 10px 0;font-size:16px;color:var(--hpd-navy)}
+  h3{margin:14px 0 8px 0;font-size:14px;color:var(--hpd-navy)}
+  p{margin:0 0 10px 0}
+  ul{margin:0 0 10px 18px;padding:0}
+  li{margin:0 0 6px 0}
+  .mono{
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+    font-size:12px;
+    background:#0b1220;color:#e6edf7;border-radius:10px;padding:12px;overflow:auto;border:1px solid #101a2b
+  }
+  .tag{display:inline-block;font-size:11px;padding:3px 8px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--muted);margin-right:6px;margin-bottom:6px}
+  .ok{color:var(--ok);font-weight:700}
+  .warn{color:var(--warn);font-weight:700}
+  table{width:100%;border-collapse:collapse;margin:8px 0 12px 0;font-size:13px}
+  th,td{border:1px solid var(--line);padding:8px 8px;vertical-align:top}
+  th{background:#eef2f6;color:#223;text-align:left}
+  .small{font-size:12px;color:var(--muted)}
+  .hr{height:1px;background:var(--line);margin:12px 0}
+  .foot{margin-top:14px;color:var(--muted);font-size:12px}
+  @media print{
+    body{background:#fff}
+    .page{max-width:none;padding:0}
+    .header{border-radius:0}
+    .panel,.kpi,.card{break-inside:avoid}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <h1>Publish Call Data Backfill Support Package</h1>
+    <div class="meta">
+      Submitted To: Chief Michael Antista<br/>
+      Prepared By: Robert Carucci, Principal Analyst, Hackensack Police Department<br/>
+      Report Date: 2026-02-06<br/>
+      Product: ArcGIS Pro ModelBuilder “Publish Call Data” backfill troubleshooting summary
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="kpi" style="grid-column:span 3;">
+      <div class="label">Backfill scope</div>
+      <div class="value">2019-01-01 to 2026-02-03</div>
+      <div class="sub">Historical baseline refresh</div>
+    </div>
+    <div class="kpi" style="grid-column:span 3;">
+      <div class="label">Backfill size</div>
+      <div class="value">754,409 records</div>
+      <div class="sub">Excel input, 76.1 MB</div>
+    </div>
+    <div class="kpi" style="grid-column:span 3;">
+      <div class="label">Data readiness</div>
+      <div class="value">99.97% quality</div>
+      <div class="sub">All required columns present</div>
+    </div>
+    <div class="kpi" style="grid-column:span 3;">
+      <div class="label">Failure point</div>
+      <div class="value">~564,916</div>
+      <div class="sub">Repeatable stall after geocoding</div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="panel" style="grid-column:span 12;">
+      <h2>Executive Summary</h2>
+      <p>
+        We are executing a one-time historical CAD backfill to refresh the hosted dashboard layer with a validated baseline dataset.
+        A manual backfill run completed on 2026-02-03 using the pre-change model behavior.
+        After a single Calculate Field node update, follow-on publish attempts either stall at a repeatable point or reach the hosted target with the prior field behavior still present.
+      </p>
+      <div class="tag">ArcGIS Pro ModelBuilder</div>
+      <div class="tag">Geocoding</div>
+      <div class="tag">Hosted publish</div>
+      <div class="tag">Task Scheduler</div>
+      <div class="tag">ArcPy</div>
+      <div class="tag">How_Reported</div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="panel" style="grid-column:span 7;">
+      <h2>Situation</h2>
+      <p>
+        The backfill dataset is production-ready and intended to replace the dashboard’s limited daily-export view with a full historical baseline.
+        Daily publishing continues normally at low volume, but the historical baseline publish is blocked.
+      </p>
+      <h3>Intended outcome</h3>
+      <ul>
+        <li>Publish a complete historical baseline (2019 to 2026-02-03) to the hosted layer used by the dashboard.</li>
+        <li>Preserve corrected How_Reported values so “Phone” and “9-1-1” remain separate.</li>
+        <li>Complete the publish in a stable, repeatable way for future re-runs.</li>
+      </ul>
+      <h3>Immediate impact</h3>
+      <ul>
+        <li>Backfill completion is paused pending resolution.</li>
+        <li>Dashboard continues to update with daily exports only, limiting historical completeness for analysis and reporting.</li>
+      </ul>
+    </div>
+
+    <div class="panel" style="grid-column:span 5;">
+      <h2>Dataset Profile</h2>
+      <table>
+        <tr><th>Item</th><th>Value</th></tr>
+        <tr><td>Input type</td><td>Excel (Sheet1)</td></tr>
+        <tr><td>Record count</td><td>754,409</td></tr>
+        <tr><td>Date range</td><td>2019-01-01 through 2026-02-03</td></tr>
+        <tr><td>File size</td><td>76.1 MB</td></tr>
+        <tr><td>Validation score</td><td><span class="ok">99.97%</span></td></tr>
+      </table>
+      <p class="small">Key data rule: stop combining “Phone” and “9-1-1” into “Phone/911.”</p>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="panel" style="grid-column:span 12;">
+      <h2>Executive Statistics Report</h2>
+      <h3>Calculate Field node change</h3>
+      <p>
+        The documented model edit that precedes the failures is a Calculate Field node change for <b>How_Reported</b>.
+        The update changed a transformation that combined values into “Phone/911” into a pass-through that keeps the original value.
+      </p>
+
+      <table>
+        <tr><th style="width:22%;">Component</th><th>Details</th></tr>
+        <tr><td>Model tool</td><td>Publish Call Data (ModelBuilder)</td></tr>
+        <tr><td>Node</td><td>Calculate Field</td></tr>
+        <tr><td>Field</td><td>How_Reported</td></tr>
+        <tr><td>Old behavior</td><td>“Phone” and “9-1-1” combined into “Phone/911”</td></tr>
+        <tr><td>New behavior</td><td>Pass-through. Preserve original How_Reported value</td></tr>
+      </table>
+
+      <h3>Arcade expressions</h3>
+      <div class="grid" style="margin-top:0;">
+        <div class="card" style="grid-column:span 6;">
+          <div class="small">Old Arcade expression (combined values)</div>
+          <pre class="mono">iif($feature.How_Reported=='9-1-1'||$feature.How_Reported=='Phone','Phone/911',$feature.How_Reported)</pre>
+        </div>
+        <div class="card" style="grid-column:span 6;">
+          <div class="small">New Arcade expression (pass-through)</div>
+          <pre class="mono">$feature.How_Reported</pre>
+        </div>
+      </div>
+
+      <p class="small">
+        Key symptom: Task Scheduler updates hosted data but hosted results still show combined “Phone/911.”
+        This points toward execution-context differences or stale/cached logic.
+      </p>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="panel" style="grid-column:span 12;">
+      <h2>Tactical Intelligence Report</h2>
+
+      <h3>Timeline of events</h3>
+      <table>
+        <tr>
+          <th style="width:18%;">Date</th>
+          <th style="width:18%;">Execution mode</th>
+          <th style="width:22%;">Outcome</th>
+          <th>Notes</th>
+        </tr>
+        <tr>
+          <td>2026-02-03</td>
+          <td>Manual ModelBuilder</td>
+          <td><span class="ok">Succeeded</span></td>
+          <td>Published about 565K records. How_Reported combined as Phone/911 by design.</td>
+        </tr>
+        <tr>
+          <td>2026-02-04</td>
+          <td>Manual ModelBuilder</td>
+          <td><span class="warn">Stalled</span></td>
+          <td>Repeatable stall after geocoding near feature ~564,916. No actionable error. CPU near idle. Restore executed.</td>
+        </tr>
+        <tr>
+          <td>2026-02-05</td>
+          <td>Task Scheduler</td>
+          <td><span class="warn">Partial update</span></td>
+          <td>Some hosted data updated. Hosted results still show Phone/911 combined.</td>
+        </tr>
+        <tr>
+          <td>2026-02-05</td>
+          <td>ArcPy runner</td>
+          <td><span class="warn">Stalled</span></td>
+          <td>Same post-geocoding stall pattern. No progress into next step after geocoding.</td>
+        </tr>
+      </table>
+
+      <h3>Observed failure point</h3>
+      <ul>
+        <li>Stall occurs at or immediately after geocoding.</li>
+        <li>Next expected step is a polygon join (“Join Attributes From Polygon”).</li>
+        <li>Messages include warnings for NULL or EMPTY geometry. These warnings are expected for missing or incomplete addresses.</li>
+        <li>Abnormal pattern is prolonged no-progress with low CPU use and no explicit exception.</li>
+      </ul>
+
+      <h3>Working theories</h3>
+      <ul>
+        <li><b>Schema or mapping cache</b> after the Calculate Field edit. Downstream tools might still be using stale field metadata or intermediate outputs.</li>
+        <li><b>Execution context differences</b> between manual Pro runs and Task Scheduler runs. Differences in scratch workspace, background processing, sign-in tokens, or intermediate outputs can produce inconsistent behavior.</li>
+        <li><b>Scale threshold or timeout</b> behavior when publishing 750K+ records with geocoding and joins.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="panel" style="grid-column:span 12;">
+      <h2>Methodology</h2>
+      <h3>Execution modes used</h3>
+      <ul>
+        <li>Manual ModelBuilder execution inside ArcGIS Pro</li>
+        <li>Task Scheduler off-hours automation</li>
+        <li>ArcPy execution on server</li>
+      </ul>
+
+      <h3>Staging design</h3>
+      <p>
+        The backfill workflow uses a fixed staging path and swaps staged content rather than changing model inputs.
+        The automation includes lock control, atomic swap behavior, and a restore path to return the environment to the daily-export configuration.
+      </p>
+      <div class="mono">C:\\HPD ESRI\\03_Data\\CAD\\Backfill\\_STAGING\\ESRI_CADExport.xlsx</div>
+
+      <div class="hr"></div>
+
+      <h3>Support questions</h3>
+      <table>
+        <tr><th style="width:28%;">Area</th><th>Questions</th></tr>
+        <tr>
+          <td>ModelBuilder after node edits</td>
+          <td>Steps to ensure downstream tools use refreshed field mappings and schema after a Calculate Field edit. Whether models can retain stale schema or transformation logic after a node expression change.</td>
+        </tr>
+        <tr>
+          <td>Scheduled task behavior</td>
+          <td>Why hosted data updated but How_Reported still shows combined Phone/911. What sign-in, licensing, scratch workspace, background processing, or intermediate-output differences can cause older logic to run.</td>
+        </tr>
+        <tr>
+          <td>Stall diagnostics</td>
+          <td>Best method to capture diagnostics when Pro stalls with no explicit error. Recommended logging settings for geoprocessing history, background processing, scratch workspace, and intermediate outputs.</td>
+        </tr>
+        <tr>
+          <td>Publish strategy</td>
+          <td>Recommended batch strategy and batch size for 750K+ record publishing when geocoding and polygon joins are included. Guidance on append vs replace workflows for a historical baseline.</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="panel" style="grid-column:span 12;">
+      <h2>Items Available Upon Request</h2>
+      <ul>
+        <li>Full geoprocessing messages from affected runs</li>
+        <li>Task Scheduler history and transcript logs</li>
+        <li>Export of the Publish Call Data ModelBuilder tool</li>
+        <li>Sample records around feature ~564,916</li>
+        <li>Hosted layer schema and field list</li>
+      </ul>
+      <div class="foot">This document is print-safe and designed for rapid triage by Esri Support.</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
+"""
