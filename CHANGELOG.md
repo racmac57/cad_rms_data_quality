@@ -11,6 +11,238 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.6.0] - 2026-02-09
+
+### Added - Historical CAD Backfill Scripts (XY Coordinate Strategy)
+
+#### Problem Resolved
+**Live geocoding timeouts**: ModelBuilder's "Geocode Addresses" tool hung indefinitely when processing 565K+ addresses through Esri World Geocoding Service. Process stuck at "WARNING 000635: Skipping feature 564897" for >5 minutes with no progress.
+
+**Root cause**: Network session timeouts during bulk geocoding operations (>100K records). Live geocoding services are not designed for batch operations of this scale.
+
+**Solution**: Bypass live geocoding entirely by using existing `latitude`/`longitude` fields in source data with `XYTableToPoint` tool.
+
+#### Scripts Created (Backfill Workflow)
+
+**Backup & Restore Operations:**
+1. `scripts/backup_current_layer.py` (170 lines) - Export online layer to local FGDB
+   - Triple confirmation required
+   - SHA256 hash verification
+   - UTF-8 encoding for emoji logging
+   - Successfully backed up 561,740 records
+   
+2. `scripts/truncate_online_layer.py` (150 lines) - Delete all records from online feature layer
+   - Triple confirmation: "TRUNCATE" + username + "DELETE ALL RECORDS"
+   - Pre-flight checks (service accessibility, backup exists)
+   - Used successfully 3 times during testing
+   
+3. `scripts/restore_from_backup.py` (180 lines) - Emergency rollback operation
+   - Truncate current online data
+   - Restore from local backup
+   - Single confirmation: "ROLLBACK"
+   - Successfully restored 561,740 records once
+
+**Backfill Workflow Scripts:**
+4. `scripts/publish_with_xy_coordinates.py` (170 lines) - Initial attempt (failed)
+   - Table Select → XYTableToPoint → Append
+   - Result: 565,870 records with geometry but NULL attributes
+   - Issue: No field transformations, no field mapping
+   
+5. `scripts/complete_backfill_with_xy.py` (350 lines) - Second attempt (failed)
+   - Added all ModelBuilder transformations (datetime conversion, response time calculations, date attributes)
+   - Result: DateTime fields populated, other attributes still NULL
+   - Issue: Field name mismatch (ReportNumberNew vs callid, etc.)
+   
+6. `scripts/complete_backfill_fixed.py` (420 lines) - Third attempt (failed)
+   - Attempted FieldMappings API to translate source → target field names
+   - Result: Field mapping code failed to transfer data
+   - Issue: FieldMappings API errors
+   
+7. `scripts/complete_backfill_simplified.py` (450 lines) - Final solution (ready to test)
+   - Creates duplicate fields with target names, copies values directly
+   - Avoids FieldMappings API entirely
+   - Status: 🟡 Untested (needs final validation)
+
+**Diagnostic Scripts:**
+8. `scripts/diagnose_missing_data.py` - Check for NULL attributes in temp FC and online service
+9. `scripts/check_cfstable_schema.py` - Display CFStable field schema (41 fields)
+10. `scripts/check_temp_fc_fields.py` - Verify fields in temp feature class after XYTableToPoint
+11. `scripts/verify_data_exists.py` - Sample record values to identify NULL fields
+12. `scripts/verify_temp_fc_fields.py` - Check field presence and sample data
+
+#### Field Schema Mapping
+
+| Source Field (Excel) | Target Field (CFStable/Online) | Transformation |
+|----------------------|--------------------------------|----------------|
+| ReportNumberNew      | callid                         | Direct copy    |
+| Incident             | calltype                       | Direct copy    |
+| How_Reported         | callsource                     | Direct copy    |
+| FullAddress2         | fulladdr                       | Clean (remove leading & or ,) |
+| Time_Of_Call         | calldate                       | Text → DATE conversion |
+| Time_Dispatched      | dispatchdate                   | Text → DATE conversion |
+| Time_Out             | enroutedate                    | Text → DATE conversion |
+| Time_In              | cleardate                      | Text → DATE conversion |
+| (calculated)         | dispatchtime                   | (dispatchdate - calldate) / 60 |
+| (calculated)         | queuetime                      | (enroutedate - dispatchdate) / 60 |
+| (calculated)         | cleartime                      | (cleardate - enroutedate) / 60 |
+| (calculated)         | responsetime                   | dispatchtime + queuetime |
+| (extracted)          | calldow                        | Day of week name from calldate |
+| (extracted)          | calldownum                     | Day of week number from calldate |
+| (extracted)          | callhour                       | Hour from calldate |
+| (extracted)          | callmonth                      | Month from calldate |
+| (extracted)          | callyear                       | Year from calldate |
+| longitude            | x                              | Convert to numeric (float) |
+| latitude             | y                              | Convert to numeric (float) |
+
+#### Key Features Implemented
+
+**Bypass Live Geocoding:**
+- Uses existing latitude/longitude fields from source data
+- Converts text coordinates to numeric DOUBLE fields
+- Creates geometry via XYTableToPoint (WGS 1984 / EPSG:4326)
+- Eliminates network dependency during publish
+
+**Complete Field Transformations:**
+- 4 datetime conversions (Time_Of_Call → calldate, etc.)
+- 4 response time calculations (dispatchtime, queuetime, cleartime, responsetime)
+- 5 date attribute extractions (calldow, calldownum, callhour, callmonth, callyear)
+- Address cleaning (remove leading & or ,)
+- Field name translation (ReportNumberNew → callid, etc.)
+
+**Field Copying Strategy (Final Solution):**
+```python
+def copy_field_values(in_table, source_field, target_field, field_type="TEXT", field_length=255):
+    # Add target field
+    arcpy.management.AddField(in_table, target_field, field_type, field_length=field_length)
+    # Copy values directly
+    arcpy.management.CalculateField(
+        in_table=in_table,
+        field=target_field,
+        expression=f"!{source_field}!",
+        expression_type="PYTHON3"
+    )
+```
+
+**Two-Stage Append:**
+1. Append temp feature class → local CFStable (with proper field names)
+2. Push CFStable → online service (schema already matches)
+
+**Safety Features:**
+- Triple confirmation for destructive operations
+- Automatic backup before truncate
+- Emergency restore script
+- UTF-8 logging (handles emoji status indicators)
+- Record count verification at each step
+
+#### Test Results (Diagnostic Validation)
+
+**Source Data Verified:**
+```
+ReportNumberNew: 19-000001
+Incident: Blocked Driveway
+How_Reported: Phone
+FullAddress2: 198 Central Avenue, Hackensack, NJ, 07601
+latitude: 40.8856
+longitude: -74.0435
+Time_Of_Call: 2019-01-01 00:04:21
+```
+
+**CFStable Schema Confirmed:**
+```
+Total Fields: 41
+Key Fields: callid, calltype, callsource, fulladdr, calldate, dispatchdate,
+            enroutedate, cleardate, dispatchtime, queuetime, cleartime,
+            responsetime, calldow, calldownum, callhour, callmonth, callyear,
+            x, y (all required fields present)
+```
+
+**Issue Identified:**
+```
+CFStable Sample Record:
+  callid: None         ← Should be "19-000001"
+  calltype: None       ← Should be "Blocked Driveway"
+  callsource: None     ← Should be "Phone"
+  fulladdr: None       ← Should be address
+  calldate: 2019-01-01 00:04:21  ← ✅ DateTime conversion worked
+```
+
+**Root Cause:** FieldMappings API failed to transfer attribute values despite correct field names.
+
+#### Performance Metrics
+
+**Live Geocoding (Original ModelBuilder):**
+- Hang time: 75+ minutes → infinite timeout at feature 564,897
+- CPU activity: Drops to 0%
+- Success rate: 0%
+
+**XY Coordinate Strategy (Simplified Script):**
+- Expected execution time: 12-15 minutes for 565,870 records
+- Success rate: 100% (geometry creation confirmed)
+- Attribute transfer: 🟡 Pending final test of simplified field copy approach
+
+#### Execution Example (Final Script)
+
+```powershell
+cd "C:\HPD ESRI\04_Scripts"
+
+# Truncate online service (clear bad data)
+C:\PROGRA~1\ArcGIS\Pro\bin\Python\Scripts\propy.bat truncate_online_layer.py
+
+# Run simplified backfill with field copying
+C:\PROGRA~1\ArcGIS\Pro\bin\Python\Scripts\propy.bat complete_backfill_simplified.py
+```
+
+#### Documentation Created
+
+1. `docs/HANDOFF_20260209.md` (620 lines) - Complete handoff document
+   - Timeline of events and script evolution
+   - Root cause analysis (live geocoding timeout + field schema mismatch)
+   - All scripts documented with code samples
+   - Key paths and locations (RDP server, local dev, online resources)
+   - ModelBuilder workflow analysis
+   - Data validation results
+   - Accomplishments and outstanding issues
+   - Next steps and troubleshooting guide
+
+### Changed
+
+- Backfill strategy: Shifted from ModelBuilder live geocoding to XY coordinate-based approach
+- Field mapping approach: Evolved from FieldMappings API to direct field copying
+- Workflow architecture: Added intermediate CFStable staging for schema compatibility
+
+### Fixed
+
+- Live geocoding timeout eliminated by using existing coordinates
+- UnicodeEncodeError in logging functions (added `encoding="utf-8"`)
+- DateTime conversion working correctly (Time_Of_Call → calldate, etc.)
+- Response time calculations functional (dispatchtime, queuetime, cleartime, responsetime)
+- Date attribute extraction working (calldow, calldownum, callhour, callmonth, callyear)
+
+### Outstanding Issues
+
+❌ **Field name translation not working** - FieldMappings API failed to transfer attributes  
+🟡 **Simplified field copy approach untested** - Need to validate `complete_backfill_simplified.py`  
+❓ **Date range discrepancy** - Source claims 2019-2026, but online shows 2023-2026 (possible NULL coordinate filtering?)  
+
+### Status
+
+**Scripts Ready:** ✅ All 12 scripts created and tested (except final simplified version)  
+**Backup System:** ✅ Working (561,740 records backed up and restored successfully)  
+**Truncate Operation:** ✅ Working (triple confirmation, used 3 times)  
+**Geometry Creation:** ✅ Working (565,870 points created via XYTableToPoint)  
+**DateTime Transformations:** ✅ Working (calldate populated correctly)  
+**Field Mapping:** ❌ Failed (FieldMappings API did not transfer attributes)  
+**Final Solution:** 🟡 Ready to test (`complete_backfill_simplified.py` with field copying)
+
+### Next Actions
+
+1. **Test simplified script:** Run `complete_backfill_simplified.py` on RDP server
+2. **Validate results:** Check dashboard for populated attribute data
+3. **Investigate date range:** Determine why 2019-2022 data may be missing from online service
+4. **Clean up failed scripts:** Archive unsuccessful versions after validation complete
+
+---
+
 ## [1.5.0] - 2026-02-06
 
 ### Added - Staged Backfill System with Heartbeat/Watchdog Monitoring

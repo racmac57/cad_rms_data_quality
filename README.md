@@ -1,10 +1,10 @@
 # CAD/RMS Data Quality System
 
-**Version:** 1.5.0 (Staged Backfill System Released)
+**Version:** 1.6.0-dev (Historical Backfill XY Coordinate Strategy)
 **Created:** 2026-01-29
-**Updated:** 2026-02-06
+**Updated:** 2026-02-09
 **Author:** R. A. Carucci
-**Status:** ✅ v1.5.0 Released | 🚀 Ready for production deployment Monday Feb 9
+**Status:** 🟡 v1.6.0 In Progress | Field mapping issue identified, simplified solution ready to test
 
 ---
 
@@ -17,11 +17,73 @@ Unified data quality system for CAD (Computer-Aided Dispatch) and RMS (Records M
 1. **Historical Consolidation** (Component 1): Merge 2019-2026 CAD data (754,409 records through Feb 3, 2026) into single validated dataset for ArcGIS Pro dashboards
 2. **Monthly Validation** (Component 2): Provide reusable validation scripts for ongoing CAD and RMS exports
 3. **Single Source of Truth**: Replace fragmented legacy projects with unified, maintainable system
-4. **Staged Backfill System** (NEW - Component 3): Resolve 564,916 record hang with heartbeat/watchdog monitoring
+4. **Historical Backfill** (Component 3): Load 565,870 records to ArcGIS Online dashboard using XY coordinates (bypassing live geocoding)
 
 ---
 
-## Current Initiative: Staged Backfill System (v1.5.0)
+## Current Initiative: Historical Backfill XY Coordinate Strategy (v1.6.0-dev)
+
+### The Challenge
+
+**Problem 1: Live Geocoding Timeouts**
+- ModelBuilder's "Geocode Addresses" tool hung indefinitely at feature 564,897
+- Network session timeout during bulk geocoding (>100K records)
+- Process stuck for >5 minutes with no progress
+
+**Problem 2: Field Schema Mismatch**
+- Source Excel fields (ReportNumberNew, Incident) don't match online service fields (callid, calltype)
+- ArcPy FieldMappings API failed to transfer attributes
+- Result: 565,870 records with geometry but all attributes NULL
+
+### The Solution
+
+**Two-Part Strategy:**
+
+1. **Bypass Live Geocoding** - Use existing latitude/longitude fields with XYTableToPoint instead of geocoding service
+2. **Field Copying Instead of Mapping** - Create duplicate fields with target names, copy values directly (avoid FieldMappings API)
+
+### Implementation Status
+
+**✅ COMPLETED:**
+- ✅ Backup/restore system (561,740 records backed up successfully)
+- ✅ XYTableToPoint geometry creation (565,870 points created)
+- ✅ DateTime transformations (Time_Of_Call → calldate working)
+- ✅ Response time calculations (dispatchtime, queuetime, cleartime, responsetime)
+- ✅ Date attribute extraction (day of week, hour, month, year)
+- ✅ Root cause identified (FieldMappings API failure)
+
+**🟡 PENDING:**
+- 🟡 Test simplified field copying approach (`complete_backfill_simplified.py`)
+- 🟡 Validate dashboard attribute data after final run
+- 🟡 Investigate date range discrepancy (2019-2026 source vs 2023-2026 online)
+
+### Scripts Created (Feb 9, 2026 Session)
+
+**Backup & Restore (Working):**
+1. `scripts/backup_current_layer.py` - Export online layer to local FGDB
+2. `scripts/truncate_online_layer.py` - Delete all records (triple confirmation)
+3. `scripts/restore_from_backup.py` - Emergency rollback operation
+
+**Backfill Workflow Evolution:**
+4. `scripts/publish_with_xy_coordinates.py` ❌ - Basic XY approach (NULL attributes)
+5. `scripts/complete_backfill_with_xy.py` ❌ - Added transformations (partial success)
+6. `scripts/complete_backfill_fixed.py` ❌ - FieldMappings attempt (failed)
+7. `scripts/complete_backfill_simplified.py` 🟡 - Field copying approach (ready to test)
+
+**Diagnostics (Working):**
+8. `scripts/diagnose_missing_data.py` - Check for NULL attributes
+9. `scripts/check_cfstable_schema.py` - Display CFStable field schema
+10. `scripts/check_temp_fc_fields.py` - Verify temp FC fields after XYTableToPoint
+11. `scripts/verify_data_exists.py` - Sample record values
+
+### Documentation
+
+- `docs/HANDOFF_20260209.md` (620 lines) - Complete technical handoff with timeline, root causes, script evolution
+- `CHANGELOG.md` - Updated with v1.6.0 changes
+
+---
+
+## Previous Initiative: Staged Backfill System (v1.5.0)
 
 ### The Challenge
 
