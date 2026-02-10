@@ -886,11 +886,110 @@ Copy-Item "C:\Program Files\FileMaker\FileMaker Server\Data\Documents\ESRI\ESRI_
 
 ---
 
-**Current Version:** 1.5.1 (Column Name Fix + Staged Backfill Ready)
+**Current Version:** 1.6.0 ✅ (Historical Backfill Complete - Field Copying Strategy)
 **Created:** 2026-01-29  
 **Last Updated:** 2026-02-09  
 **Author:** R. A. Carucci  
-**Status:** 🟡 v1.5.1 Preparation Complete | 🚀 Monday Morning Execution Ready
+**Status:** ✅ v1.6.0 Released | Historical backfill successful (565,470 records with full attribute data)
+
+---
+
+## v1.6.0 - Historical Backfill Complete (2026-02-09)
+
+### Problem Solved
+**Initial Issue:** Live geocoding hung indefinitely at feature 564,897  
+**Secondary Issue:** Field schema mismatch caused NULL attributes (ReportNumberNew vs callid)  
+**Third Issue:** FieldMappings API failed silently (no errors, but no data transfer)
+
+### Solution Implemented
+1. **Bypass Live Geocoding** - Used existing latitude/longitude with XYTableToPoint
+2. **Field Copying Strategy** - Created duplicate fields with target names, copied values directly
+3. **Two-Stage Append** - Temp FC → Local CFStable → Online Service
+
+### Results ✅
+- **Records Loaded:** 565,470 (with complete attribute data)
+- **Dashboard Status:** All fields populated (Call ID, Call Type, Call Source, Full Address)
+- **Total Duration:** 13.8 minutes (vs hours of hanging)
+- **Success Rate:** 99.93%
+- **Data Quality:** 100% attribute completeness
+
+### Scripts Created (12 total)
+**Backup & Restore:**
+1. `scripts/backup_current_layer.py` - Export to local FGDB (561,740 records backed up)
+2. `scripts/truncate_online_layer.py` - Triple confirmation delete (used 4 times)
+3. `scripts/restore_from_backup.py` - Emergency rollback (used once)
+
+**Backfill Evolution:**
+4. `scripts/publish_with_xy_coordinates.py` ❌ - NULL attributes
+5. `scripts/complete_backfill_with_xy.py` ❌ - Partial success (DateTime only)
+6. `scripts/complete_backfill_fixed.py` ❌ - FieldMappings failed
+7. `scripts/complete_backfill_simplified.py` ✅ - **WINNER (Field copying approach)**
+
+**Diagnostics:**
+8. `scripts/diagnose_missing_data.py` - Check for NULL attributes
+9. `scripts/check_cfstable_schema.py` - Display CFStable schema (41 fields)
+10. `scripts/check_temp_fc_fields.py` - Verify temp FC fields
+11. `scripts/verify_data_exists.py` - Sample record values
+12. `scripts/field_mapping_reference.py` - Documentation
+
+### Key Insights
+**What Worked:**
+- ✅ XYTableToPoint is reliable for bulk geometry creation
+- ✅ Field copying beats field mapping for schema translation
+- ✅ Two-stage append (temp → local → online) provides stability
+- ✅ Diagnostic scripts were essential for root cause analysis
+
+**What Didn't Work:**
+- ❌ Live geocoding doesn't scale (timeouts on 100K+ records)
+- ❌ FieldMappings API is unreliable (silent failures)
+- ❌ Direct append with mismatched schemas (results in NULL fields)
+
+### Winning Solution - Field Copying Approach
+```python
+# Create duplicate fields with target names
+arcpy.management.AddField(TEMP_FC, "callid", "TEXT", field_length=50)
+# Copy values directly
+arcpy.management.CalculateField(TEMP_FC, "callid", "!ReportNumberNew!", "PYTHON3")
+
+# Repeat for all mapped fields
+copy_field_values(TEMP_FC, "Incident", "calltype", "TEXT", 100)
+copy_field_values(TEMP_FC, "How_Reported", "callsource", "TEXT", 50)
+copy_field_values(TEMP_FC, "FullAddress2", "fulladdr", "TEXT", 255)
+
+# Now append without field mapping (names already match!)
+arcpy.management.Append(inputs=TEMP_FC, target=CFSTABLE, schema_type="NO_TEST")
+```
+
+### Sample Verification
+**CFStable:** `callid=19-000001, calltype=Blocked Driveway, callsource=Phone`  
+**Online:** `callid=19-001073, calltype=Patrol Check, callsource=Fax`
+
+**NO MORE NULL VALUES!** ✅
+
+### Documentation
+- `docs/SUCCESS_REPORT_20260209.md` - Complete victory summary
+- `docs/HANDOFF_20260209.md` (620 lines) - Full technical details
+- `docs/SESSION_SUMMARY_20260209_BACKFILL_FIELD_MAPPING.md` - Session recap
+- `docs/PROMPT_FOR_CLAUDE_FIELD_MAPPING_ISSUE.md` - AI assistance prompt
+- `NEXT_ACTIONS.md` - Updated with success confirmation
+- `CHANGELOG.md` - v1.6.0 entry with field schema mapping table
+
+### Git Commits
+```
+b12805a - feat: v1.6.0 CAD Historical Backfill SUCCESS
+8be39da - docs: Update README.md with v1.6.0 success status
+a27ae59 - docs: Add session summary and next actions
+57f3bb1 - docs: v1.6.0-dev XY coordinate strategy documentation
+```
+
+### Dashboard Access
+- **Dashboard:** https://hpd0223.maps.arcgis.com/apps/dashboards/d9315ff773484ca999ae3e16758cbec1
+- **Data Table:** https://hpd0223.maps.arcgis.com/home/item.html?id=44173f3345974fe79a01bfa463350ce2#data
+- **Status:** ✅ Fully operational with 565,470 complete CAD records
+
+---
+
+## v1.5.1 - Column Name Fix & Staged Backfill Prep (2026-02-08/09)
 
 **v1.5.1 Preparation Summary (2026-02-08/09):**
 - ✅ **Column Name Issue Identified** - ESRI generator outputs spaces, model expects underscores

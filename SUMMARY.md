@@ -1,8 +1,8 @@
 # Project Summary - CAD/RMS Data Quality System
 
-**Version:** 1.5.0 (Staged Backfill System Released)
-**Last Updated:** 2026-02-06
-**Status:** v1.5.0 released, ready for production deployment
+**Version:** 1.6.0 ✅ (Historical Backfill Complete)
+**Last Updated:** 2026-02-09
+**Status:** v1.6.0 released - Historical backfill successful (565,470 records)
 
 ---
 
@@ -10,7 +10,39 @@
 
 Enterprise data quality system for CAD (Computer-Aided Dispatch) and RMS (Records Management System) public safety data. Consolidates historical records, validates monthly exports, and generates ESRI-compatible datasets with comprehensive quality reporting.
 
-### Latest Release (v1.5.0 - Released Feb 6, 2026)
+### Latest Release (v1.6.0 - Released Feb 9, 2026)
+
+**Historical Backfill Complete** - Successfully loaded 565,470 CAD records to ArcGIS Online dashboard
+
+**Problem Solved:** 
+- Live geocoding hung at feature 564,897 (network timeout)
+- Field schema mismatch caused NULL attributes (ReportNumberNew vs callid)
+- FieldMappings API failed silently
+
+**Solution Delivered:**
+1. ✅ **XY Coordinates** - Bypassed live geocoding using existing lat/lon
+2. ✅ **Field Copying** - Created duplicate fields with target names, copied values directly
+3. ✅ **Two-Stage Append** - Temp FC → Local CFStable → Online Service
+
+**Release Highlights:**
+- ✅ 565,470 records loaded with complete attribute data
+- ✅ Dashboard fully operational (Call ID, Call Type, Call Source, Full Address all visible)
+- ✅ Total duration: 13.8 minutes (vs hours of hanging)
+- ✅ Success rate: 99.93%
+- ✅ No more NULL values
+
+**Scripts Created:**
+- ✅ 12 total scripts (backup, truncate, restore, backfill iterations, diagnostics)
+- ✅ 4 backfill iterations documenting solution evolution
+- ✅ Field copying approach confirmed as winner
+
+**Key Insight:** Field copying (create duplicate fields + copy values) is more reliable than FieldMappings API for schema translation in ArcPy operations.
+
+**Dashboard Access:**
+- Live Dashboard: https://hpd0223.maps.arcgis.com/apps/dashboards/d9315ff773484ca999ae3e16758cbec1
+- Data Table: https://hpd0223.maps.arcgis.com/home/item.html?id=44173f3345974fe79a01bfa463350ce2#data
+
+### Previous Release (v1.5.0 - Released Feb 6, 2026)
 
 **Staged Backfill System** - Successfully resolved the 564,916 record hang during ArcGIS Online upload
 
