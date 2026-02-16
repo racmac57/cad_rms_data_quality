@@ -9,6 +9,95 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - Post-Publish Dashboard Health Monitoring (Prompt B)
+
+#### Problem Solved
+After successful v1.6.0 backfill, dashboard geometry unexpectedly regressed to NULL (no points displayed). Without automated validation, bad publishes could be "approved" as successful, requiring manual dashboard inspection to detect issues.
+
+**Solution**: Add post-publish validation gate that fails the job if geometry or spatial reference issues are detected, preventing bad data from being treated as success.
+
+#### Monitor Script Created
+
+**`scripts/monitor_dashboard_health.py`** - Post-publish validation gate using ArcGIS API for Python
+- **Connects via GIS('pro')**: Uses same ArcGIS Pro environment as publish operations
+- **Three validation checks**:
+  1. **Record Count**: Confirms total feature count in CallsForService layer
+  2. **WKID Validation**: Ensures Web Mercator (3857 or 102100) spatial reference
+  3. **Geometry Health**: Samples 1000 features, fails if >1% have NULL geometry
+- **Exit codes**: 0=OK, 2=Geometry fail, 3=WKID mismatch, 4=Query/connection fail
+- **JSON reporting**: Writes detailed report to `C:\HPD ESRI\04_Scripts\_out\monitor_YYYYMMDD_HHMMSS.json`
+- **Configurable thresholds**: Can override via `config.json` (sample size, max null %, expected WKIDs)
+
+#### PowerShell Orchestrator Patched
+
+**`docs/arcgis/Invoke-CADBackfillPublish.ps1`** - Added post-publish validation gate
+- **Single-file mode**: Inserted Step 6.5 after publish (line 520), before restore step
+- **Staged batch mode**: Inserted validation after each batch success (line 366)
+- **Failure behavior**: Throws exception to abort workflow if validation fails
+- **Error messages**: Clear diagnostics for each exit code (geometry, WKID, connection)
+
+#### Safety Features
+
+**Fail-Loud Strategy:**
+- Job exits with error if geometry < 99% present
+- Job exits with error if WKID not Web Mercator (3857/102100)
+- Prevents "successful publish with bad data" scenario
+
+**Detailed Reporting:**
+- JSON output includes: timestamp, layer URL, total count, WKID, sample size, null geometry count/percentage
+- Console output shows all validation steps and results
+- Report preserved for audit trail
+
+**Acceptance of WKID Variants:**
+- Accepts both 3857 and 102100 as valid Web Mercator
+- AGOL services sometimes report 102100 instead of 3857 (equivalent projections)
+
+#### Files Modified
+
+**Created:**
+- `scripts/monitor_dashboard_health.py` (195 lines) - Dashboard health validation script
+
+**Patched:**
+- `docs/arcgis/Invoke-CADBackfillPublish.ps1` - Added Step 6.5 post-publish gate (single-file mode)
+- `docs/arcgis/Invoke-CADBackfillPublish.ps1` - Added validation after batch success (staged mode)
+
+#### Usage
+
+**Manual test (on RDP):**
+```powershell
+C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\propy.bat "C:\HPD ESRI\04_Scripts\monitor_dashboard_health.py"
+echo $LASTEXITCODE
+```
+
+**Expected output:**
+- Exit code 0 if healthy
+- JSON report in `C:\HPD ESRI\04_Scripts\_out\monitor_*.json`
+
+**Integrated in workflow:**
+- Automatically runs after every publish operation
+- Fails the job if validation doesn't pass
+- No manual intervention required
+
+#### Impact
+
+**Before (v1.6.0 regression):**
+- Bad geometry silently accepted as "successful publish"
+- Required manual dashboard inspection to detect issues
+- No automated way to prevent approving bad data
+
+**After (Prompt B implementation):**
+- Automated validation runs after every publish
+- Job fails loudly if geometry < 99% or WKID wrong
+- Prevents bad data from being treated as success
+- Enables safe testing of Prompt A patches
+
+#### Next Steps
+1. ✅ **COMPLETE**: Post-publish monitoring gate (Prompt B)
+2. 🚧 **NEXT**: Deploy to RDP and test monitor
+3. 🚧 **NEXT**: Implement Prompt A (geometry restoration patches)
+
+---
+
 ### Added - Simplified RDP Deployment Script
 
 #### Problem Solved

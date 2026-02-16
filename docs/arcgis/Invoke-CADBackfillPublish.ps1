@@ -364,6 +364,21 @@ try {
                     Write-Host ""
                     Write-Host "    [OK] Batch $batchNum completed successfully in $elapsed" -ForegroundColor Green
                     
+                    # POST-PUBLISH GEOMETRY GATE (staged mode)
+                    Write-Host "    [VALIDATION] Running dashboard health check..." -ForegroundColor Yellow
+                    $monitorScript = Join-Path $scriptsDir "monitor_dashboard_health.py"
+                    
+                    & $propyPath $monitorScript $ConfigPath | Out-Null
+                    
+                    if ($LASTEXITCODE -ne 0) {
+                        Write-Host ""
+                        Write-Host "    [CRITICAL] Dashboard health validation failed (exit code $LASTEXITCODE)" -ForegroundColor Red
+                        Write-Host "    Aborting staged workflow - bad geometry detected after batch $batchNum" -ForegroundColor Red
+                        throw "Post-publish validation failed for batch $batchNum (exit code $LASTEXITCODE)"
+                    }
+                    
+                    Write-Host "    [OK] Dashboard health validation passed" -ForegroundColor Green
+                    
                     # Move to completed folder
                     $completedPath = Join-Path $completedDir $batchFile.Name
                     Move-Item $batchFile.FullName $completedPath -Force
@@ -516,6 +531,39 @@ try {
         
         Write-Host ""
         Write-Host "    [OK] Publish Call Data completed successfully" -ForegroundColor Green
+    }
+    
+    # STEP 6.5: POST-PUBLISH GEOMETRY GATE
+    Write-Host ""
+    Write-Host "[6.5] Running post-publish dashboard health validation..." -ForegroundColor Yellow
+    
+    $monitorScript = Join-Path $scriptsDir "monitor_dashboard_health.py"
+    
+    if ($DryRun) {
+        Write-Host "    [DRY RUN] Would run: $propyPath $monitorScript $ConfigPath" -ForegroundColor Cyan
+    }
+    else {
+        Write-Host "    Command: $propyPath $monitorScript $ConfigPath" -ForegroundColor Cyan
+        Write-Host ""
+        
+        & $propyPath $monitorScript $ConfigPath
+        
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host ""
+            Write-Host "    [CRITICAL] Dashboard health validation failed (exit code $LASTEXITCODE)" -ForegroundColor Red
+            Write-Host "    Possible issues:" -ForegroundColor Red
+            Write-Host "      - Exit 2: Geometry missing (>1% of sample has NULL geometry)" -ForegroundColor Red
+            Write-Host "      - Exit 3: WKID mismatch (not Web Mercator 3857/102100)" -ForegroundColor Red
+            Write-Host "      - Exit 4: Query/connection failure" -ForegroundColor Red
+            Write-Host ""
+            Write-Host "    Aborting workflow to prevent approving bad geometry." -ForegroundColor Red
+            throw "Post-publish validation failed (exit code $LASTEXITCODE)"
+        }
+        
+        Write-Host ""
+        Write-Host "    [OK] Dashboard health validation passed" -ForegroundColor Green
+        Write-Host "      - Geometry present: ≥99% of sample" -ForegroundColor Green
+        Write-Host "      - WKID valid: Web Mercator (3857 or 102100)" -ForegroundColor Green
     }
     
     # STEP 7: Restore default export to staging (unless NoRestore)
