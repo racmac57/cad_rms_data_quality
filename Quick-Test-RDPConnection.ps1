@@ -6,6 +6,7 @@ Write-Host "`n=== RDP Connection Test ===" -ForegroundColor Cyan
 $serverHost = "HPD2022LAWSOFT"
 $serverIP = "10.0.0.157"
 $testPath = "HPD ESRI\04_Scripts"
+$useHost = $null  # Initialize to avoid implicit undefined behavior
 
 # Test 1: Network connectivity (SMB port 445)
 Write-Host "`nTest 1: Checking SMB port 445..." -ForegroundColor Yellow
