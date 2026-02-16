@@ -9,6 +9,98 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - Simplified RDP Deployment Script
+
+#### Problem Solved
+After v1.6.0 successful backfill (565,870 records), the ArcGIS Online dashboard showed NULL geometry (no points displayed). Investigation revealed the dashboard layer had lost X/Y coordinates, requiring restoration. Additionally, deployment to the RDP server was unreliable via PowerShell network authentication (Get-Credential always failed with "network password not correct"), forcing manual copy-paste workflows.
+
+**Root cause of deployment issue**: Windows cached credentials from File Explorer allowed UNC path access (\\HPD2022LAWSOFT\C$) manually, but PowerShell Get-Credential with explicit authentication always failed. The working authentication was transparent to the user but not accessible to scripted deployment tools.
+
+**Solution**: Create simplified deployment script that leverages Windows' cached credentials instead of prompting for authentication.
+
+#### Deployment Script Created
+
+**`Deploy-ToRDP-Simple.ps1`** - Simplified deployment leveraging cached Windows credentials
+- **No credential prompting**: Uses Windows cached authentication from File Explorer
+- **Pre-flight checks**: Validates RDP paths accessible before attempting deployment
+- **Automatic backup**: Creates timestamped backup folder (`00_Backups/ScriptsDeploy_YYYYMMDD_HHMMSS/`) before deployment
+- **Dual deployment**: Copies both scripts (33 files from `scripts/`) and documentation (SUMMARY.md, README.md, CHANGELOG.md) to RDP
+- **Dry-run mode**: Test deployment without file operations (`-DryRun` switch)
+- **Skip backup option**: Disable backup for faster testing (`-NoBackup` switch)
+- **Detailed logging**: All operations logged to `deploy_logs/Deploy_YYYYMMDD_HHMMSS.log`
+
+#### Features Implemented
+
+**Cached Credential Workflow:**
+- User authenticates once via File Explorer: `\\HPD2022LAWSOFT\C$`
+- Windows caches credentials for session
+- PowerShell script leverages cached session (no Get-Credential needed)
+- Eliminates "network password not correct" errors
+
+**Safety Features:**
+- Backup existing server files before overwrite
+- Pre-flight path validation (exit with clear error if paths inaccessible)
+- Dry-run mode for safe testing
+- Detailed logging with timestamps
+- Error handling with actionable messages
+
+**Deployment Targets:**
+- Scripts: `\\HPD2022LAWSOFT\C$\HPD ESRI\04_Scripts\` (33 Python/PowerShell files)
+- Documentation: `\\HPD2022LAWSOFT\C$\HPD ESRI\` (SUMMARY.md, README.md, CHANGELOG.md)
+- Backups: `\\HPD2022LAWSOFT\C$\HPD ESRI\00_Backups\`
+
+**Diagnostic Tools Created:**
+- `Quick-Test-RDPConnection.ps1` - Network connectivity diagnostic script
+  - Tests SMB port 445 accessibility
+  - Tests UNC path access
+  - Tests authentication (credential prompt method)
+  - Tests write permissions
+  - Identifies authentication mechanism (cached vs explicit)
+
+#### Test Results
+
+**Dry-Run Test (2026-02-15):**
+- ✅ RDP scripts directory accessible
+- ✅ RDP docs directory accessible
+- ✅ Would deploy 33 scripts to server
+- ✅ Would deploy 3 documentation files to server
+- ✅ Would create backup at `\\HPD2022LAWSOFT\C$\HPD ESRI\00_Backups\`
+- ✅ All syntax checks passed
+
+**Deployment Readiness:**
+- Script tested in dry-run mode
+- Paths validated
+- File counts verified
+- Ready for production deployment
+
+#### Files Created
+
+**Deployment:**
+- `Deploy-ToRDP-Simple.ps1` (149 lines) - Simplified deployment script
+- `deploy_logs/` - Deployment log directory
+
+**Diagnostics:**
+- `Quick-Test-RDPConnection.ps1` (128 lines) - RDP connection diagnostic tool
+
+#### Usage
+
+```powershell
+# Test deployment (no changes)
+.\Deploy-ToRDP-Simple.ps1 -DryRun
+
+# Deploy with backup (default)
+.\Deploy-ToRDP-Simple.ps1
+
+# Deploy without backup (faster)
+.\Deploy-ToRDP-Simple.ps1 -NoBackup
+```
+
+#### Next Steps
+1. Run `.\Deploy-ToRDP-Simple.ps1` to deploy scripts and documentation
+2. Implement Prompt A: Generate patches for `publish_with_xy_coordinates.py` and `complete_backfill_simplified.py`
+3. Implement Prompt B: Create `monitor_dashboard_health.py` and patch PowerShell orchestrator
+4. Test geometry restoration workflow on RDP server
+
 ---
 
 ## [1.6.0] - 2026-02-09

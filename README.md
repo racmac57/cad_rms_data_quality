@@ -2,9 +2,9 @@
 
 **Version:** 1.6.0 ✅ (Historical Backfill Complete)
 **Created:** 2026-01-29
-**Updated:** 2026-02-09
+**Updated:** 2026-02-15
 **Author:** R. A. Carucci
-**Status:** ✅ v1.6.0 Released | Historical backfill successful (565,470 records)
+**Status:** ✅ v1.6.0 Released | Historical backfill successful (565,470 records) | Simplified deployment tool added
 
 ---
 

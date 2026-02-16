@@ -1,8 +1,8 @@
 # Project Summary - CAD/RMS Data Quality System
 
 **Version:** 1.6.0 ✅ (Historical Backfill Complete)
-**Last Updated:** 2026-02-09
-**Status:** v1.6.0 released - Historical backfill successful (565,470 records)
+**Last Updated:** 2026-02-15
+**Status:** v1.6.0 released - Historical backfill successful (565,470 records) | Simplified deployment tool added
 
 ---
 
