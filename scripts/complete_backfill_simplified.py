@@ -19,9 +19,14 @@ ONLINE_SERVICE = "https://services1.arcgis.com/JYl0Hy0wQdiiV0qh/arcgis/rest/serv
 
 TEMP_TABLE = os.path.join(TEMP_GDB, "tempcalls_selection")
 TEMP_FC = os.path.join(TEMP_GDB, "tempcalls_with_geometry")
+TEMP_FC_3857 = os.path.join(TEMP_GDB, "tempcalls_with_geometry_3857")
+
+# Heartbeat file for watchdog monitoring
+HEARTBEAT_FILE = r"C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\heartbeat.txt"
+OUT_DIR = r"C:\HPD ESRI\04_Scripts\_out"
 
 # ============================================================================
-# LOGGING
+# LOGGING & HEARTBEAT
 # ============================================================================
 
 def log(message, level="INFO"):
@@ -30,6 +35,16 @@ def log(message, level="INFO"):
 
 def log_separator():
     print("=" * 80)
+
+def update_heartbeat(message=""):
+    """Update heartbeat file for watchdog monitoring"""
+    try:
+        os.makedirs(os.path.dirname(HEARTBEAT_FILE), exist_ok=True)
+        with open(HEARTBEAT_FILE, "w") as f:
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            f.write(f"{timestamp} | {message}\n")
+    except Exception as e:
+        log(f"Warning: Could not update heartbeat: {e}", "WARN")
 
 # ============================================================================
 # HELPER FUNCTIONS
@@ -88,6 +103,8 @@ def main():
     log_separator()
     log("COMPLETE CAD BACKFILL - SIMPLIFIED FIELD COPY APPROACH")
     log_separator()
+    
+    update_heartbeat("Script started")
     
     start_time = datetime.now()
     log(f"Start: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
@@ -202,26 +219,66 @@ def main():
         log("✅ Date attributes added")
         
         # ====================================================================
-        # STEP 6: Convert lat/lon to numeric and create geometry
+        # STEP 6: Convert lat/lon to numeric and create geometry (SAFE CONVERSION)
         # ====================================================================
-        log("\n[STEP 6] Creating point geometry from X/Y coordinates...")
+        log("\n[STEP 6] Creating point geometry from X/Y coordinates (safe)...")
+        
+        update_heartbeat("Step 6: Converting coordinates to numeric")
         
         arcpy.management.AddField(TEMP_TABLE, "x_numeric", "DOUBLE")
         arcpy.management.AddField(TEMP_TABLE, "y_numeric", "DOUBLE")
         
+        # Safe conversion function (handles NULL/blank/malformed)
+        safe_float_code = """
+def safe_float(val):
+    '''Convert to float safely, return None for NULL/blank/malformed'''
+    if val is None or val == '' or val == ' ':
+        return None
+    try:
+        return float(val)
+    except:
+        return None
+"""
+        
         arcpy.management.CalculateField(
             in_table=TEMP_TABLE,
             field="x_numeric",
-            expression="float(!longitude!)",
-            expression_type="PYTHON3"
+            expression="safe_float(!longitude!)",
+            expression_type="PYTHON3",
+            code_block=safe_float_code
         )
         
         arcpy.management.CalculateField(
             in_table=TEMP_TABLE,
             field="y_numeric",
-            expression="float(!latitude!)",
-            expression_type="PYTHON3"
+            expression="safe_float(!latitude!)",
+            expression_type="PYTHON3",
+            code_block=safe_float_code
         )
+        
+        # Count NULL conversions
+        null_count = 0
+        with arcpy.da.SearchCursor(TEMP_TABLE, ["x_numeric", "y_numeric"]) as cursor:
+            for row in cursor:
+                if row[0] is None or row[1] is None:
+                    null_count += 1
+        
+        if null_count > 0:
+            log(f"⚠️  {null_count:,} records have NULL/malformed coordinates (will be skipped)", "WARN")
+            # Write bad coord report
+            os.makedirs(OUT_DIR, exist_ok=True)
+            bad_coord_report = os.path.join(OUT_DIR, f"bad_coords_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv")
+            arcpy.conversion.TableToTable(
+                in_rows=TEMP_TABLE,
+                out_path=OUT_DIR,
+                out_name=os.path.basename(bad_coord_report),
+                where_clause="x_numeric IS NULL OR y_numeric IS NULL"
+            )
+            log(f"   Bad coordinate report: {bad_coord_report}")
+        
+        log(f"✅ Numeric fields created: {record_count - null_count:,} valid, {null_count:,} NULL")
+        
+        update_heartbeat("Step 6: XYTableToPoint (4326)")
         
         if arcpy.Exists(TEMP_FC):
             arcpy.management.Delete(TEMP_FC)
@@ -231,16 +288,19 @@ def main():
             out_feature_class=TEMP_FC,
             x_field="x_numeric",
             y_field="y_numeric",
-            coordinate_system=arcpy.SpatialReference(4326)
+            coordinate_system=arcpy.SpatialReference(4326)  # WGS 1984
         )
         
         point_count = int(arcpy.management.GetCount(TEMP_FC)[0])
-        log(f"✅ Created {point_count:,} point features")
+        log(f"✅ Created {point_count:,} point features in WGS84/4326")
+        log(f"   Records dropped due to NULL coords: {record_count - null_count - point_count:,}")
         
         # ====================================================================
         # STEP 7: Copy fields to CFStable-compatible names
         # ====================================================================
         log("\n[STEP 7] Creating CFStable-compatible field names...")
+        
+        update_heartbeat("Step 7: Field name mapping")
         
         # Copy source fields to target field names
         copy_field_values(TEMP_FC, "ReportNumberNew", "callid", "TEXT", 50)
@@ -255,16 +315,42 @@ def main():
         log("✅ Field names matched to CFStable schema")
         
         # ====================================================================
-        # STEP 8: Append to LOCAL CFStable (no field mapping needed!)
+        # STEP 8: Project to Web Mercator (3857) for AGOL
         # ====================================================================
-        log("\n[STEP 8] Appending to local CFStable...")
+        log("\n[STEP 8] Projecting to Web Mercator (EPSG:3857)...")
+        
+        update_heartbeat("Step 8: Project to 3857")
+        
+        if arcpy.Exists(TEMP_FC_3857):
+            arcpy.management.Delete(TEMP_FC_3857)
+        
+        arcpy.management.Project(
+            in_dataset=TEMP_FC,
+            out_dataset=TEMP_FC_3857,
+            out_coor_system=arcpy.SpatialReference(3857)  # Web Mercator
+        )
+        
+        projected_count = int(arcpy.management.GetCount(TEMP_FC_3857)[0])
+        log(f"✅ Projected {projected_count:,} features to EPSG:3857")
+        
+        # Verify WKID
+        spatial_ref = arcpy.Describe(TEMP_FC_3857).spatialReference
+        log(f"   Spatial Reference: {spatial_ref.name} (WKID: {spatial_ref.factoryCode})")
+        
+        # ====================================================================
+        # STEP 9: Append to LOCAL CFStable (no field mapping needed!)
+        # ====================================================================
+        log("\n[STEP 9] Appending to local CFStable...")
+        
+        update_heartbeat("Step 9: Append to CFStable")
         
         arcpy.management.TruncateTable(CFSTABLE)
         log("   Truncated CFStable")
         
         # Now append without field mapping - field names match!
+        # Use the 3857 projected feature class
         arcpy.management.Append(
-            inputs=TEMP_FC,
+            inputs=TEMP_FC_3857,
             target=CFSTABLE,
             schema_type="NO_TEST"
         )
@@ -279,10 +365,12 @@ def main():
             log(f"   Sample: callid={row[0]}, calltype={row[1]}, callsource={row[2]}")
         
         # ====================================================================
-        # STEP 9: Push CFStable to Online Service
+        # STEP 10: Push CFStable to Online Service
         # ====================================================================
-        log("\n[STEP 9] Pushing CFStable to ArcGIS Online service...")
+        log("\n[STEP 10] Pushing CFStable to ArcGIS Online service...")
         log("⏱️  This may take 10-15 minutes...")
+        
+        update_heartbeat("Step 10: Push to online service")
         
         append_start = datetime.now()
         
@@ -295,10 +383,37 @@ def main():
         append_duration = (datetime.now() - append_start).total_seconds()
         log(f"✅ Online append complete in {append_duration:.1f} seconds")
         
+        update_heartbeat("Step 10 complete: Online append finished")
+        
         # ====================================================================
-        # STEP 10: Verify Results
+        # STEP 11: Post-Append Validation (Monitor Check)
         # ====================================================================
-        log("\n[STEP 10] Verifying final count...")
+        log("\n[STEP 11] Running post-append validation...")
+        
+        update_heartbeat("Step 11: Post-append validation")
+        
+        # Call monitor script to validate geometry
+        monitor_script = r"C:\HPD ESRI\04_Scripts\monitor_dashboard_health.py"
+        propy_path = r"C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\propy.bat"
+        
+        import subprocess
+        result = subprocess.run(
+            [propy_path, monitor_script],
+            capture_output=True,
+            text=True
+        )
+        
+        if result.returncode != 0:
+            log(f"❌ Post-append validation FAILED (exit code {result.returncode})", "ERROR")
+            log(f"   Monitor output: {result.stdout}", "ERROR")
+            raise Exception(f"Dashboard health validation failed after append (exit {result.returncode})")
+        
+        log(f"✅ Post-append validation passed (exit code 0)")
+        
+        # ====================================================================
+        # STEP 12: Verify Results
+        # ====================================================================
+        log("\n[STEP 12] Verifying final count...")
         
         final_count = int(arcpy.management.GetCount(ONLINE_SERVICE)[0])
         log(f"   Online service count: {final_count:,} records")
