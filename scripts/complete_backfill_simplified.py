@@ -200,20 +200,54 @@ def main():
         log("✅ Response times calculated")
         
         # ====================================================================
-        # STEP 5: Add Date Attributes
+        # STEP 5: Add Date Attributes (manual - no Crime Analysis extension required)
         # ====================================================================
         log("\n[STEP 5] Adding date attributes...")
         
-        arcpy.ca.AddDateAttributes(
-            in_table=TEMP_TABLE,
-            date_field="calldate",
-            date_attributes=[
-                ["DAY_FULL_NAME", "calldow"],
-                ["DAY_OF_WEEK", "calldownum"],
-                ["HOUR", "callhour"],
-                ["MONTH", "callmonth"],
-                ["YEAR", "callyear"]
-            ]
+        # AddDateAttributes (arcpy.ca) requires Crime Analysis extension and can fail on tables.
+        # Use CalculateField with Python to extract day name, day number, hour, month, year.
+        arcpy.management.AddField(TEMP_TABLE, "calldow", "TEXT", field_length=20)
+        arcpy.management.AddField(TEMP_TABLE, "calldownum", "LONG")
+        arcpy.management.AddField(TEMP_TABLE, "callhour", "LONG")
+        arcpy.management.AddField(TEMP_TABLE, "callmonth", "LONG")
+        arcpy.management.AddField(TEMP_TABLE, "callyear", "LONG")
+        
+        date_attr_code = """
+def date_attrs(calldate):
+    if calldate is None:
+        return None, None, None, None, None
+    try:
+        from datetime import datetime
+        if hasattr(calldate, 'strftime'):
+            d = calldate
+        else:
+            s = str(calldate)[:19]
+            d = datetime.strptime(s, '%Y-%m-%d %H:%M:%S')
+        dow = d.strftime('%A')
+        downum = d.isoweekday()
+        return dow, downum, d.hour, d.month, d.year
+    except Exception:
+        return None, None, None, None, None
+"""
+        arcpy.management.CalculateField(
+            in_table=TEMP_TABLE, field="calldow",
+            expression="date_attrs(!calldate!)[0]", expression_type="PYTHON3", code_block=date_attr_code
+        )
+        arcpy.management.CalculateField(
+            in_table=TEMP_TABLE, field="calldownum",
+            expression="date_attrs(!calldate!)[1]", expression_type="PYTHON3", code_block=date_attr_code
+        )
+        arcpy.management.CalculateField(
+            in_table=TEMP_TABLE, field="callhour",
+            expression="date_attrs(!calldate!)[2]", expression_type="PYTHON3", code_block=date_attr_code
+        )
+        arcpy.management.CalculateField(
+            in_table=TEMP_TABLE, field="callmonth",
+            expression="date_attrs(!calldate!)[3]", expression_type="PYTHON3", code_block=date_attr_code
+        )
+        arcpy.management.CalculateField(
+            in_table=TEMP_TABLE, field="callyear",
+            expression="date_attrs(!calldate!)[4]", expression_type="PYTHON3", code_block=date_attr_code
         )
         
         log("✅ Date attributes added")
@@ -224,6 +258,20 @@ def main():
         log("\n[STEP 6] Creating point geometry from X/Y coordinates (safe)...")
         
         update_heartbeat("Step 6: Converting coordinates to numeric")
+        
+        # Use longitude/latitude if present; else X_Coord/Y_Coord (e.g. from geocoded cache)
+        field_names = [f.name for f in arcpy.ListFields(TEMP_TABLE)]
+        if "longitude" in field_names and "latitude" in field_names:
+            coord_x_col, coord_y_col = "longitude", "latitude"
+            log("   Using coordinate columns: longitude, latitude")
+        elif "X_Coord" in field_names and "Y_Coord" in field_names:
+            coord_x_col, coord_y_col = "X_Coord", "Y_Coord"
+            log("   Using coordinate columns: X_Coord, Y_Coord (geocoded cache)")
+        else:
+            raise Exception(
+                "No coordinate columns found. Need (longitude, latitude) or (X_Coord, Y_Coord). "
+                "Fields present: " + ", ".join(sorted(field_names))
+            )
         
         arcpy.management.AddField(TEMP_TABLE, "x_numeric", "DOUBLE")
         arcpy.management.AddField(TEMP_TABLE, "y_numeric", "DOUBLE")
@@ -243,7 +291,7 @@ def safe_float(val):
         arcpy.management.CalculateField(
             in_table=TEMP_TABLE,
             field="x_numeric",
-            expression="safe_float(!longitude!)",
+            expression=f"safe_float(!{coord_x_col}!)",
             expression_type="PYTHON3",
             code_block=safe_float_code
         )
@@ -251,7 +299,7 @@ def safe_float(val):
         arcpy.management.CalculateField(
             in_table=TEMP_TABLE,
             field="y_numeric",
-            expression="safe_float(!latitude!)",
+            expression=f"safe_float(!{coord_y_col}!)",
             expression_type="PYTHON3",
             code_block=safe_float_code
         )
@@ -263,7 +311,7 @@ def safe_float(val):
                 if row[0] is None or row[1] is None:
                     null_count += 1
         
-        if null_count > 0:
+        if null_count > 0 and null_count < record_count:
             log(f"⚠️  {null_count:,} records have NULL/malformed coordinates (will be skipped)", "WARN")
             # Write bad coord report
             os.makedirs(OUT_DIR, exist_ok=True)
@@ -292,8 +340,16 @@ def safe_float(val):
         )
         
         point_count = int(arcpy.management.GetCount(TEMP_FC)[0])
+        dropped_count = record_count - point_count  # actual number not in output (never use null_count here; cursor can be wrong)
         log(f"✅ Created {point_count:,} point features in WGS84/4326")
-        log(f"   Records dropped due to NULL coords: {record_count - null_count - point_count:,}")
+        log(f"   Records dropped due to NULL coords: {dropped_count:,}")
+        
+        if point_count == 0:
+            raise Exception(
+                "No point features created. Staging file must have valid coordinates in "
+                f"({coord_x_col}, {coord_y_col}). Check bad_coords report in _out and ensure "
+                "staging Excel has numeric longitude/latitude or X_Coord/Y_Coord."
+            )
         
         # ====================================================================
         # STEP 7: Copy fields to CFStable-compatible names
@@ -358,24 +414,37 @@ def safe_float(val):
         cfstable_count = int(arcpy.management.GetCount(CFSTABLE)[0])
         log(f"✅ CFStable now has {cfstable_count:,} records")
         
-        # Verify data in CFStable
-        log("   Verifying data in CFStable...")
-        with arcpy.da.SearchCursor(CFSTABLE, ['callid', 'calltype', 'callsource']) as cursor:
-            row = next(cursor)
-            log(f"   Sample: callid={row[0]}, calltype={row[1]}, callsource={row[2]}")
+        # Verify data in CFStable (skip if 0 records or schema differs)
+        if cfstable_count > 0:
+            log("   Verifying data in CFStable...")
+            try:
+                field_names = [f.name for f in arcpy.ListFields(CFSTABLE)]
+                if 'calltype' in field_names and 'callid' in field_names:
+                    with arcpy.da.SearchCursor(CFSTABLE, ['callid', 'calltype', 'callsource']) as cursor:
+                        row = next(cursor)
+                        log(f"   Sample: callid={row[0]}, calltype={row[1]}, callsource={row[2]}")
+                else:
+                    log("   (CFStable schema differs; skipping sample. Step 10 will push from temp FC.)")
+            except Exception as e:
+                log(f"   (CFStable verification skipped: {e}. Step 10 will push from temp FC.)", "WARN")
+        else:
+            log("   (CFStable has 0 records; append may have failed due to schema. Step 10 will push from temp FC.)", "WARN")
         
         # ====================================================================
-        # STEP 10: Push CFStable to Online Service
+        # STEP 10: Append 3857 Feature Class DIRECTLY to Online Service
         # ====================================================================
-        log("\n[STEP 10] Pushing CFStable to ArcGIS Online service...")
+        log("\n[STEP 10] Appending projected geometry DIRECTLY to online service...")
+        log("   NOTE: Bypassing CFStable to preserve geometry (CFStable may be a table)")
         log("⏱️  This may take 10-15 minutes...")
         
         update_heartbeat("Step 10: Push to online service")
         
         append_start = datetime.now()
         
+        # CRITICAL FIX: Append the 3857 projected FEATURE CLASS directly
+        # DO NOT append CFStable (may be a table with no geometry)
         arcpy.management.Append(
-            inputs=CFSTABLE,
+            inputs=TEMP_FC_3857,
             target=ONLINE_SERVICE,
             schema_type="NO_TEST"
         )
@@ -384,6 +453,12 @@ def safe_float(val):
         log(f"✅ Online append complete in {append_duration:.1f} seconds")
         
         update_heartbeat("Step 10 complete: Online append finished")
+        
+        # Also update CFStable for local reference (optional)
+        log("   Updating CFStable for local reference...")
+        arcpy.management.TruncateTable(CFSTABLE)
+        arcpy.management.Append(inputs=TEMP_FC_3857, target=CFSTABLE, schema_type="NO_TEST")
+        log(f"   CFStable updated with {int(arcpy.management.GetCount(CFSTABLE)[0]):,} records")
         
         # ====================================================================
         # STEP 11: Post-Append Validation (Monitor Check)

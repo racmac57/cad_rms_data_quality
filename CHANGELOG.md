@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - Backfill script Step 9 verification and Step 6 reporting (2026-02-16)
+
+- **Step 9 (CFStable verification):** On RDP, CFStable has a different schema (no `calltype`) and append yields 0 records. The script now skips the sample cursor when count is 0 or when `calltype`/`callid` are missing, logs a warning, and continues to Step 10 (append TEMP_FC_3857 → online). Prevents "Cannot find field 'calltype'" from stopping the run.
+- **Step 6 (geometry reporting):** "Records dropped due to NULL coords" now uses `record_count - point_count` (actual dropped) instead of a formula that could go negative. WARN "X records have NULL/malformed coordinates" is only logged when `null_count > 0` and `null_count < record_count` to avoid a misleading "all null" message when all rows got points.
+- **Handoff:** `docs/HANDOFF_20260216_BACKFILL_SESSION.md` updated with RDP run log, Step 6 investigation notes, and §9 summarizing prior AI chats (Gemini Prompt A + Dec hotfix, Deploy cached-cred script, ChatGPT geometry plan and survey answers).
+
 ### Added - Post-Publish Dashboard Health Monitoring (Prompt B)
 
 #### Problem Solved
