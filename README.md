@@ -1,10 +1,10 @@
 # CAD/RMS Data Quality System
 
-**Version:** 1.6.0 ✅ (Historical Backfill Complete)
+**Version:** 1.6.1 ✅ (Gap Backfill Complete + Date Fix)
 **Created:** 2026-01-29
-**Updated:** 2026-02-15
+**Updated:** 2026-02-16
 **Author:** R. A. Carucci
-**Status:** ✅ v1.6.0 Released | Historical backfill successful (565,470 records) | Simplified deployment tool added
+**Status:** ✅ v1.6.1 Released | Historical backfill 571,282 records | Gap dates corrected | Dashboard fully operational
 
 ---
 
@@ -17,11 +17,89 @@ Unified data quality system for CAD (Computer-Aided Dispatch) and RMS (Records M
 1. **Historical Consolidation** (Component 1): Merge 2019-2026 CAD data (754,409 records through Feb 3, 2026) into single validated dataset for ArcGIS Pro dashboards
 2. **Monthly Validation** (Component 2): Provide reusable validation scripts for ongoing CAD and RMS exports
 3. **Single Source of Truth**: Replace fragmented legacy projects with unified, maintainable system
-4. **Historical Backfill** (Component 3): ✅ COMPLETE - 565,470 records loaded to ArcGIS Online dashboard
+4. **Historical Backfill** (Component 3): ✅ COMPLETE - 571,282 records loaded to ArcGIS Online dashboard with corrected dates
 
 ---
 
-## Latest Release: Historical Backfill Success (v1.6.0)
+## Latest Release: Gap Backfill Date Fix (v1.6.1)
+
+### The Challenge
+
+**Problem: Wrong Date Values in Gap Records**
+- 2,680 gap records (Feb 3-15, 2026) had incorrect `calldate` values
+- All showed "2/6/26 10:00:00" (estimation fallback) instead of real dates
+- Derived fields (day-of-week, hour, year) were wrong
+- Response metrics calculated from incorrect calldate
+
+### The Solution ✅
+
+**Surgical API Update Strategy:**
+
+1. **Probe First** - Verify timezone and field values (read-only)
+2. **Fix Local Baseline** - Update CFStable_GeocodeAddresses with real dates from gap_for_append_v2
+3. **Fix Online Layer** - Surgical ArcGIS API for Python update (only 2,680 records)
+
+### Results
+
+**✅ COMPLETE SUCCESS (Feb 16, 2026):**
+- ✅ 571,282 total records with valid geometry and correct dates
+- ✅ Gap closure complete: Feb 3-15, 2026
+- ✅ Dashboard chronological sort working (most recent calls display first)
+- ✅ All derived fields accurate (day-of-week, hour, response times)
+- ✅ Execution time: ~10-15 minutes (probe → local → online → verify)
+- ✅ No downtime (dashboard remained operational during update)
+
+**Sample verification:**
+```
+Before:  26-011297: 2026-02-06 10:00:00 (WRONG - estimate)
+After:   26-011297: 2026-02-03 10:14:14 (CORRECT - real CAD timestamp)
+         dow=Tuesday, hr=10, dispatchtime=12.5 min
+```
+
+### Gap Fix Scripts (v1.6.1)
+
+| Script | Purpose | Status |
+|--------|---------|--------|
+| `probe_gap_record.py` | Timezone & field verification (read-only) | ✅ PRODUCTION |
+| `fix_gap_calldate_local.py` | Local baseline date correction | ✅ PRODUCTION |
+| `fix_gap_calldate_online.py` | Online layer surgical update | ✅ PRODUCTION |
+
+**Usage (on RDP):**
+```powershell
+cd "C:\HPD ESRI\04_Scripts"
+
+# Step 1: Verify timezone (read-only, 30 seconds)
+& "C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\propy.bat" probe_gap_record.py
+
+# Step 2: Fix local baseline (dry-run first)
+& "C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\propy.bat" fix_gap_calldate_local.py
+& "C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\propy.bat" fix_gap_calldate_local.py --live
+
+# Step 3: Fix online layer (dry-run first)
+& "C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\propy.bat" fix_gap_calldate_online.py
+& "C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\propy.bat" fix_gap_calldate_online.py --live --expected-updates 2680
+
+# Optional: Rollback if needed
+& "C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\propy.bat" fix_gap_calldate_online.py --rollback
+```
+
+**Key Features:**
+- **Forced America/New_York timezone** - Prevents DST/offset bugs
+- **Numeric range enforcement** - Only touches Call IDs 26-011288 to 26-014999
+- **Dry-run default** - No changes unless `--live` specified
+- **Rollback capability** - Snapshot saved before updates, can restore
+- **Audit assertions** - `--expected-updates 2680` validates count
+- **Batch processing** - 200 records per API call (14 batches)
+- **Comprehensive logging** - JSON artifacts (snapshot, changes, summary) + CSV exports
+
+**Documentation:**
+- `docs/GAP_BACKFILL_UNIFIED_IMPLEMENTATION_PLAN.md` - Complete execution guide
+- `docs/perplexity_spaces_handoff.md` - Gap backfill context
+- `docs/HANDOFF_20260216_BACKFILL_SESSION.md` - Full session details
+
+---
+
+## Previous Release: Historical Backfill Success (v1.6.0)
 
 ### The Challenge
 

@@ -15,7 +15,30 @@ This repository contains a unified data quality system for CAD (Computer-Aided D
 
 ---
 
-## Project Status & Critical Success (v1.6.0)
+## Project Status & Critical Success
+
+### ✅ v1.6.1 - Gap Backfill Date Fix (Feb 16, 2026)
+
+**The Challenge:**
+- **Problem 1:** Gap records (Feb 3-15, 2026) showing wrong `calldate` values ("2/6/26 10:00:00" estimate)
+- **Problem 2:** Derived fields (day-of-week, hour) incorrect due to wrong calldate
+- **Problem 3:** Response metrics (dispatch time) calculated from wrong dates
+
+**The Solution (Surgical API Update):**
+1. **Probe First:** Timezone verification (forced America/New_York prevents DST bugs)
+2. **Fix Local Baseline:** Update CFStable_GeocodeAddresses with real dates from gap_for_append_v2
+3. **Fix Online Layer:** ArcGIS API for Python surgical update (only 2,680 records, no truncate/reload)
+
+**Results:**
+- ✅ **571,282 records** total with valid geometry and correct dates
+- ✅ **Gap closure complete** (Feb 3-15, 2026)
+- ✅ **Dashboard chronological sort working** (most recent calls display first)
+- ✅ **Execution time:** ~10-15 minutes (probe → local → online → verify)
+- ✅ **Rollback available** via snapshot.json
+
+**Production Scripts:** `probe_gap_record.py`, `fix_gap_calldate_local.py`, `fix_gap_calldate_online.py`
+
+---
 
 ### ✅ v1.6.0 - Historical Backfill SUCCESS (Feb 9, 2026)
 

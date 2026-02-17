@@ -1,8 +1,8 @@
 # Project Summary - CAD/RMS Data Quality System
 
-**Version:** 1.6.0 ✅ (Historical Backfill Complete)
-**Last Updated:** 2026-02-15
-**Status:** v1.6.0 released - Historical backfill successful (565,470 records) | Simplified deployment tool added
+**Version:** 1.6.1 ✅ (Gap Backfill Complete + Date Fix)
+**Last Updated:** 2026-02-16
+**Status:** v1.6.1 released - Historical backfill 571,282 records | Gap dates corrected | Dashboard fully operational
 
 ---
 
@@ -10,7 +10,37 @@
 
 Enterprise data quality system for CAD (Computer-Aided Dispatch) and RMS (Records Management System) public safety data. Consolidates historical records, validates monthly exports, and generates ESRI-compatible datasets with comprehensive quality reporting.
 
-### Latest Release (v1.6.0 - Released Feb 9, 2026)
+### Latest Release (v1.6.1 - Released Feb 16, 2026)
+
+**Gap Backfill Complete + Date Fix** - Successfully loaded 571,282 CAD records (2019-2026) with corrected dates
+
+**Problem Solved:**
+- 2,680 gap records (Feb 3-15, 2026) had wrong `calldate` values (all "2/6/26 10:00:00")
+- Derived fields (day-of-week, hour, year) were incorrect
+- Response metrics (dispatch time, response time) calculated from wrong calldate
+
+**Solution Delivered:**
+1. ✅ **Surgical API Update** - Updated only 2,680 affected records (no truncate/reload)
+2. ✅ **Real Dates Applied** - Used source dates from `gap_for_append_v2` table
+3. ✅ **Fields Recalculated** - Derived fields and response metrics corrected
+4. ✅ **Safety Features** - Rollback capability, timezone hardening, audit assertions
+
+**Release Highlights:**
+- ✅ 571,282 total records with valid geometry and correct dates
+- ✅ Gap closure complete: Feb 3-15, 2026
+- ✅ Dashboard chronological sort working (most recent calls display first)
+- ✅ All derived fields accurate (day-of-week, hour, response times)
+- ✅ Execution time: ~10-15 minutes (probe → local → online → verify)
+- ✅ Rollback available via snapshot.json
+
+**Scripts Created:**
+- ✅ `probe_gap_record.py` - Timezone verification and field probe
+- ✅ `fix_gap_calldate_local.py` - Local baseline date correction
+- ✅ `fix_gap_calldate_online.py` - Online layer surgical update
+
+---
+
+### Previous Release (v1.6.0 - Released Feb 9, 2026)
 
 **Historical Backfill Complete** - Successfully loaded 565,470 CAD records to ArcGIS Online dashboard
 

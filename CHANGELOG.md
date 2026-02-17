@@ -9,6 +9,66 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [1.6.1] - 2026-02-16
+
+### Fixed - Gap Record Calldate Values (Surgical API Update)
+
+**Problem:** 2,680 gap records (Feb 3-15, 2026) showed wrong `calldate` values (all "2/6/26 10:00:00" estimate instead of real dates from source CAD export).
+
+**Solution:** Surgical ArcGIS API for Python update using three production scripts:
+- Real dates from `gap_for_append_v2` table applied to local baseline and online layer
+- Recalculated derived fields: `calldow`, `callhour`, `callmonth`, `callyear`
+- Recalculated response metrics: `dispatchtime`, `responsetime`
+- Dashboard chronological sort now displays most recent calls first
+
+**Scripts Created:**
+- `scripts/probe_gap_record.py` (277 lines) - Timezone & field verification probe (read-only)
+- `scripts/fix_gap_calldate_local.py` (720 lines) - Local baseline (CFStable_GeocodeAddresses) update
+- `scripts/fix_gap_calldate_online.py` (991 lines) - Online layer surgical update (2,680 records)
+
+**Key Features:**
+- CLI with `--live`, `--rollback`, `--dry-run` (default)
+- Forced America/New_York timezone (prevents DST/offset bugs)
+- Numeric range enforcement (26-011288 to 26-014999)
+- Schema preflight checks (aborts if fields missing)
+- Out-of-range dispatch metrics → NULL (no stale values)
+- Batch processing (200 records per API call, 14 batches)
+- Audit assertions with `--expected-updates 2680`
+- JSON artifacts (snapshot, changes, summary) + CSV exports
+- Rollback capability from snapshot.json
+
+**Safety Features:**
+- No truncate/reload (avoids geometry regression risk)
+- Zero downtime (dashboard remains operational during update)
+- Reversible (exact rollback to pre-fix state)
+- Duplicate Call ID detection and logging
+
+**Performance:**
+- Local baseline fix: ~1 minute (2,680 UpdateCursor operations)
+- Online update: ~3-5 minutes (14 API batches)
+- Total execution: ~5-7 minutes vs 13+ minutes for full truncate/reload
+
+**Documentation:**
+- `docs/GAP_BACKFILL_UNIFIED_IMPLEMENTATION_PLAN.md` - Complete execution guide
+- `docs/perplexity_spaces_handoff.md` - Updated with completion status
+- `docs/HANDOFF_20260216_BACKFILL_SESSION.md` - Added §9.4 gap fix summary
+
+**AI Collaboration:**
+- Perplexity: Gap backfill architecture, date issue identification
+- Claude Opus: Production script creation (v4 with all safety features)
+- Code Copilot (ChatGPT): Safety review (6 risks identified, all addressed)
+- Cursor AI: Documentation, unified implementation plan, git integration
+
+**Outcome:**
+- ✅ 571,282 total records with valid geometry and correct dates
+- ✅ Gap closure complete: Feb 3-15, 2026
+- ✅ Dashboard operational: Full coverage 2019-01-01 to 2026-02-15
+- ✅ Chronological sort: Most recent calls display first
+
+---
+
 ### Fixed - Backfill script Step 9 verification and Step 6 reporting (2026-02-16)
 
 - **Step 9 (CFStable verification):** On RDP, CFStable has a different schema (no `calltype`) and append yields 0 records. The script now skips the sample cursor when count is 0 or when `calltype`/`callid` are missing, logs a warning, and continues to Step 10 (append TEMP_FC_3857 → online). Prevents "Cannot find field 'calltype'" from stopping the run.

@@ -208,6 +208,32 @@ The following summarizes what was done in three exported chat sessions. Full tra
 
 **Takeaway for next session:** ChatGPT defined the “Geometry Restoration & Enhancement” plan, corrected geometry checks to ArcGIS API for Python, and produced the multi-agent / Prompt A+B spec that Cursor and Deploy chat then implemented or refined.
 
+**Takeaway for next session:** ChatGPT defined the "Geometry Restoration & Enhancement" plan, corrected geometry checks to ArcGIS API for Python, and produced the multi-agent / Prompt A+B spec that Cursor and Deploy chat then implemented or refined.
+
+---
+
+### 9.4 Gap Backfill Date Fix (Perplexity/Claude/ChatGPT) – Feb 16, 2026  
+**Related files:** `docs/perplexity_spaces_handoff.md`, `docs/GAP_BACKFILL_UNIFIED_IMPLEMENTATION_PLAN.md`  
+**Scripts:** `scripts/probe_gap_record.py`, `scripts/fix_gap_calldate_local.py`, `scripts/fix_gap_calldate_online.py`
+
+**Separate issue from current session:** After geometry was restored, 2,680 gap records (Feb 3-15, 2026) had wrong `calldate` values (all showing "2/6/26 10:00:00" estimate instead of real dates). This is distinct from the Step 9/Step 6 issues in the current session.
+
+**Three-AI workflow:**
+- **Perplexity:** Architected gap backfill, added 2,680 records with geometry to online layer, identified date estimation issue, recommended surgical API update.
+- **Claude Opus:** Created three production scripts (v4) with CLI, timezone hardening (forced America/New_York), audit, rollback.
+- **Code Copilot (ChatGPT):** Safety review identified 6 risks; all addressed in Opus v4.
+
+**Scripts created (Opus v4):**
+- `probe_gap_record.py` (277 lines): Timezone/field probe; compares system vs NY epoch.
+- `fix_gap_calldate_local.py` (720 lines): Updates CFStable_GeocodeAddresses with real dates; recalculates derived fields.
+- `fix_gap_calldate_online.py` (991 lines): Surgical API update of 2,680 online records in batches of 200; forced NY timezone, schema preflight, rollback.
+
+**Key features:** Numeric range enforcement (26-011288 to 26-014999), forced America/New_York timezone, out-of-range metrics → NULL, schema preflight, dry-run default, rollback from snapshot.json, audit with `--expected-updates 2680`.
+
+**Execution:** Probe (30s) → local dry → local live → online dry → online live → verify dashboard. Total ~10-15 min.
+
+**Takeaway for next session:** Gap date fix is a **separate workflow** from the 568K backfill. "Gap records"/"wrong dates"/"Feb 3-15" → see `docs/GAP_BACKFILL_UNIFIED_IMPLEMENTATION_PLAN.md`. "Step 9"/"CFStable 0 records"/"568K" → current handoff.
+
 ---
 
 *End of handoff. Save this file or copy the "Quick paste" block into your next conversation.*
