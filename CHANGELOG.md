@@ -67,6 +67,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ✅ Dashboard operational: Full coverage 2019-01-01 to 2026-02-15
 - ✅ Chronological sort: Most recent calls display first
 
+**Official Baseline Created:**
+- `scripts/backup_baseline_v1_6_1.py` - Backup script created
+- Location: `C:\HPD ESRI\03_Data\CAD\Backfill\Baseline_v1_6_1.gdb\CallsForService_Baseline_20190101_20260215`
+- Records: 571,282 (100% verified match with online layer)
+- Date Range: 2019-01-01 to 2026-02-15
+- Duration: 110 seconds (1.8 minutes)
+- Created: 2026-02-16 22:54:04
+- Purpose: Gold standard baseline for future backfills, emergency rollback, audit trail
+
 ---
 
 ### Fixed - Backfill script Step 9 verification and Step 6 reporting (2026-02-16)

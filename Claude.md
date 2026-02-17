@@ -38,6 +38,13 @@ This repository contains a unified data quality system for CAD (Computer-Aided D
 
 **Production Scripts:** `probe_gap_record.py`, `fix_gap_calldate_local.py`, `fix_gap_calldate_online.py`
 
+**Official Baseline Created (Feb 16, 2026):**
+- **Location:** `C:\HPD ESRI\03_Data\CAD\Backfill\Baseline_v1_6_1.gdb\CallsForService_Baseline_20190101_20260215`
+- **Records:** 571,282 (verified match with online layer)
+- **Date Range:** 2019-01-01 to 2026-02-15
+- **Status:** Gold standard for future backfills, emergency rollback, audit trail
+- **Script:** `backup_baseline_v1_6_1.py`
+
 ---
 
 ### ✅ v1.6.0 - Historical Backfill SUCCESS (Feb 9, 2026)

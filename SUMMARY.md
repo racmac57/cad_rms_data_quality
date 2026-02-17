@@ -32,11 +32,22 @@ Enterprise data quality system for CAD (Computer-Aided Dispatch) and RMS (Record
 - ✅ All derived fields accurate (day-of-week, hour, response times)
 - ✅ Execution time: ~10-15 minutes (probe → local → online → verify)
 - ✅ Rollback available via snapshot.json
+- ✅ Official baseline backup created (571,282 records verified)
 
 **Scripts Created:**
 - ✅ `probe_gap_record.py` - Timezone verification and field probe
 - ✅ `fix_gap_calldate_local.py` - Local baseline date correction
 - ✅ `fix_gap_calldate_online.py` - Online layer surgical update
+- ✅ `backup_baseline_v1_6_1.py` - Official baseline backup script
+
+**Official Baseline (v1.6.1):**
+- **Location:** `C:\HPD ESRI\03_Data\CAD\Backfill\Baseline_v1_6_1.gdb\CallsForService_Baseline_20190101_20260215`
+- **Records:** 571,282 (verified match with online layer)
+- **Date Range:** 2019-01-01 to 2026-02-15
+- **Geometry:** 100% present (X/Y coordinates from CAD exports)
+- **Dates:** 100% correct (real CAD timestamps, gap records fixed)
+- **Created:** 2026-02-16 22:54:04
+- **Use for:** Future backfills, emergency rollback, audit trail
 
 ---
 

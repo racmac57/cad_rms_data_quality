@@ -97,6 +97,49 @@ cd "C:\HPD ESRI\04_Scripts"
 - `docs/perplexity_spaces_handoff.md` - Gap backfill context
 - `docs/HANDOFF_20260216_BACKFILL_SESSION.md` - Full session details
 
+### Official Baseline (v1.6.1) - Created Feb 16, 2026
+
+**The Gold Standard Backup**
+
+After completing the gap date fix and verifying all 571,282 records, we created an official baseline backup:
+
+**Location (RDP):**
+```
+C:\HPD ESRI\03_Data\CAD\Backfill\Baseline_v1_6_1.gdb\CallsForService_Baseline_20190101_20260215
+```
+
+**Specifications:**
+- **Records:** 571,282 (verified 100% match with online layer)
+- **Date Range:** 2019-01-01 to 2026-02-15 (7+ years)
+- **Geometry:** 100% present (X/Y coordinates from CAD exports)
+- **Dates:** 100% correct (real CAD timestamps, gap records fixed Feb 16, 2026)
+- **Derived Fields:** Accurate (calldow, callhour, callmonth, callyear, response times)
+- **Export Duration:** 110 seconds (1.8 minutes for 571K records)
+- **Created:** 2026-02-16 22:54:04
+- **Script:** `scripts/backup_baseline_v1_6_1.py`
+
+**Use Cases:**
+1. **Emergency Rollback** - If online layer becomes corrupted, restore from this baseline
+2. **Future Backfills** - Starting point for incremental updates (Feb 16+ data)
+3. **Audit Trail** - Verified snapshot of complete 7-year dataset
+4. **Data Quality Reference** - Benchmark for validation and comparison
+
+**How to Use for Future Backfills:**
+```python
+# Instead of processing all 571K records again:
+# 1. Export new month (e.g., Feb 16 - Mar 31, 2026)
+# 2. Append to baseline (not full reload)
+# 3. Publish delta to online layer
+# 4. Update baseline with new month
+
+# Example workflow:
+baseline_fc = r"C:\HPD ESRI\03_Data\CAD\Backfill\Baseline_v1_6_1.gdb\CallsForService_Baseline_20190101_20260215"
+new_month_data = r"C:\path\to\2026_03_CAD.xlsx"
+
+# Process only new month, append to baseline
+# Much faster than reprocessing 571K records!
+```
+
 ---
 
 ## Previous Release: Historical Backfill Success (v1.6.0)
