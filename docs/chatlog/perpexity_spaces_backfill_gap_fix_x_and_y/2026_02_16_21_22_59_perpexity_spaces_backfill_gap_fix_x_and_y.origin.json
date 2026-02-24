@@ -1,0 +1,42 @@
+{
+  "tags": [
+    "ai",
+    "code",
+    "conversation",
+    "data",
+    "docs",
+    "excel",
+    "it-ops",
+    "json",
+    "legal",
+    "markdown",
+    "police",
+    "powershell",
+    "python",
+    "sql"
+  ],
+  "metadata_enrichment": {
+    "metadata": {
+      "project_name": "02_data",
+      "source_type": "documentation",
+      "language": "en",
+      "department": "admin",
+      "key_terms": [
+        "records",
+        "print",
+        "script",
+        "calldate",
+        "you",
+        "step"
+      ],
+      "enrichment_version": "1.0.0"
+    },
+    "summaries": {
+      "file_summary": "Finance\n\n\nESRI Backfill\nSection A: Optimized Prompt\n<optimized_prompt>\n<role>Senior Data Engineer (Law Enforcement Systems & RAG Operations)</role>\n<context>\nThe user is managing a Knowledge Base/RAG system backfill operation within a Wi...",
+      "first_line": "Finance"
+    },
+    "enrichment_version": "1.0.0"
+  },
+  "last_processed_at": "2026-02-16T21:22:59.409705",
+  "department": "admin"
+}

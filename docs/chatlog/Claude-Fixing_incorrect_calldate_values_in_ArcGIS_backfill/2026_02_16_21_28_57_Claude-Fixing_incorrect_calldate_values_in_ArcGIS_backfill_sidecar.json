@@ -1,0 +1,112 @@
+{
+  "source_file": "Claude-Fixing incorrect calldate values in ArcGIS backfill.json",
+  "source_path": "C:\\_chunker\\02_data\\Claude-Fixing incorrect calldate values in ArcGIS backfill.json",
+  "manifest_path": "C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\KB_Shared\\04_output\\Claude-Fixing_incorrect_calldate_values_in_ArcGIS_backfill\\2026_02_16_21_28_57_Claude-Fixing_incorrect_calldate_values_in_ArcGIS_backfill.origin.json",
+  "created_at": "2026_02_16_21_28_57",
+  "tags": [
+    "ai",
+    "code",
+    "data",
+    "dataset",
+    "docs",
+    "excel",
+    "it-ops",
+    "json",
+    "markdown",
+    "police",
+    "python",
+    "sql"
+  ],
+  "metadata": {
+    "project_name": "02_data",
+    "source_type": "data",
+    "language": "en",
+    "department": "admin",
+    "key_terms": [
+      "script",
+      "online",
+      "local",
+      "all",
+      "process",
+      "scripts"
+    ],
+    "enrichment_version": "1.0.0"
+  },
+  "summaries": {
+    "file_summary": "{\n  \"metadata\": {\n    \"title\": \"Fixing incorrect calldate values in ArcGIS backfill\",\n    \"dates\": {\n      \"created\": \"2/16/2026 20:06:06\",\n      \"updated\": \"2/16/2026 21:24:50\",\n      \"exported\": \"2/16/2026 21:28:41\"\n    },\n    \"link\":...",
+    "first_line": "{"
+  },
+  "chunks": [
+    {
+      "chunk_id": "2026-02-16T21:28:57+00:00_Claude-Fixing_incorrect_calldate_values_in_ArcGIS_backfill_chunk1",
+      "chunk_index": 1,
+      "file": "chunk_00000.txt",
+      "tags": [
+        "ai",
+        "calldate",
+        "code",
+        "data",
+        "dataset",
+        "docs",
+        "excel",
+        "it-ops",
+        "json",
+        "markdown",
+        "online",
+        "police",
+        "process",
+        "python",
+        "records",
+        "script",
+        "sql"
+      ],
+      "key_terms": [
+        "script",
+        "online",
+        "calldate",
+        "records",
+        "process",
+        "all"
+      ],
+      "summary": "{\n  \"metadata\": {\n    \"title\": \"Fixing incorrect calldate values in ArcGIS backfill\",\n    \"dates\": {\n      \"created\": \"2/16/2026 20:06:06\",\n      \"updated\": \"2/16/2026 21:24:50\",\n      \"exported\": \"2/16/2026 21:28:41\"\n    },\n    \"link\":...",
+      "char_length": 30002,
+      "byte_length": 30140
+    },
+    {
+      "chunk_id": "2026-02-16T21:28:57+00:00_Claude-Fixing_incorrect_calldate_values_in_ArcGIS_backfill_chunk2",
+      "chunk_index": 2,
+      "file": "chunk_00001.txt",
+      "tags": [
+        "ai",
+        "code",
+        "data",
+        "dataset",
+        "docs",
+        "excel",
+        "it-ops",
+        "json",
+        "local",
+        "markdown",
+        "police",
+        "python",
+        "rollback",
+        "scripts",
+        "sql",
+        "three",
+        "user-data"
+      ],
+      "key_terms": [
+        "scripts",
+        "three",
+        "local",
+        "rollback",
+        "mnt",
+        "user-data"
+      ],
+      "summary": "Let me also check the online script's compute_derived_fields has the null-out logic properly.\\n\\n\\nPresent File: /mnt/user-data/outputs/probe_gap_record.py, /mnt/user-data/outputs/fix_gap_calldate_local.py, /mnt/user-data/outputs/fix_gap...",
+      "char_length": 4266,
+      "byte_length": 4305
+    }
+  ],
+  "enrichment_version": "1.0.0"
+}

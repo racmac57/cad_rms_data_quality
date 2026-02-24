@@ -1,0 +1,446 @@
+```python
+import pandas as pd
+import arcpy
+import os
+
+# --- CONFIGURATION ---
+input_excel = r"C:\HPD ESRI\03_Data\CAD\Backfill\CAD_ESRI_Polished_Baseline.xlsx"
+output_cached_excel = r"C:\HPD ESRI\03_Data\CAD\Backfill\CAD_ESRI_Baseline_GEO_CACHED.xlsx"
+locator_path = "https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer"
+
+print("Step 1: Loading Baseline Data...")
+df = pd.read_excel(input_excel)
+
+# Step 2: Extract UNIQUE addresses to save time/credits
+unique_addresses = df[['Full_Address_Field']].drop_duplicates().reset_index(drop=True)
+print(f"Total Records: {len(df):,} | Unique Addresses to Geocode: {len(unique_addresses):,}")
+
+# Step 3: Batch Geocode unique addresses
+# Note: Requires active ArcGIS Pro session/sign-in
+temp_fc = r"memory\temp_geocoded_cache"
+arcpy.geocoding.GeocodeAddresses(
+    in_table=unique_addresses,
+    address_locator=locator_path,
+    in_address_fields="SingleLine Full_Address_Field VISIBLE NONE",
+    out_feature_class=temp_fc
+)
+
+# Step 4: Extract X/Y and join back to the master dataframe
+fields = ["Full_Address_Field", "SHAPE@X", "SHAPE@Y"]
+cache_results = [row for row in arcpy.da.SearchCursor(temp_fc, fields)]
+cache_df = pd.DataFrame(cache_results, columns=["Full_Address_Field", "X_Coord", "Y_Coord"])
+
+# Final Merge: Apply coordinates to all 754k records
+final_df = df.merge(cache_df, on="Full_Address_Field", how="left")
+
+# Step 5: Save the new "Coordinates-Ready" baseline
+final_df.to_excel(output_cached_excel, index=False)
+print(f"Success! Cached baseline saved with coordinates to: {output_cached_excel}")
+
+```
+
+### **Why this solves your "Silent Hang" at 564,916**
+
+* **Reduces Network Load:** Instead of 754,409 network requests, the server only processes unique address strings (likely ~100k–200k depending on your jurisdiction). * **Eliminates Tool-Level Geocoding:** You can now modify your ArcGIS Toolbox (`TransformCallData_tbx1`) to use the **`from_xy()`** method or a simple "XY to Point" tool instead of a live Geocoding step. * **Resilience:** If the network fails at record 564,916, you haven't lost the work already completed for the unique address list. ### **Strategic Impact on Implementation**
+
+| Feature | Original Monolithic Plan | Staged Cache Strategy |
+| --- | --- | --- |
+| **Geocoding Load** | High (Every record) | Low (Unique addresses only) |
+| **Timeout Risk** | High (Silent hang at 564k) | Low (Coordinates are local/static) |
+| **Execution Time** | ~75+ Minutes (Hangs) | ~15 Minutes (15x 1-minute batches) |
+
+Since your **Geocoding Cache** is now prepared, we need to update the runner script. By using the pre-calculated coordinates, you effectively bypass the **Esri World Geocoder** during the actual upload, which is the primary cause of the silent hang at record 564,916. The following snippet modifies `run_publish_call_data.py` to utilize the new **XY-to-Point** logic, ensuring the 15 batches process with maximum speed and zero network dependency on geocoding services. ### **Modified Runner Logic (Cached Coordinates)**
+
+Update the logic in your existing `run_publish_call_data.py` to use these parameters:
+
+```python
+import arcpy
+import sys
+from pathlib import Path
+
+def run_cached_publish():
+    # [cite_start]Paths from your established server hierarchy [cite: 33, 45]
+    staging_file = r"C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\ESRI_CADExport.xlsx"
+    marker = Path(r"C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\is_first_batch.txt")
+    
+    # [cite_start]1. Import your established toolbox [cite: 46, 60]
+    # Ensure the model in tbx1 is updated to accept X/Y fields
+    arcpy.ImportToolbox(r"C:\HPD ESRI\04_Scripts\CAD_Tools.atbx", "tbx1")
+
+    try:
+        if not marker.exists():
+            [cite_start]print("[INFO] Mode: INITIAL OVERWRITE (Batch 01) [cite: 48, 61]")
+            # Pass the X/Y field names to the tool if your model allows
+            # Otherwise, use XY to Point inside the model logic
+            result = arcpy.tbx1.TransformCallData_tbx1(staging_file, "X_Coord", "Y_Coord")
+            [cite_start]marker.write_text("Sequence Started") [cite: 48, 61]
+        else:
+            [cite_start]print("[INFO] Mode: APPEND (Subsequent Batch) [cite: 47, 61]")
+            result = arcpy.tbx1.TransformCallData_tbx1(staging_file, "X_Coord", "Y_Coord")
+        
+        # [cite_start]Log ArcGIS messages for tracking [cite: 48, 61]
+        print(arcpy.GetMessages())
+
+    except arcpy.ExecuteError:
+        [cite_start]print(arcpy.GetMessages(2)) [cite: 49]
+        [cite_start]sys.exit(1) [cite: 49, 50]
+
+if __name__ == "__main__":
+    run_cached_publish()
+
+```
+
+---
+
+### **Implementation Strategy: Cache vs. Staged**
+
+This diagram illustrates how the pre-geocoding step integrates with your batching orchestrator to solve the bottleneck:
+
+### **Why This Finalizes Your Solution**
+
+* 
+**Session Stability**: Because the "heavy lifting" of geocoding is done locally during the cache phase, the server's Python process (`propy.bat`) only has to perform lightweight data transfers. * 
+**Predictable Performance**: Each 50,000-record batch should now finish in a consistent timeframe, as there is no variable network latency from the geocoding API. * 
+**Auditability**: If Batch 12 fails, you can open the staging Excel file and immediately see if the `X_Coord` or `Y_Coord` fields are missing for a specific record, rather than diagnosing a silent network hang. In the event of a catastrophic data corruption or a failure that requires a complete reset of the backfill process, an **Emergency Rollback** is necessary to clear the target feature layer and reset the orchestrator's state. This ensures you can start fresh without creating duplicate records or leaving the system in an inconsistent state. ---
+
+### **ArcGIS Online Truncate Script**
+
+### `Rollback-CADBackfill.py`
+
+This script uses `arcpy` to quickly wipe the target feature layer. Unlike deleting features one by one, `Truncate` is near-instant and resets the underlying table. ```python
+import arcpy
+import json
+import os
+import sys
+
+def emergency_rollback():
+    """
+    Clears the target ArcGIS Online feature layer and prepares for a clean restart.
+    """ config_path = r"C:\HPD ESRI\04_Scripts\config.json"
+    
+    if not os.path.exists(config_path):
+        print("[ERROR] Config not found.") sys.exit(1)
+
+    with open(config_path, 'r') as f:
+        config = json.load(f)
+
+    target_layer = config.get('target_service_url')
+
+    print(f"--- INITIATING EMERGENCY ROLLBACK ON: {target_layer} ---")
+    confirm = input("This will PERMANENTLY DELETE all records in the layer. Type 'WIPE' to proceed: ")
+
+    if confirm == "WIPE":
+        try:
+            # [cite_start]Truncate is the fastest way to clear a hosted feature layer [cite: 44]
+            arcpy.management.TruncateTable(target_layer)
+            print("[SUCCESS] ArcGIS Online layer has been truncated (cleared).") except Exception as e:
+            print(f"[FAILED] Could not truncate layer: {str(e)}")
+    else:
+        print("[CANCELLED] Rollback aborted by user.") if __name__ == "__main__":
+    emergency_rollback()
+
+```
+
+---
+
+### **Orchestrator State Reset (PowerShell)**
+
+After clearing the online data, you must reset the local server environment to ensure the next run starts with the "Initial Overwrite" logic. 1. **Remove the Append Marker:** Delete `is_first_batch.txt` so the next run triggers the overwrite mode. 2. **Clear Staging:** Remove any `ESRI_CADExport.xlsx` or `_LOCK.txt` remnants from the `_STAGING` folder. 3. **Reset Batch Files:** Move all `.xlsx` files from the `/Completed` folder back to the root `/Batches` directory. ---
+
+### **Summary of System State After Rollback**
+
+| Component | Target State | Purpose |
+| --- | --- | --- |
+| **ArcGIS Online Layer** | 0 Records | Provides a clean slate for the 754K record push. |
+| **`is_first_batch.txt`** | Deleted | Resets logic to "Overwrite" for the next Batch 01. |
+| **`_STAGING` Folder** | Empty | Prevents locks or stale data from interfering with the restart. |
+| **`/Batches` Folder** | 15 Files | All batches ready for sequential processing. |
+| **`_LOCK.txt`** | Deleted | Signals to the system that the backfill session is closed. |
+
+To provide a comprehensive audit trail for the 754,409 record backfill, this **Batch Summary Report** script generates a CSV log detailing the performance and success of each stage. It captures start/end timestamps, duration, and final record counts to ensure every one of the 15 batches is accounted for. ---
+
+### **Batch Summary Generator**
+
+### `Generate-BackfillReport.ps1`
+
+```powershell
+# --- CONFIGURATION ---
+$ReportPath    = "C:\HPD ESRI\05_Reports\Backfill_Summary_$(Get-Date -Format 'yyyyMMdd_HHmm').csv"
+$CompletedDir  = "C:\HPD ESRI\03_Data\CAD\Backfill\Batches\Completed"
+$LogSource     = "C:\HPD ESRI\05_Reports\Backfill_$(Get-Date -Format 'yyyyMMdd').log"
+
+Write-Host "--- GENERATING BATCH SUMMARY REPORT ---" -ForegroundColor Cyan
+
+# 1. Initialize Report Data
+$reportData = @()
+$completedBatches = Get-ChildItem -Path $CompletedDir -Filter "BATCH_*.xlsx" | Sort-Object Name
+
+# [cite_start]2. Iterate through processed batches to extract metadata [cite: 31, 38]
+foreach ($batch in $completedBatches) {
+    # [cite_start]Extracting record counts from filename (assuming BATCH_XX_START_END.xlsx format) [cite: 29]
+    $parts = $batch.BaseName.Split('_')
+    $recordsInBatch = if ($parts.Count -ge 4) { [int]$parts[3] - [int]$parts[2] } else { "Unknown" }
+
+    $batchEntry = [PSCustomObject]@{
+        [cite_start]BatchName      = $batch.Name [cite: 37]
+        [cite_start]ProcessedDate  = $batch.LastWriteTime [cite: 39]
+        [cite_start]EstimatedCount = $recordsInBatch [cite: 29]
+        [cite_start]Status         = "COMPLETED" [cite: 31]
+        [cite_start]FinalLocation  = $batch.FullName [cite: 39]
+    }
+    $reportData += $batchEntry
+}
+
+# [cite_start]3. Export to CSV [cite: 13]
+$reportData | Export-Csv -Path $ReportPath -NoTypeInformation
+Write-Host "[SUCCESS] Report generated at: $ReportPath" -ForegroundColor Green
+
+# [cite_start]4. Final Verification Summary [cite: 20]
+$totalProcessed = ($reportData | Measure-Object -Property EstimatedCount -Sum).Sum
+Write-Host "`n--- QUICK STATS ---"
+[cite_start]Write-Host "Total Batches: $($reportData.Count)" [cite: 37]
+[cite_start]Write-Host "Total Records: $($totalProcessed.ToString('N0'))" [cite: 28]
+
+```
+
+---
+
+### **Audit and Verification Flow**
+
+### **Why This Report is Essential for HPD ESRI**
+
+* 
+**Checkpoint Verification**: By documenting the `LastWriteTime` of each file in the `/Completed` folder, you can verify that the mandatory 60-second cooling period was respected between every batch. * 
+**Capacity Planning**: Tracking the duration of each 50,000-record stage allows you to predict the exact runtime of future backfills or massive data migrations. * 
+**Data Integrity**: If the **Post-Execution Validation** shows a record count lower than 754,409, this report acts as a map to identify exactly which batch might have dropped features. * 
+**Nightly Hand-off**: This CSV serves as the official hand-off document confirming the system was cleaned and returned to its "Ready" state for the 12:30 AM nightly automation. This finalized **Deployment Guide** consolidates the entire **Staged Backfill Strategy** into a single, executable workflow. This strategy is specifically engineered to bypass the "silent hang" at record 564,916 by resetting the network session and memory overhead every 50,000 records. ---
+
+## 🛠️ Staged Backfill Deployment Guide
+
+### **Phase 1: Local Data Preparation**
+
+Before moving to the server, partition your 76MB master baseline into manageable chunks using the pre-geocoding cache to eliminate live network dependencies. 1. **Run Geocoding Cache:** Use the `Geocoding_Cache.py` script to generate a coordinates-ready Excel file (`CAD_ESRI_Baseline_GEO_CACHED.xlsx`). 2. **Split into Batches:** Run the Python partitioning function to create files `BATCH_01.xlsx` through `BATCH_15.xlsx`. 3. **Transfer:** Move these 15 files to the server at `C:\HPD ESRI\03_Data\CAD\Backfill\Batches`. ---
+
+### **Phase 2: Server Implementation**
+
+Ensure the following scripts are updated in `C:\HPD ESRI\04_Scripts\` to handle the sequenced logic. #### **1. The Runner (`run_publish_call_data.py`)**
+
+This script detects the `is_first_batch.txt` marker to toggle between **Overwrite** and **Append** modes. * 
+**Batch 01:** Wipes the target layer and creates the marker. * 
+**Batches 02-15:** Appends to the layer because the marker exists. #### **2. The Orchestrator (`Invoke-CADBackfillPublish.ps1`)**
+
+The master script that handles the loop, the atomic file swaps, and the cooling periods. * 
+**Atomic Swap:** Copies each batch to `_STAGING\ESRI_CADExport.xlsx`. * 
+**Cooldown:** Waits 60 seconds between batches to allow ArcGIS Online to index. * 
+**Checkpoint:** Moves successful batches to the `\Completed` folder. ---
+
+### **Phase 3: Execution & Monitoring**
+
+1. **Sanitize:** Ensure `_STAGING` contains no `_LOCK.txt` or old marker files. 2. **Execute:** Run `Invoke-CADBackfillPublish.ps1` from an elevated PowerShell prompt. 3. **Resume (If Needed):** If Batch 12 fails, run `Resume-CADBackfill.ps1`. It will skip Batches 01-11 and continue from the point of failure. ---
+
+### **Phase 4: Validation & Cleanup**
+
+Once the orchestrator reports "All Stages Complete":
+
+1. **Validate:** Run `Validate-CADBackfillCount.py` to confirm the total count is **754,409**. 2. **Report:** Run `Generate-BackfillReport.ps1` to create the final audit log for your records. 3. **Cleanup:** The orchestrator will automatically delete the staging markers and release the session locks for the 12:30 AM nightly automation. ---
+
+### **Summary of Success Indicators**
+
+| Component | Post-Backfill Status |
+| --- | --- |
+| **ArcGIS Online** | 754,409 Records 
+
+ |
+| **`\Batches` Folder** | Empty (all files in `\Completed`) 
+
+ |
+| **`_STAGING` Folder** | Empty (No `_LOCK.txt` or markers) 
+
+ |
+| **Nightly Automation** | Ready for 12:30 AM Run 
+
+ |
+
+
+
+
+
+
+
+---
+
+**Cursor**
+
+Based on your comprehensive answers and the additional implementation details provided, I'll create the finalized implementation plan that incorporates the geocoding cache strategy, which is critical to solving the 564,916 record hang. ---
+
+**User**
+
+Gemini AI provided the following please review and add if you deem it acceptable:
+The implementation plan provided by Cursor is exceptionally thorough and aligns perfectly with the strategy we established to bypass the **564,916 record hang**. By integrating the **Pre-Geocoding Cache** with the **15-batch Orchestrator**, you are shifting from a high-risk network-dependent process to a stable, local-first execution model. ### **Plan Review & Optimization Notes**
+
+#### **1. The "Pre-Geocoding" Phase (Phase 0)**
+
+* **Optimization:** In `create_geocoding_cache.py`, implement **Error Handling for Null Geocodes**. If the Esri World Geocoder cannot find an address, it will return a null coordinate. * **Enhancement:** Add a "Geocoding Quality Report" after Phase 0. If more than 5% of unique addresses fail to geocode, you should inspect the data before proceeding to the 754K record upload. This prevents "blindly" uploading records with zero coordinates. #### **2. Batch Splitting (Phase 1)**
+
+* **Optimization:** Ensure the `split_baseline_into_batches.py` script uses `long_format=False` in pandas to keep file sizes small. * **Enhancement:** Include a **CRC/Hash check** in the `batch_manifest.json`. This allows the Orchestrator to verify that a batch file hasn't been corrupted during the transfer from your local machine to the server. #### **3. The Orchestrator (`Invoke-CADBackfillPublish.ps1`)**
+
+* **Optimization:** Add a **disk space check** before starting the loop. Since you are duplicating the data into 15 batches and a staging file, ensure the `C:` drive has at least 500MB of free space to avoid a "Disk Full" crash mid-run. * **Enhancement:** Update the `cooling_seconds` to be **dynamic**. You could start at 60 seconds and, if the script detects a network lag (via the Python return message), automatically increase the cooldown to 120 seconds for the subsequent batch. ---
+
+### **Critical Enhancement: "Session Heartbeat"**
+
+The most significant addition I recommend for the `run_publish_call_data.py` is a **Heartbeat Log**. Since the silent hang results in 0% CPU activity, the script should write a timestamp to a `heartbeat.txt` file every 1,000 records processed within a batch. * 
+**Why:** If the Orchestrator sees that the `heartbeat.txt` hasn't been updated in 3 minutes, it can **force-kill** the hung Python process and trigger the **Resume Script** automatically. ### **Implementation Logic Flow**
+
+---
+
+### **Next Steps for Your Implementation**
+
+1. **Verify Append Mode:** This is the #1 risk in the plan. Open the `TransformCallData_tbx1` tool in ArcGIS Pro now. If it uses "Delete Features" followed by "Append," change it to a **conditional delete** (only delete if the `is_first_batch.txt` marker is *absent*). 2. **Test the Cache:** Run Phase 0 on a subset of 10,000 records to ensure your ArcGIS Pro license/session handles the `arcpy.geocoding.GeocodeAddresses` call without issues. 3. **Update `config.json`:** Ensure the `target_service_url` in the new `staged_backfill` section is the **Rest URL** of the hosted feature layer, not just the Portal item URL. To prevent the "silent hang" from stalling your backfill indefinitely, we will implement a **Watchdog/Heartbeat** mechanism. Since the hang occurs during the `arcpy` tool execution—where the process remains open but stops processing data —the Python runner will update a timestamp file, and the PowerShell orchestrator will monitor that file's "freshness." ### **1. Updated Python Heartbeat Logic**
+
+Modify your `run_publish_call_data.py` to update a heartbeat file immediately before the tool call. In a more advanced setup, if your Model Builder tool can be exported to a Python script, you can place this heartbeat update inside the record loop. ```python
+import os
+import time
+from pathlib import Path
+
+def update_heartbeat():
+    """Writes the current timestamp to a heartbeat file.""" heartbeat_path = Path(r"C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\heartbeat.txt")
+    heartbeat_path.write_text(str(time.time()))
+
+# Inside run_staged_publish():
+[cite_start]update_heartbeat() # Initial heartbeat [cite: 48]
+try:
+    # [cite_start]Existing Tool Call [cite: 47, 61]
+    result = arcpy.tbx1.TransformCallData_tbx1(str(staging_file), "X_Coord", "Y_Coord")
+    update_heartbeat() # Final heartbeat on success
+except Exception as e:
+    # [cite_start]... existing error handling [cite: 49]
+
+```
+
+---
+
+### **2. PowerShell "Watchdog" Orchestrator**
+
+Replace the standard `& python` call in `Invoke-CADBackfillPublish.ps1` with this monitoring loop. This allows PowerShell to "kill" the Python process if the heartbeat file is not updated within a specific threshold (e.g., 5 minutes). ```powershell
+$HeartbeatFile = "C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\heartbeat.txt"
+$MaxHangTimeSeconds = 300 # 5 Minute threshold
+
+foreach ($file in $batchFiles) {
+    Write-Host "Processing $($file.Name) with Watchdog..." -ForegroundColor Yellow
+    
+    # [cite_start]Start the Python process in the background [cite: 38, 62]
+    $proc = Start-Process -FilePath "python.exe" `
+                          -ArgumentList "C:\HPD ESRI\04_Scripts\run_publish_call_data.py" `
+                          -PassThru -NoNewWindow
+
+    $isHung = $false
+    while (-not $proc.HasExited) {
+        Start-Sleep -Seconds 30
+        
+        if (Test-Path $HeartbeatFile) {
+            $lastUpdate = (Get-Item $HeartbeatFile).LastWriteTime
+            $timeSinceHeartbeat = (Get-Date) - $lastUpdate
+
+            if ($timeSinceHeartbeat.TotalSeconds -gt $MaxHangTimeSeconds) {
+                Write-Error "CRITICAL: Heartbeat stalled for $($file.Name). Process likely hung." Stop-Process -Id $proc.Id -Force
+                $isHung = $true
+                break
+            }
+        }
+    }
+
+    if ($proc.ExitCode -eq 0 -and -not $isHung) {
+        # [cite_start]... Move to Completed folder as usual [cite: 39, 41]
+        Move-Item -Path $file.FullName -Destination $completedDir -Force
+    } else {
+        [cite_start]Write-Error "Batch failed or was killed due to hang. Initiating emergency stop." [cite: 40]
+        break
+    }
+}
+
+```
+
+---
+
+### **3. Why This Resolves the Problem**
+
+* 
+**Detection of 0% CPU Activity:** Your logs showed that during the hang, CPU activity dropped to almost zero while the process stayed open. This logic detects that inactivity by looking for a "frozen" timestamp instead of waiting for an exit code that never comes. * 
+**Automated Recovery:** By force-killing the process, the orchestrator triggers the `break` command. You can then immediately run the **Resume Script** to pick up from the failed batch. * 
+**Session Reset:** Every batch run starts a fresh Python environment, which clears any memory leaks or network session errors accumulated by ArcGIS Pro. ### **Next Steps for Verification**
+
+1. **Check Heartbeat Path:** Ensure the `_STAGING` directory is writable by the service account running these scripts. 2. **Test the "Kill" Logic:** Run a test batch and manually delete the `heartbeat.txt` or stop the Python process to ensure PowerShell reacts correctly and stops the loop. 3. **Monitor Logs:** Review the `Backfill_*.log` files to ensure the "Watchdog" start/stop times are being recorded for your audit report. To ensure a seamless recovery after a **Watchdog** intervention, the **Resume script** must handle specific "post-kill" cleanup. When the Watchdog kills a process, it often leaves behind stale markers, locked files, or partial staging data that can cause the next attempt to fail immediately. The refined logic below specifically checks for these remnants and ensures the environment is sanitized before continuing the batch sequence. ---
+
+### **Refined Resume Script: `Resume-CADBackfill.ps1**`
+
+This script now includes a **"Watchdog Recovery"** block to handle interrupted sessions. ```powershell
+# --- CONFIGURATION ---
+$BatchDir    = "C:\HPD ESRI\03_Data\CAD\Backfill\Batches"
+$StagingDir  = "C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING"
+$StagingFile = Join-Path $StagingDir "ESRI_CADExport.xlsx"
+$MarkerPath  = Join-Path $StagingDir "is_first_batch.txt"
+$HBPath      = Join-Path $StagingDir "heartbeat.txt"
+$LockFile    = Join-Path $StagingDir "_LOCK.txt"
+$WaitTime    = 60 
+
+Write-Host "--- RESUMING STAGED BACKFILL (WATCHDOG AWARE) ---" -ForegroundColor Cyan
+
+# [cite_start]1. WATCHDOG RECOVERY BLOCK [cite: 54, 56]
+# If a batch was killed, we must clear these items to prevent conflicts
+$staleItems = @($HBPath, $LockFile, $StagingFile)
+foreach ($item in $staleItems) {
+    if (Test-Path $item) {
+        Remove-Item -Path $item -Force -ErrorAction SilentlyContinue
+        Write-Host "[CLEANUP] Removed stale remnant: $(Split-Path $item -Leaf)" -ForegroundColor Gray
+    }
+}
+
+# [cite_start]2. SEQUENCE VALIDATION [cite: 36, 41]
+$remainingBatches = Get-ChildItem $BatchDir -Filter "BATCH_*.xlsx" | Sort-Object Name
+
+if ($remainingBatches.Count -eq 0) {
+    Write-Host "[!] No pending batches found. Checking /Completed folder..." -ForegroundColor Yellow
+    exit
+}
+
+# [cite_start]3. MARKER RESTORATION [cite: 50, 56]
+# If we are resuming after Batch 01, the marker MUST exist to prevent an Overwrite
+if (-not (Test-Path $MarkerPath)) {
+    Write-Host "[!] Warning: is_first_batch.txt marker missing." -ForegroundColor Red
+    $batchNum = $remainingBatches[0].Name.Split('_')[1]
+    
+    if ($batchNum -ne "01") {
+        Write-Host "[!] Resuming from Batch $batchNum. Re-creating marker to force APPEND mode." -ForegroundColor Yellow
+        "Sequence Resumed" | Out-File -FilePath $MarkerPath -Force
+    }
+}
+
+# [cite_start]4. EXECUTION LOOP WITH WATCHDOG INTEGRATION [cite: 37, 39]
+foreach ($batch in $remainingBatches) {
+    Write-Host "`n[$(Get-Date -Format 'HH:mm:ss')] Processing $($batch.Name)..." -ForegroundColor Yellow
+    Copy-Item $batch.FullName $StagingFile -Force
+    
+    # Call the runner (Watchdog logic should be in the main orchestrator or wrapped here)
+    & python "C:\HPD ESRI\04_Scripts\run_publish_call_data.py"
+    
+    if ($LASTEXITCODE -eq 0) {
+        $completedDir = Join-Path $BatchDir "Completed"
+        if (-not (Test-Path $completedDir)) { New-Item -ItemType Directory -Path $completedDir }
+        Move-Item $batch.FullName (Join-Path $completedDir $batch.Name) -Force
+        Start-Sleep -Seconds $WaitTime
+    } else {
+        Write-Error "Batch $($batch.Name) failed. Halt for manual inspection." break
+    }
+}
+
+Write-Host "`n--- RESUME SEQUENCE COMPLETE ---" -ForegroundColor Cyan
+
+```
+
+---
+
+### **Why this Refinement is Critical**
+
+* 
+**Atomic Sanitization**: The Watchdog kill is a "hard stop". By explicitly removing the `$StagingFile` and `$HBPath`, you ensure the next Python process starts with a clean `arcpy` environment and a fresh heartbeat. * 
+**Marker Persistence**: If the Watchdog kills the process during Batch 05 and the staging directory is wiped, the system might forget it already finished Batch 01. This script re-validates the batch number and recreates the `is_first_batch.txt` file so the runner doesn't accidentally trigger an **Overwrite** on the live data.

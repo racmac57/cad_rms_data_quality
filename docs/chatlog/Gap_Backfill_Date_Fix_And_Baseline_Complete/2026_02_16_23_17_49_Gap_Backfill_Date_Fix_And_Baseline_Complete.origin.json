@@ -1,0 +1,42 @@
+{
+  "tags": [
+    "ai",
+    "code",
+    "conversation",
+    "data",
+    "docs",
+    "excel",
+    "it-ops",
+    "json",
+    "legal",
+    "markdown",
+    "police",
+    "powershell",
+    "python",
+    "sql"
+  ],
+  "metadata_enrichment": {
+    "metadata": {
+      "project_name": "02_data",
+      "source_type": "documentation",
+      "language": "en",
+      "department": "admin",
+      "key_terms": [
+        "2026-02-16",
+        "info",
+        "esri",
+        "scripts",
+        "run",
+        "hpd"
+      ],
+      "enrichment_version": "1.0.0"
+    },
+    "summaries": {
+      "file_summary": "# Geocoding December 20225 data\n_Exported on 2/16/2026 at 23:17:17 EST from Cursor (2.4.37)_\n\n---\n\n**User**\n\nplease read C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\02_ETL_Scripts\\cad_rms_data_quality\\docs\\chatlog\\Deploy_Script_Expl...",
+      "first_line": "# Geocoding December 20225 data"
+    },
+    "enrichment_version": "1.0.0"
+  },
+  "last_processed_at": "2026-02-16T23:17:49.460375",
+  "department": "admin"
+}

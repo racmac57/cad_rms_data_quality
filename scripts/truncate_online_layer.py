@@ -12,7 +12,7 @@ from datetime import datetime
 # CONFIGURATION - MUST MATCH backup_current_layer.py
 # ============================================================================
 
-SERVICE_URL = "PASTE_URL_HERE"  # Same URL from backup script
+SERVICE_URL = "https://services1.arcgis.com/JYl0Hy0wQdiiV0qh/arcgis/rest/services/CallsForService_2153d1ef33a0414291a8eb54b938507b/FeatureServer/0"
 
 BACKUP_FOLDER = r"C:\HPD ESRI\00_Backups\CAD_Backfill_20260209"
 BACKUP_GDB_NAME = "Backup.gdb"
@@ -31,14 +31,14 @@ def log(message, level="INFO"):
     log_message = f"[{timestamp}] [{level}] {message}"
     print(log_message)
     
-    with open(LOG_FILE, "a") as f:
+    with open(LOG_FILE, "a", encoding="utf-8") as f:
         f.write(log_message + "\n")
 
 def log_separator():
     """Print visual separator"""
     separator = "=" * 80
     print(separator)
-    with open(LOG_FILE, "a") as f:
+    with open(LOG_FILE, "a", encoding="utf-8") as f:
         f.write(separator + "\n")
 
 # ============================================================================
@@ -89,7 +89,7 @@ def check_backup_metadata():
     if os.path.exists(metadata_file):
         log("\n📋 Backup Metadata:")
         log("-" * 80)
-        with open(metadata_file, "r") as f:
+        with open(metadata_file, "r", encoding="utf-8") as f:
             metadata = f.read()
             print(metadata)
         log("-" * 80)
@@ -232,7 +232,7 @@ Expected Final Count: 754,409 records (2019-01-01 to 2026-02-03)
 Rollback Available: Yes (restore_from_backup.py)
 """
     
-    with open(truncate_record_file, "w") as f:
+    with open(truncate_record_file, "w", encoding="utf-8") as f:
         f.write(truncate_record)
     
     log(f"✅ Truncate record saved: {truncate_record_file}")

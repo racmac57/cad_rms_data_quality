@@ -1,0 +1,555 @@
+If the current hosted layer is the 9,672 rows with no geometry, truncate and run a full re-publish so the new run replaces them with points. 4. Run the backfill, then the monitor script; confirm the dashboard shows points and the total count you expect. ---
+
+**User**
+
+I ran C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\Deploy-ToRDP-Simple.ps1 on my local machine how do I tell if it worked? can we check the to see what data gap we have in the arcgis pro data? Can we then check the data and see if the data has X and Y values
+
+do C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\patches\publish_with_xy_coordinates_no_changes_needed.patch
+C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\patches\complete_backfill_simplified_geometry_fix.patch have to stay where they are or can they be added to the folder witth the other scripts? ---
+
+**Cursor**
+
+
+Checking the deploy script's success indicators, existing gap/geometry checks, and the patch files. Checking the rest of the deploy script and for existing gap/geometry checks:
+
+
+
+Checking how the monitor queries the layer and whether it exposes date fields:
+
+
+
+Checking the latest deploy log and creating the verification doc and gap/geometry script. Creating the verification doc and the gap/geometry check script. Checking the ArcGIS API for statistics/group-by usage:
+
+
+
+Writing the verification doc and the gap/geometry script. Adding a note to the deploy verification doc about running the gap/geometry check and documenting where patch files belong. Summary of what’s in place:
+
+---
+
+## 1. **How to tell if the deploy worked**
+
+**`docs/DEPLOY_VERIFICATION.md`** explains:
+
+- **Exit/console:** If the script finished without an error and you saw “Deployment Complete”, it succeeded. - **Log:** Open the latest file in `deploy_logs\Deploy_YYYYMMDD_HHMMSS.log`. Success looks like:
+  - `[OK] RDP scripts directory accessible`
+  - `[OK] Deployed N scripts to: \\HPD2022LAWSOFT\C$\HPD ESRI\04_Scripts`
+  - `Deployment finished at ...`
+- **Quick log check in PowerShell:**
+  ```powershell
+  Get-Content ".\deploy_logs\Deploy_20260216_015206.log" -Tail 15
+  ```
+  (Use the latest log filename; your last run was `Deploy_20260216_015206.log` and it shows 35 scripts deployed and “Deployment finished”.) - **Optional:** On RDP, check that `C:\HPD ESRI\04_Scripts\complete_backfill_simplified.py` has a “Last modified” time from when you ran the deploy. ---
+
+## 2. **Data gap and X/Y (geometry) check**
+
+**`scripts/check_layer_gap_and_geometry.py`** (deployed with the rest of `scripts/` to RDP) does the following for the CallsForService layer:
+
+- **Total count**
+- **Date range** (min/max `calldate` when available)
+- **Count by year** (2019–2026) via `callyear`
+- **Geometry sample:** of 1,000 features, how many have X/Y (valid point geometry)
+
+**Run on RDP (with ArcGIS Pro Python):**
+```powershell
+"C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\propy.bat" "C:\HPD ESRI\04_Scripts\check_layer_gap_and_geometry.py"
+```
+
+Output is printed and a JSON report is written to `C:\HPD ESRI\04_Scripts\_out\layer_gap_geometry_YYYYMMDD_HHMMSS.json`. ---
+
+## 3. **Patch files: where they live**
+
+**Keep the patch files in `patches/`. ** Do not move them into the scripts folder. - **`patches/complete_backfill_simplified_geometry_fix.patch`** – Documents the Step 10 fix (append `TEMP_FC_3857` to the online service). That change is already in `scripts/complete_backfill_simplified.py`. - **`patches/publish_with_xy_coordinates_no_changes_needed.patch`** – Documents that no code changes were needed for that script (comments only). Patches are for version control and documentation, not execution. The deploy script copies **`scripts/`** to RDP; the runnable code is there. **`docs/PATCHES_README.md`** records that patches stay in `patches/` and why. ---
+
+**User**
+
+on RDP the complete_backfill_simplified.py has a modify date of 02/16/2026 at 01:48 am
+
+PS C:\WINDOWS\system32>   Get-Content ".\deploy_logs\Deploy_20260216_015206.log" -Tail 15
+Get-Content : Cannot find path 'C:\WINDOWS\system32\deploy_logs\Deploy_20260216_015206.log' because it does not exist. At line:1 char:3
++   Get-Content ".\deploy_logs\Deploy_20260216_015206.log" -Tail 15
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (C:\WINDOWS\syst...0216_015206.log:String) [Get-Content], ItemNotFoundEx
+   ception
+    + FullyQualifiedErrorId : PathNotFound,Microsoft.PowerShell.Commands.GetContentCommand
+
+PS C:\WINDOWS\system32>
+
+---
+
+**Cursor**
+
+
+Using the full path: the command failed because it was run from `C:\WINDOWS\system32`; `.\deploy_logs\` is relative to the current directory. Updating the verification doc to use the repo's full log path so the command works from any location. Summary:
+
+- **Why it failed:** You ran the command from `C:\WINDOWS\system32`, so `.\deploy_logs\Deploy_20260216_015206.log` was looked for as `C:\WINDOWS\system32\deploy_logs\...`, which doesn’t exist. The log is in your repo, not in system32. - **Deploy did work:** The RDP file `complete_backfill_simplified.py` with modify date **02/16/2026 01:48 AM** matches a deploy that ran around that time (e.g. your log at 01:52:06). So the copy to RDP succeeded. **To tail the log from anywhere**, use the repo path:
+
+```powershell
+$repo = "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality"
+Get-Content (Join-Path $repo "deploy_logs\Deploy_20260216_015206.log") -Tail 15
+```
+
+Or **cd to the repo first**, then use the relative path:
+
+```powershell
+cd "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality"
+Get-Content ".\deploy_logs\Deploy_20260216_015206.log" -Tail 15
+```
+
+`docs/DEPLOY_VERIFICATION.md` is updated so the “Quick check” uses the full repo path and works no matter what directory you’re in. ---
+
+**User**
+
+PS C:\WINDOWS\system32> $repo = "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality"
+>> Get-Content (Join-Path $repo "deploy_logs\Deploy_20260216_015206.log") -Tail 15
+2026-02-16 01:52:07 :   Deployed: split_baseline_into_batches.py
+2026-02-16 01:52:07 :   Deployed: test_baseline.py
+2026-02-16 01:52:07 :   Deployed: truncate_online_layer.py
+2026-02-16 01:52:07 :   Deployed: update_baseline_from_polished.py
+2026-02-16 01:52:07 :   Deployed: Verify-BatchIntegrity.py
+2026-02-16 01:52:07 :   Deployed: verify_baseline.py
+2026-02-16 01:52:07 :   Deployed: verify_data_exists.py
+2026-02-16 01:52:07 :   Deployed: verify_temp_fc_fields.py
+2026-02-16 01:52:07 : [OK] Deployed 35 scripts to: \\HPD2022LAWSOFT\C$\HPD ESRI\04_Scripts
+2026-02-16 01:52:07 :   Deployed: SUMMARY.md
+2026-02-16 01:52:07 :   Deployed: README.md
+2026-02-16 01:52:07 :   Deployed: CHANGELOG.md
+2026-02-16 01:52:07 : [OK] Deployed 3 docs to: \\HPD2022LAWSOFT\C$\HPD ESRI
+2026-02-16 01:52:07 : Deployment finished at 2026-02-16 01:52:07
+2026-02-16 01:52:07 : Log file: C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\deploy_logs\Deploy_20260216_015206.log
+PS C:\WINDOWS\system32>
+
+---
+
+**Cursor**
+
+
+That output confirms the deploy succeeded:
+
+- **35 scripts** copied to `\\HPD2022LAWSOFT\C$\HPD ESRI\04_Scripts`
+- **3 docs** (SUMMARY.md, README.md, CHANGELOG.md) copied to `\\HPD2022LAWSOFT\C$\HPD ESRI`
+- **"Deployment finished at 2026-02-16 01:52:07"** with no errors
+
+Together with the RDP file date (02/16/2026 01:48 AM on `complete_backfill_simplified.py`), you’ve verified that the deployment worked. No further action needed unless you want to run the backfill or the gap/geometry check next. ---
+
+**User**
+
+https://hpd0223.maps.arcgis.com/home/item.html?id=44173f3345974fe79a01bfa463350ce2#data  shows only 9672 records and the table is blank. The dashboard show 0 records
+
+---
+
+**Cursor**
+
+
+Confirming the layer has 9,672 rows but no geometry (or broken geometry), so the map and table show nothing and the dashboard can show 0. Creating a short restore checklist and verifying the scripts are ready. Adding a short restore checklist you can follow on RDP:
+
+
+
+Summary of what’s going on and how to fix it:
+
+---
+
+## Why you see 9,672 records but blank table and 0 on the dashboard
+
+The [CallsForService layer](https://hpd0223.maps.arcgis.com/home/item.html?id=44173f3345974fe79a01bfa463350ce2#data) has **9,672 rows** but **no valid geometry** (X/Y is null). So:
+
+- The item page can show a total count (9,672) while the table is blank or the map is empty. - The dashboard can show **0** because widgets often only use features that have geometry. So the layer has rows with no locations; the fix is to clear it and re-publish **with** geometry. ---
+
+## What to do on RDP (in order)
+
+A short checklist is in **`docs/RESTORE_DASHBOARD_CHECKLIST.md`**. In short:
+
+1. **Staging file**  
+   Put the correct source in  
+   `C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\ESRI_CADExport.xlsx`  
+   It must have coordinates in either:
+   - **longitude** and **latitude**, or  
+   - **X_Coord** and **Y_Coord** (e.g. geocoded December file). 2. **Truncate the online layer** (remove the 9,672 bad rows):
+   ```powershell
+   cd "C:\HPD ESRI\04_Scripts"
+   & "C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\propy.bat" truncate_online_layer.py
+   ```
+   When prompted, type exactly: **TRUNCATE**, your **username**, then **DELETE ALL RECORDS**. 3. **Re-publish with geometry**:
+   ```powershell
+   & "C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\propy.bat" complete_backfill_simplified.py
+   ```
+   The script now uses longitude/latitude or X_Coord/Y_Coord and appends a **feature class with points** to the service. 4. **Check health** (optional):
+   ```powershell
+   & "C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\propy.bat" monitor_dashboard_health.py
+   ```
+   Exit code 0 means geometry and WKID are OK.
+
+5. **Refresh the dashboard**  
+   Open the layer and dashboard again; the table and map should show the new data. If you tell me what you have for a staging file on RDP (e.g. “December geocoded cache” or “standard CAD export”), I can narrow step 1 to exactly what to copy where. ---
+
+**User**
+
+ran the first command and got :
+
+PS C:\Users\administrator.HPD> & "C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\propy.bat" -c "
+>> import arcpy
+>>
+>> local_fc = r'C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable'
+>> online_fs = 'https://services1.arcgis.com/JYl0Hy0wQdiiV0qh/arcgis/rest/services/CallsForService_2153d1ef33a0414291a8eb54b938507b/FeatureServer/0'
+>>
+>> def get_schema(path, name):
+>>     print(f'\n--- {name} SCHEMA ---')
+>>     try:
+>>         desc = arcpy.Describe(path)
+>>         print(f'Type: {desc.dataType} | Shape: {getattr(desc, \"shapeType\", \"None\")}')
+>>         fields = {f.name: f.type for f in arcpy.ListFields(path)}
+>>         for f_name in ['calldate', 'callid', 'x', 'y', 'fulladdr']:
+>>             status = f'[{fields[f_name]}]' if f_name in fields else 'MISSING'
+>>             print(f'  {f_name}: {status}')
+>>
+>>         # Check first row for actual data
+>>         with arcpy.da.SearchCursor(path, ['calldate', 'SHAPE@']) as cursor:
+>>             row = next(cursor)
+>>             print(f'  Data Check -> Date: {row[0]} | Has Geometry: {row[1] is not None}')
+>>     except Exception as e:
+>>         print(f'  Error: {e}')
+>>
+>> get_schema(local_fc, 'LOCAL GDB')
+>> get_schema(online_fs, 'ONLINE DASHBOARD')
+>> "
+PS C:\Users\administrator.HPD>    cd "C:\HPD ESRI\04_Scripts"
+>>    & "C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\propy.bat" truncate_online_layer.py
+================================================================================
+[2026-02-16 01:59:44] [INFO] CAD BACKFILL - PHASE 2: TRUNCATE ONLINE LAYER
+================================================================================
+[2026-02-16 01:59:44] [INFO]
+Start time: 2026-02-16 01:59:44
+[2026-02-16 01:59:44] [INFO] User: administrator
+[2026-02-16 01:59:44] [INFO] Machine: HPD2022LAWSOFT
+
+[2026-02-16 01:59:44] [INFO] PRE-FLIGHT CHECKS
+[2026-02-16 01:59:44] [INFO] --------------------------------------------------------------------------------
+[2026-02-16 01:59:44] [INFO]
+[Check 1/5] Validating backup existence...
+[2026-02-16 01:59:44] [INFO] Validating backup existence...
+[2026-02-16 01:59:44] [INFO] ✅ Backup exists: C:\HPD ESRI\00_Backups\CAD_Backfill_20260209\Backup.gdb\CFStable_PreBackfill_561740
+[2026-02-16 01:59:44] [ERROR]
+
+❌ Unexpected error: 'charmap' codec can't encode character '\u2705' in position 29: character maps to <undefined>
+Traceback (most recent call last):
+  File "C:\HPD ESRI\04_Scripts\truncate_online_layer.py", line 324, in <module>
+    exit_code = main()
+  File "C:\HPD ESRI\04_Scripts\truncate_online_layer.py", line 260, in main
+    backup_fc_path = validate_backup_exists()
+  File "C:\HPD ESRI\04_Scripts\truncate_online_layer.py", line 60, in validate_backup_exists
+    log(f"✅ Backup exists: {backup_fc_path}")
+    ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\HPD ESRI\04_Scripts\truncate_online_layer.py", line 35, in log
+    f.write(log_message + "\n")
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\ArcGIS\Pro\bin\Python\envs\arcgispro-py3\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2705' in position 29: character maps to <undefined>
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\HPD ESRI\04_Scripts\truncate_online_layer.py", line 331, in <module>
+    log(f"\n\n❌ Unexpected error: {str(e)}", "ERROR")
+    ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\HPD ESRI\04_Scripts\truncate_online_layer.py", line 35, in log
+    f.write(log_message + "\n")
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\ArcGIS\Pro\bin\Python\envs\arcgispro-py3\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u274c' in position 34: character maps to <undefined>
+PS C:\HPD ESRI\04_Scripts>
+
+should we fill in the missing gap data make sure the backfill records all have x and y, deploy that to the rdp have the rdp update the historical data and then the dashboard should be good to go
+
+---
+
+**Cursor**
+
+
+Fixing the truncate script crash: it uses emoji (✅/❌) while the log file is opened with the system default (cp1252), which can't encode them. Switching the log file to UTF-8. Updating the restore checklist to include the encoding fix and the full workflow:
+
+
+
+Summary of what was done and the workflow:
+
+---
+
+## 1. **Truncate script crash fixed (UnicodeEncodeError)**
+
+The failure was from writing emoji (✅/❌) to the log file while it was opened with the system default encoding (cp1252), which can’t represent those characters. **Updates in `scripts/truncate_online_layer.py`:**
+- All log file writes use **`encoding="utf-8"`** (the two `open(LOG_FILE, "a", ...)` and the truncate record file write). - The metadata file read uses **`encoding="utf-8"`** for consistency. - **`SERVICE_URL`** is set to the CallsForService feature server URL (no more "PASTE_URL_HERE"). After you deploy this version to RDP, truncate should run without that crash. ---
+
+## 2. **Workflow: gap data → X/Y → deploy → RDP → dashboard**
+
+Yes, that sequence is right:
+
+| Step | What to do |
+|------|------------|
+| 1. **Fill gap data & ensure X/Y** | Locally: fix any missing dates; run geocoding (e.g. `create_geocoding_cache.py`) or use a polished baseline that has **longitude**/**latitude** or **X_Coord**/**Y_Coord** so (almost) all records have valid x,y. |
+| 2. **Deploy to RDP** | Run `Deploy-ToRDP-Simple.ps1` so RDP gets the fixed `truncate_online_layer.py` and the current `complete_backfill_simplified.py`. |
+| 3. **Staging file on RDP** | Copy the file that has coordinates (and gap data) to `C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\ESRI_CADExport.xlsx` (or whatever path the backfill script uses). |
+| 4. **Truncate on RDP** | Run `truncate_online_layer.py` (with the new encoding fix). Type `TRUNCATE`, your username, then `DELETE ALL RECORDS`. |
+| 5. **Backfill on RDP** | Run `complete_backfill_simplified.py` so the online layer is repopulated **with geometry** from staging. |
+| 6. **Dashboard** | Run `monitor_dashboard_health.py` (optional), then check the dashboard; table and map should show data. |
+
+**Docs updated:**  
+`docs/RESTORE_DASHBOARD_CHECKLIST.md` now includes:
+- Deploy-first prerequisite (so truncate has the UTF-8 fix). - Optional step: “Fill gap data and ensure X/Y” before staging. - Troubleshooting note for the `UnicodeEncodeError` if someone runs an old truncate script. **Next steps for you:**  
+1. Deploy again (so RDP gets the updated `truncate_online_layer.py`). 2. On RDP, run truncate again; it should complete. 3. Put the staging file with coordinates (and gap data if you have it) in place, then run the backfill. ---
+
+**User**
+
+do I run scripts/truncate_online_layer.py: on my loacl machine? If so do it for me then do the other steps if you can if not advise me what to do
+
+---
+
+**Cursor**
+
+
+**No — run it on the RDP server, not on your local machine. **
+
+- `truncate_online_layer.py` uses **ArcPy** (ArcGIS Pro) and expects paths like `C:\HPD ESRI\00_Backups\...`. - Those paths and ArcGIS Pro live on **HPD2022LAWSOFT** (RDP). Your local machine usually doesn’t have Pro/ArcPy or that folder layout, so the script is meant to run **on RDP**. I can’t run it for you because:
+1. Execution has to happen **on RDP** (I only run commands in your local repo). 2. The script is **interactive** (it asks for `TRUNCATE`, your username, and `DELETE ALL RECORDS`). 3. Truncate and backfill both need ArcGIS Pro and access to the service from that server. ---
+
+**What you should do**
+
+1. **Deploy from your machine (one time)**  
+   From your repo folder (e.g. in PowerShell):
+   ```powershell
+   cd "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality"
+   .\Deploy-ToRDP-Simple.ps1
+   ```
+   That puts the UTF-8–fixed `truncate_online_layer.py` (and the rest of the scripts) on RDP. 2. **On the RDP server (HPD2022LAWSOFT)**  
+   - **Truncate**  
+     ```powershell
+     cd "C:\HPD ESRI\04_Scripts"
+     & "C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\propy.bat" truncate_online_layer.py
+     ```  
+     When prompted, type: `TRUNCATE`, then your **Windows username** (e.g. `administrator`), then `DELETE ALL RECORDS`. - **Backfill**  
+     Put the staging Excel (with longitude/latitude or X_Coord/Y_Coord) at  
+     `C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\ESRI_CADExport.xlsx`,  
+     then:
+     ```powershell
+     & "C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\propy.bat" complete_backfill_simplified.py
+     ```
+
+   - **Check**  
+     ```powershell
+     & "C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\propy.bat" monitor_dashboard_health.py
+     ```
+     Then refresh the dashboard. So: **truncate (and backfill) run on RDP only. ** Use your local machine to deploy; use the RDP session to run the scripts and type the confirmations. ---
+
+**User**
+
+provide a ps1 to run the script on the RDP
+
+---
+
+**Cursor**
+
+
+Creating a PowerShell script to run on the RDP server that invokes the truncate script via propy. Adding a script that runs the full RDP sequence (truncate → backfill → monitor):
+
+
+
+Updating the restore checklist to reference the new scripts:
+
+
+
+Here’s what’s in place:
+
+---
+
+## 1. **`scripts/Run-TruncateOnRDP.ps1`**
+
+Run this **on the RDP server** (after you’ve deployed scripts and logged in):
+
+```powershell
+cd "C:\HPD ESRI\04_Scripts"
+.\Run-TruncateOnRDP.ps1
+```
+
+It checks that `propy.bat` and `truncate_online_layer.py` exist, switches to the script directory, and runs the truncate script. You still type the three confirmations when the Python script asks for them. ---
+
+## 2. **`scripts/Run-BackfillOnRDP.ps1`**
+
+Runs the full sequence **on the RDP server** (truncate → backfill → health check):
+
+```powershell
+cd "C:\HPD ESRI\04_Scripts"
+.\Run-BackfillOnRDP.ps1
+```
+
+- **Step 1:** Truncate (you’re prompted for TRUNCATE, username, DELETE ALL RECORDS). - **Step 2:** Backfill (no prompts). - **Step 3:** `monitor_dashboard_health.py` (no prompts). If any step fails, the script exits with that step’s exit code. ---
+
+## 3. **Deploy and run**
+
+1. **From your machine:** run `.\Deploy-ToRDP-Simple.ps1` so the two new `.ps1` scripts (and the rest) are on RDP. 2. **On RDP:**  
+   - Truncate only: `cd "C:\HPD ESRI\04_Scripts"; .\Run-TruncateOnRDP.ps1`  
+   - Full flow: `cd "C:\HPD ESRI\04_Scripts"; .\Run-BackfillOnRDP.ps1`
+
+`docs/RESTORE_DASHBOARD_CHECKLIST.md` is updated to describe both options (helper PS1 vs direct Python) for truncate and backfill. ---
+
+**User**
+
+I copy and pasted the scripts from local to "C:\HPD ESRI\04_Scripts\Run-TruncateOnRDP.ps1"
+"C:\HPD ESRI\04_Scripts\Run-BackfillOnRDP.ps1"
+>> .\Run-TruncateOnRDP.ps1
+Running truncate_online_layer.py (you will be prompted for 3 confirmations)...
+================================================================================
+[2026-02-16 02:07:11] [INFO] CAD BACKFILL - PHASE 2: TRUNCATE ONLINE LAYER
+================================================================================
+[2026-02-16 02:07:11] [INFO]
+Start time: 2026-02-16 02:07:11
+[2026-02-16 02:07:11] [INFO] User: administrator
+[2026-02-16 02:07:11] [INFO] Machine: HPD2022LAWSOFT
+
+[2026-02-16 02:07:11] [INFO] PRE-FLIGHT CHECKS
+[2026-02-16 02:07:11] [INFO] --------------------------------------------------------------------------------
+[2026-02-16 02:07:11] [INFO]
+[Check 1/5] Validating backup existence...
+[2026-02-16 02:07:11] [INFO] Validating backup existence...
+[2026-02-16 02:07:11] [INFO] ✅ Backup exists: C:\HPD ESRI\00_Backups\CAD_Backfill_20260209\Backup.gdb\CFStable_PreBackfill_561740
+[2026-02-16 02:07:11] [ERROR]
+
+❌ Unexpected error: 'charmap' codec can't encode character '\u2705' in position 29: character maps to <undefined>
+Traceback (most recent call last):
+  File "C:\HPD ESRI\04_Scripts\truncate_online_layer.py", line 324, in <module>
+    exit_code = main()
+  File "C:\HPD ESRI\04_Scripts\truncate_online_layer.py", line 260, in main
+    backup_fc_path = validate_backup_exists()
+  File "C:\HPD ESRI\04_Scripts\truncate_online_layer.py", line 60, in validate_backup_exists
+    log(f"✅ Backup exists: {backup_fc_path}")
+    ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\HPD ESRI\04_Scripts\truncate_online_layer.py", line 35, in log
+    f.write(log_message + "\n")
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\ArcGIS\Pro\bin\Python\envs\arcgispro-py3\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2705' in position 29: character maps to <undefined>
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\HPD ESRI\04_Scripts\truncate_online_layer.py", line 331, in <module>
+    log(f"\n\n❌ Unexpected error: {str(e)}", "ERROR")
+    ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\HPD ESRI\04_Scripts\truncate_online_layer.py", line 35, in log
+    f.write(log_message + "\n")
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\ArcGIS\Pro\bin\Python\envs\arcgispro-py3\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u274c' in position 34: character maps to <undefined>
+Truncate script exited with code 1
+PS C:\HPD ESRI\04_Scripts>
+
+---
+
+**Cursor**
+
+
+RDP is still running the old `truncate_online_layer.py` (no UTF-8 fix). You only copied the two `.ps1` files; the Python script wasn’t updated. Verifying the repo has the UTF-8 fix, then we'll ensure the fix is applied on RDP. The repo already has the UTF-8 fix in `truncate_online_layer.py`. On RDP you’re still using the old copy that doesn’t open the log file with `encoding="utf-8"`. **Fix: get the updated Python script onto RDP**
+
+**Option 1 – Deploy from your machine (recommended)**  
+On your **local** machine (in the repo folder):
+
+```powershell
+cd "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality"
+.\Deploy-ToRDP-Simple.ps1
+```
+
+That copies the current `scripts/` folder (including the fixed `truncate_online_layer.py`) to `\\HPD2022LAWSOFT\C$\HPD ESRI\04_Scripts\`. Then on **RDP** run again:
+
+```powershell
+cd "C:\HPD ESRI\04_Scripts"
+.\Run-TruncateOnRDP.ps1
+```
+
+**Option 2 – Copy only the fixed script**  
+If you don’t want a full deploy, copy the file from your repo into RDP and overwrite the one in `C:\HPD ESRI\04_Scripts\`:
+
+- **From:**  
+  `C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\scripts\truncate_online_layer.py`
+- **To (on RDP):**  
+  `C:\HPD ESRI\04_Scripts\truncate_online_layer.py`
+
+(e.g. drag-and-drop in Explorer, or copy via `\\HPD2022LAWSOFT\C$\HPD ESRI\04_Scripts\` from your machine.) Summary: the crash is from the old truncate script on RDP. After the fixed `truncate_online_layer.py` is in `C:\HPD ESRI\04_Scripts\` (via deploy or manual copy), run `.\Run-TruncateOnRDP.ps1` again on RDP. ---
+
+**User**
+
+PS C:\Users\administrator.HPD> cd "C:\HPD ESRI\04_Scripts"
+>> .\Run-TruncateOnRDP.ps1
+Running truncate_online_layer.py (you will be prompted for 3 confirmations)...
+================================================================================
+[2026-02-16 02:09:40] [INFO] CAD BACKFILL - PHASE 2: TRUNCATE ONLINE LAYER
+================================================================================
+[2026-02-16 02:09:40] [INFO]
+Start time: 2026-02-16 02:09:40
+[2026-02-16 02:09:40] [INFO] User: administrator
+[2026-02-16 02:09:40] [INFO] Machine: HPD2022LAWSOFT
+
+[2026-02-16 02:09:40] [INFO] PRE-FLIGHT CHECKS
+[2026-02-16 02:09:40] [INFO] --------------------------------------------------------------------------------
+[2026-02-16 02:09:40] [INFO]
+[Check 1/5] Validating backup existence...
+[2026-02-16 02:09:40] [INFO] Validating backup existence...
+[2026-02-16 02:09:40] [INFO] ✅ Backup exists: C:\HPD ESRI\00_Backups\CAD_Backfill_20260209\Backup.gdb\CFStable_PreBackfill_561740
+[2026-02-16 02:09:40] [INFO]
+[Check 2/5] Validating backup record count...
+[2026-02-16 02:09:40] [INFO] Validating backup record count...
+[2026-02-16 02:09:41] [INFO]    Backup count: 561,740
+[2026-02-16 02:09:41] [INFO]    Expected: 561,740
+[2026-02-16 02:09:41] [INFO] ✅ Backup validated: 561,740 records
+[2026-02-16 02:09:41] [INFO]
+[Check 3/5] Reviewing backup metadata...
+[2026-02-16 02:09:41] [WARNING] ⚠️  Backup metadata not found
+[2026-02-16 02:09:41] [INFO]
+[Check 4/5] Testing online service connection...
+[2026-02-16 02:09:41] [INFO] Testing connection to online service...
+[2026-02-16 02:09:42] [INFO] ✅ Connection successful
+[2026-02-16 02:09:42] [INFO]    Current online count: 9,672 records
+[2026-02-16 02:09:42] [INFO]
+[Check 5/5] Checking truncate permissions...
+[2026-02-16 02:09:42] [INFO] Checking truncate permissions...
+[2026-02-16 02:09:42] [INFO] ✅ Service accessible
+[2026-02-16 02:09:42] [INFO]    Type: FeatureClass
+[2026-02-16 02:09:42] [WARNING] ⚠️  Note: You must be the layer owner or org admin to truncate
+[2026-02-16 02:09:42] [INFO]
+✅ All pre-flight checks passed
+================================================================================
+[2026-02-16 02:09:42] [INFO]
+⚠️⚠️⚠️  FINAL SAFETY CHECK  ⚠️⚠️⚠️
+[2026-02-16 02:09:42] [INFO] ================================================================================
+[2026-02-16 02:09:42] [INFO] You are about to PERMANENTLY DELETE all records from:
+[2026-02-16 02:09:42] [INFO]    https://services1.arcgis.com/JYl0Hy0wQdiiV0qh/arcgis/rest/services/CallsForService_2153d1ef33a0414291a8eb54b938507b/FeatureServer/0
+[2026-02-16 02:09:42] [INFO] ================================================================================
+[2026-02-16 02:09:42] [INFO]
+This operation:
+[2026-02-16 02:09:42] [INFO]    ✅ CAN be recovered from backup
+[2026-02-16 02:09:42] [INFO]    ⚠️  CANNOT be undone without the backup
+[2026-02-16 02:09:42] [INFO]    ⚠️  Will affect all users viewing the dashboard
+[2026-02-16 02:09:42] [INFO]    ⏱️  Takes ~30 seconds to complete
+[2026-02-16 02:09:42] [INFO] ================================================================================
+
+================================================================================
+CONFIRMATION REQUIRED - Type exactly as shown (case-sensitive)
+================================================================================
+
+[1/3] Type 'TRUNCATE' to confirm:
+
+---
+
+**Cursor**
+
+
+The UTF-8 fix is working — the script passed the backup check and reached the confirmation step. At the prompt, type exactly (case-sensitive):
+
+1. **First prompt:** `TRUNCATE` then Enter  
+2. **Second prompt:** `administrator` (your username, as shown in the log) then Enter  
+3. **Third prompt:** `DELETE ALL RECORDS` then Enter  
+
+After that, the script will truncate the online layer (about 30 seconds). When you see "TRUNCATE COMPLETED SUCCESSFULLY", the layer will have 0 records and you can run the backfill (e.g. `.\Run-BackfillOnRDP.ps1` or `complete_backfill_simplified.py`) after putting your staging file in place.

@@ -1,0 +1,72 @@
+{
+  "source_file": "Enhanced_Drift_Detection_Strategy_Plan.md",
+  "source_path": "C:\\_chunker\\02_data\\Enhanced_Drift_Detection_Strategy_Plan.md",
+  "manifest_path": "C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\KB_Shared\\04_output\\Enhanced_Drift_Detection_Strategy_Plan\\2026_02_04_18_58_29_Enhanced_Drift_Detection_Strategy_Plan.origin.json",
+  "created_at": "2026_02_04_18_58_29",
+  "tags": [
+    "ai",
+    "code",
+    "conversation",
+    "data",
+    "docs",
+    "excel",
+    "markdown",
+    "police",
+    "python",
+    "sql"
+  ],
+  "metadata": {
+    "project_name": "02_data",
+    "source_type": "documentation",
+    "language": "en",
+    "department": "admin",
+    "key_terms": [
+      "types",
+      "new",
+      "personnel",
+      "data",
+      "drift",
+      "call"
+    ],
+    "enrichment_version": "1.0.0"
+  },
+  "summaries": {
+    "file_summary": "# CAD data quality drift detection refinement\n_Exported on 2/4/2026 at 18:58:07 EST from Cursor (2.4.28)_\n\n---\n\n**User**\n\nI have a drift detection system for CAD data quality that needs refinement. **Current Implementation:**\n- Two drift...",
+    "first_line": "# CAD data quality drift detection refinement"
+  },
+  "chunks": [
+    {
+      "chunk_id": "2026-02-04T18:58:29+00:00_Enhanced_Drift_Detection_Strategy_Plan_chunk1",
+      "chunk_index": 1,
+      "file": "chunk_00000.txt",
+      "tags": [
+        "ai",
+        "call",
+        "code",
+        "conversation",
+        "data",
+        "docs",
+        "drift",
+        "excel",
+        "markdown",
+        "personnel",
+        "police",
+        "python",
+        "sql",
+        "types"
+      ],
+      "key_terms": [
+        "types",
+        "new",
+        "personnel",
+        "data",
+        "drift",
+        "call"
+      ],
+      "summary": "# CAD data quality drift detection refinement\n_Exported on 2/4/2026 at 18:58:07 EST from Cursor (2.4.28)_\n\n---\n\n**User**\n\nI have a drift detection system for CAD data quality that needs refinement.",
+      "char_length": 14247,
+      "byte_length": 14595
+    }
+  ],
+  "enrichment_version": "1.0.0"
+}

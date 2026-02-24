@@ -1,0 +1,40 @@
+{
+  "tags": [
+    "ai",
+    "code",
+    "conversation",
+    "data",
+    "docs",
+    "excel",
+    "it-ops",
+    "json",
+    "markdown",
+    "police",
+    "python",
+    "sql"
+  ],
+  "metadata_enrichment": {
+    "metadata": {
+      "project_name": "02_data",
+      "source_type": "documentation",
+      "language": "en",
+      "department": "admin",
+      "key_terms": [
+        "local",
+        "online",
+        "script",
+        "you",
+        "datetime",
+        "fix"
+      ],
+      "enrichment_version": "1.0.0"
+    },
+    "summaries": {
+      "file_summary": "# ArcGIS Date Field Fix\n\n**User:** Anonymous (gmfzqprc7z@privaterelay.appleid.com)  \n**Created:** 2/16/2026 20:29:54  \n**Updated:** 2/16/2026 21:17:15  \n**Exported:** 2/16/2026 21:23:45  \n**Link:** [https://chatgpt.com/g/g-2DQzU5UZl-code...",
+      "first_line": "# ArcGIS Date Field Fix"
+    },
+    "enrichment_version": "1.0.0"
+  },
+  "last_processed_at": "2026-02-16T21:24:03.592862",
+  "department": "admin"
+}

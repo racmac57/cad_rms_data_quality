@@ -1,0 +1,44 @@
+{
+  "tags": [
+    "ai",
+    "ai-chat",
+    "code",
+    "conversation",
+    "data",
+    "docs",
+    "excel",
+    "it-ops",
+    "json",
+    "legal",
+    "markdown",
+    "police",
+    "powershell",
+    "python",
+    "sql",
+    "training"
+  ],
+  "metadata_enrichment": {
+    "metadata": {
+      "project_name": "02_data",
+      "source_type": "documentation",
+      "language": "en",
+      "department": "admin",
+      "key_terms": [
+        "2026-02-09",
+        "info",
+        "records",
+        "esri",
+        "arcgis",
+        "you"
+      ],
+      "enrichment_version": "1.0.0"
+    },
+    "summaries": {
+      "file_summary": "# CAD backfill process optimization\n_Exported on 2/9/2026 at 22:39:35 EST from Cursor (2.4.31)_\n\n---\n\n**User**\n\nPrompt provided to Claude AI:\n<context>  \nGoal: Stop repeated hangs during the historical CAD backfill (2019-01-01 through 20...",
+      "first_line": "# CAD backfill process optimization"
+    },
+    "enrichment_version": "1.0.0"
+  },
+  "last_processed_at": "2026-02-09T22:39:59.716969",
+  "department": "admin"
+}

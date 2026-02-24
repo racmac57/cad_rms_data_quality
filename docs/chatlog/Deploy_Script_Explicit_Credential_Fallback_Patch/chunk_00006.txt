@@ -1,0 +1,17 @@
+If port 445 is open and the Z: mapping step succeeds, the same credentials should work with the deploy script when it prompts and maps **RDP:**. - If the quick test fails, use the same account you use for RDP (e.g. **HPD\administrator**). Sharing the script output (especially port 445 and Z: result) will clarify whether it’s permissions vs SMB/session conflict. ---
+
+**User**
+
+I'm preparing to export this chat. Please generate a descriptive filename that summarizes the main topic or task of this conversation. Requirements:
+• 4-8 words
+• Title Case (capitalize major words)
+• Replace spaces with underscores
+• Include .md extension
+• No dates or special characters
+
+Output only the filename, with the suffix .md and nothing else. ---
+
+**Cursor**
+
+
+Deploy_Script_Explicit_Credential_Fallback_Patch.md

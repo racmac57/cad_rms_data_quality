@@ -1,0 +1,358 @@
+- So most of the increase is **not** from the extra rows. It comes from **how the merge script writes the file**:
+  - It uses **pandas + openpyxl**: `read_excel` then `to_excel(..., engine='openpyxl')`. - The **original** baseline was probably created by another tool (e.g. ESRI generator, Excel, or a different engine). openpyxl writes a different internal layout (more XML, default styles, etc.). The warning *“Workbook contains no default style, apply openpyxl's default”* means openpyxl is adding its own styling when it writes. - So the same (or nearly same) data can end up **~20–25% larger** when rewritten by openpyxl. So: **the ~23% size increase is mostly from re-saving with openpyxl, not from the 3,858 new rows. **
+
+---
+
+**4. Optional: smaller files on future merges**
+
+If you want a smaller merged file next time, we can change the merge script to use the **xlsxwriter** engine (often produces smaller .xlsx) or to avoid adding default styles. I can outline the exact code change if you want to do that. ---
+
+**User**
+
+run the Duplicate check on C:\Users\carucci_r\OneDrive - City of Hackensack\13_PROCESSED_DATA\ESRI_Polished\base\CAD_ESRI_Polished_Baseline_20190101_20260203.xlsx to check the recults
+
+---
+
+**Cursor**
+
+
+Duplicate check on the **pre-merge** baseline (20260203):
+
+**CAD_ESRI_Polished_Baseline_20190101_20260203.xlsx**
+- **Total rows:** 754,409  
+- **Unique ReportNumberNew:** 560,031  
+- **Rows with duplicate case ID:** 194,378  
+
+---
+
+**Comparison**
+
+| Metric | 20260203 (pre-merge) | 20260215 (post-merge) |
+|--------|----------------------|------------------------|
+| Total rows | 754,409 | 758,267 |
+| Unique ReportNumberNew | 560,031 | 562,881 |
+| Rows with duplicate case ID | 194,378 | 195,386 |
+
+- **+3,858 rows** (0.51%) — matches the “New records added” from the merge. - **+2,850 unique cases** (562,881 − 560,031) — new cases from the Feb 1–15 backfill (minus the 603 duplicate cases that were already in the baseline). - **+1,008 duplicate-case rows** (195,386 − 194,378) — extra rows for cases that already had multiple rows; normal for this CAD data. So the 20260203 baseline has the same structure (multiple rows per case), and the 20260215 file is that baseline plus the 3,858 new records and 2,850 new unique cases, with no unexpected duplication from the merge. ---
+
+**User**
+
+perfect that's for confirming
+
+I see why the backfill is failing C:\Users\carucci_r\OneDrive - City of Hackensack\13_PROCESSED_DATA\ESRI_Polished\base\CAD_ESRI_Polished_Baseline.xlsx
+C:\Users\carucci_r\OneDrive - City of Hackensack\13_PROCESSED_DATA\ESRI_Polished\base\CAD_ESRI_Polished_Baseline_20190101_20260215.xlsx
+
+has the incorrect schema 
+
+it should be like C:\Users\carucci_r\OneDrive - City of Hackensack\13_PROCESSED_DATA\ESRI_Polished\base\CAD_ESRI_Polished_Baseline_20190101_20260203.xlsx
+
+I am sure the schema is in one of these files C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\SUMMARY.md
+C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\README.md
+C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\Claude.md
+
+---
+
+**Cursor**
+
+
+Checking the expected baseline schema and how the merge changes it:
+
+
+
+Fetching the exact expected column list and fixing the merge so output matches the baseline schema. Checking how the merge loads baseline and backfill and which column names they use:
+
+
+
+Checking for a single source of expected columns and how the ESRI generator names columns:
+
+
+
+Implementing merge fix: we'll use the baseline's columns as the canonical schema, normalize backfill column names to match, and write the merged file with only those columns in the same order. Implementing schema alignment in the merge: adding a rename map, aligning backfill to baseline columns, and writing only baseline columns in order. Restricting the baseline to baseline columns (keeping TimeOfCall for sorting) and writing only baseline_columns to Excel. Simplifying: we've aligned backfill to baseline_columns; output only baseline_columns when saving. Preserving column order using baseline_columns. Adding a note to the docs and ensuring the analyze path doesn't reference `baseline_columns` when merge isn't run. Checking for a code path that uses `baseline_columns` before it's set:
+
+
+
+Documenting the canonical ESRI polished schema in the repo and updating the docs. Summary of what was fixed:
+
+**Cause of the failure**  
+The merge was concatenating baseline + backfill and writing **every column from both**. The backfill export (e.g. `2026_02_CAD.xlsx`) can use different names (e.g. `Time_Of_Call`, `How_Reported`, `PDZone`) or a different column set. That produced an Excel whose columns didn’t match the baseline schema expected by the RDP backfill script. **Changes in `scripts/backfill_gap_analysis.py`**
+
+1. **Canonical schema from baseline**  
+   After loading the baseline, we now treat its column list (excluding the internal `TimeOfCall`) as the **canonical schema** for the merge output. 2. **Backfill aligned to that schema**  
+   - **Rename** backfill columns to baseline names using a small map, e.g. `Time_Of_Call` → `Time of Call`, `How_Reported` → `How Reported`,  
+     `Time_Dispatched` → `Time Dispatched`, `Time_Out` → `Time Out`,  
+     `Time_In` → `Time In`, `PDZone` → `ZoneCalc`. - **Add** any baseline column missing in backfill as NaN. - **Select** only baseline columns in baseline order, so backfill has the same schema as the baseline. 3. **Excel output uses only baseline columns**  
+   The merged file is written as `df_merged[baseline_columns]`, so the saved Excel has exactly the same columns and order as the baseline (e.g. `CAD_ESRI_Polished_Baseline_20190101_20260203.xlsx`). **Docs**  
+- `docs/BACKFILL_DATE_RANGE.md` now states that merge output matches the baseline schema and points to `scripts/test_baseline.py` for the expected column list. **What you should do**
+
+1. **Re-run the merge** using a baseline that already has the correct schema (e.g. the 20260203 file):
+
+   ```powershell
+   cd "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality"
+   python scripts/backfill_gap_analysis.py --merge --backfill "C:\...\2026_02_01_to_02_15_CAD.xlsx"
+   ```
+
+   Use `--baseline` if the script supports it so the baseline is explicitly  
+   `...\base\CAD_ESRI_Polished_Baseline_20190101_20260203.xlsx`. If the script always uses the generic `CAD_ESRI_Polished_Baseline.xlsx`, **point that generic file at the 20260203 file first** (copy or replace so the “current” baseline is the 20260203 one), then run the merge. The resulting merged file will have the correct schema. 2. **Deploy** the new merged baseline to RDP and run the backfill again; the staging file will now match the expected schema. **Note:** `complete_backfill_simplified.py` on RDP uses `Time_Of_Call` in its where clause. ArcPy often normalizes Excel column names (e.g. spaces to underscores), so `Time of Call` in Excel may be seen as `Time_Of_Call`. If the backfill still fails on that field, we can add a small check in the backfill script to accept either `Time_Of_Call` or `Time of Call`. ---
+
+**User**
+
+please do the next steps for me
+
+---
+
+**Cursor**
+
+
+Checking how the merge is invoked and which baseline/backfill paths are available:
+
+
+
+Checking the base folder and merge script defaults:
+
+
+
+Implementing next steps: updating the merge runner to use the correct-schema baseline, then running the merge, updating the manifest, and running deploy. Creating a single script that runs merge, manifest update, and deploy so we can run the steps that complete quickly. Checking whether the backfill path exists:
+
+
+
+Creating a single script to run merge, update manifest, and deploy. Running deploy (dry-run). Running the actual merge (writes ~758k rows; may take several minutes):
+
+
+
+Updating the manifest and running the deploy. Checking whether the manifest update completed and updating the todo. Summary of what’s done:
+
+---
+
+### 1. **Run-MergeFeb2026.ps1**
+- Uses the **correct-schema baseline**: `CAD_ESRI_Polished_Baseline_20190101_20260203.xlsx`. - Merge is called with `--baseline $BaselineCorrectSchema` so the output always matches the ESRI polished schema. ### 2. **Merge**
+- **Baseline:** 754,409 records (2019-01-01 → 2026-02-03). - **Backfill:** 4,703 records from `2026_02_CAD.xlsx` (02/01–02/15). - **Schema:** Backfill column `PDZone` was renamed to `ZoneCalc` to match the baseline. - **Duplicates:** 603 duplicate case IDs; baseline kept, 845 backfill rows dropped. - **Result:** 758,267 rows, 75.7 MB, **schema matches baseline**. - **Outputs:**
+  - `CAD_ESRI_Polished_Baseline_20190101_20260215.xlsx`
+  - `CAD_ESRI_Polished_Baseline.xlsx` (generic pointer) updated. ### 3. **Manifest**
+- `update_baseline_from_polished.py --source "…\CAD_ESRI_Polished_Baseline_20190101_20260215.xlsx"` was started in the background (it can take a few minutes on 758k rows). - If you’re not sure it finished, run:
+  ```powershell
+  python scripts/update_baseline_from_polished.py --source "C:\Users\carucci_r\OneDrive - City of Hackensack\13_PROCESSED_DATA\ESRI_Polished\base\CAD_ESRI_Polished_Baseline_20190101_20260215.xlsx"
+  ```
+
+### 4. **Deploy to RDP**
+- **Deploy-ToRDP-Simple.ps1** ran successfully (no `-DryRun`). - Backup created: `\\HPD2022LAWSOFT\C$\HPD ESRI\00_Backups\ScriptsDeploy_20260216_033747`
+- **43 scripts** deployed to `C:\HPD ESRI\04_Scripts\` (includes `backfill_gap_analysis.py` and schema fix). - **3 docs** deployed: SUMMARY.md, README.md, CHANGELOG.md. ### 5. **Do-NextSteps.ps1**
+- New script: `scripts/Do-NextSteps.ps1`. - **Usage:**
+  - `.\scripts\Do-NextSteps.ps1` – update manifest from latest baseline in base, then deploy. - `.\scripts\Do-NextSteps.ps1 -RunMerge` – run merge (via Run-MergeFeb2026.ps1), then manifest + deploy. - `.\scripts\Do-NextSteps.ps1 -DeployOnly` – only deploy. - `.\scripts\Do-NextSteps.ps1 -DeployOnly -DryRun` – deploy dry-run. ---
+
+**What you still need to do on RDP**
+
+1. **Copy the new baseline** to the server (e.g. into Backfill staging or the path your process uses):
+   - `CAD_ESRI_Polished_Baseline_20190101_20260215.xlsx` or the generic `CAD_ESRI_Polished_Baseline.xlsx` (both have the correct schema). 2. **Run the backfill** on RDP (e.g. run your backfill script so it uses that staging file). With the schema fix, the backfill script should now see the expected columns (e.g. “Time of Call”, “ZoneCalc”, etc.). ---
+
+**User**
+
+where do i paste the new backfill file to on the RDP
+
+---
+
+**Cursor**
+
+
+The backfill script on RDP reads from a single fixed path. Use this:
+
+**On the RDP server (HPD2022LAWSOFT):**
+
+**Path:**  
+`C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\ESRI_CADExport.xlsx`
+
+**Steps:**
+
+1. **Copy your merged baseline** from your PC to the RDP server (e.g. via RDP copy/paste, shared folder, or UNC). 2. **On the RDP server**, place/replace the staging file:
+   - **Folder:** `C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\`
+   - **Filename:** `ESRI_CADExport.xlsx`  
+   So the full path is:  
+   `C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\ESRI_CADExport.xlsx`
+
+3. Your merged file (e.g. `CAD_ESRI_Polished_Baseline_20190101_20260215.xlsx` or `CAD_ESRI_Polished_Baseline.xlsx`) can go anywhere on the server first; then either:
+   - **Rename/copy it to** `ESRI_CADExport.xlsx` in that `_STAGING` folder, or  
+   - **Copy its contents** into an existing `ESRI_CADExport.xlsx` in `_STAGING` (same result: that path must be the file the script reads). **From your PC (UNC):**  
+You can copy straight to the server if you have access:
+
+- `\\HPD2022LAWSOFT\C$\HPD ESRI\03_Data\CAD\Backfill\_STAGING\`
+
+Paste/copy your merged baseline there and name it **ESRI_CADExport.xlsx** (overwriting the current one if it exists). Then run the backfill on RDP (e.g. `complete_backfill_simplified.py` or your usual backfill step); it will use this staging file. ---
+
+**User**
+
+"C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\ESRI_CADExport.xlsx" saved and renamed
+
+---
+
+**Cursor**
+
+
+Staging is set. Next step is to run the backfill on the RDP server. **On the RDP server (HPD2022LAWSOFT), in PowerShell:**
+
+```powershell
+cd "C:\HPD ESRI\04_Scripts"
+& "C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\propy.bat" complete_backfill_simplified.py
+```
+
+Or use your existing runner, e.g. :
+
+```powershell
+.\Run-BackfillOnRDP.ps1
+```
+
+The script will read `C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\ESRI_CADExport.xlsx`, use the correct schema (e.g. "Time of Call", "How Reported", `latitude`/`longitude`), and publish to the CallsForService layer. A full run with ~758k rows usually takes about 15–20 minutes; the health monitor will run after publish and will fail the job if geometry is bad. ---
+
+**User**
+
+Failed to execute (AddDateAttributes). on the rdp
+
+---
+
+**Cursor**
+
+
+Checking the full Step 5 and how the script uses the date fields:
+
+
+
+Replacing `arcpy.ca.AddDateAttributes` (Crime Analysis) with manual CalculateField logic so the script works without that extension. Summary of what was wrong and what was changed:
+
+**Cause of the error**  
+`arcpy.ca.AddDateAttributes` is in the **Crime Analysis** toolset. It can fail when:
+- The Crime Analysis extension isn’t licensed on RDP, or  
+- The input is a table instead of a feature layer. **Change made**  
+Step 5 no longer uses `arcpy.ca.AddDateAttributes`. It now uses `AddField` + `CalculateField` with a small Python helper so the same five attributes are computed without the Crime Analysis tool:
+
+- **calldow** – day name (e.g. Monday)  
+- **calldownum** – ISO day of week (1–7)  
+- **callhour** – hour (0–23)  
+- **callmonth** – month (1–12)  
+- **callyear** – year  
+
+Behavior and field names match what the rest of the script and the online layer expect; only the implementation (no `arcpy.ca`) changed. **What you need to do**
+
+1. **Redeploy the script to RDP** (so the server gets the updated `complete_backfill_simplified.py`):
+   ```powershell
+   cd "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality"
+   .\Deploy-ToRDP-Simple.ps1
+   ```
+
+2. **Run the backfill again on RDP** (staging file is already in place):
+   ```powershell
+   cd "C:\HPD ESRI\04_Scripts"
+   & "C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\propy.bat" complete_backfill_simplified.py
+   ```
+
+---
+
+**User**
+
+copy C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\Deploy-ToRDP-Simple.ps1 and paste it on the rdp? ---
+
+**Cursor**
+
+
+**No. ** Don’t copy/paste `Deploy-ToRDP-Simple.ps1` onto the RDP server to run it there. `Deploy-ToRDP-Simple.ps1` is meant to run **on your PC** (where your repo lives). It:
+
+- Reads from: `C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\`
+- Copies **to** the server: `\\HPD2022LAWSOFT\C$\HPD ESRI\04_Scripts\` and docs folder
+
+So deployment is: **run the script on your machine → it pushes files to RDP. **
+
+**Do this on your PC (in PowerShell):**
+
+```powershell
+cd "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality"
+.\Deploy-ToRDP-Simple.ps1
+```
+
+That will copy the updated scripts (including the fixed `complete_backfill_simplified.py`) to the server. You need to be on the network and have access to `\\HPD2022LAWSOFT\C$` (e.g. after opening it in File Explorer so credentials are cached). **Summary:** Run `Deploy-ToRDP-Simple.ps1` locally; don’t paste or run it on the RDP server. ---
+
+**User**
+
+=== Deploy to RDP Server ===
+Mode: LIVE deployment
+
+Pre-flight: Checking for existing SMB connections...
+2026-02-16 04:02:34 : ERROR: Cannot access RDP scripts directory (hostname or IP). 2026-02-16 04:02:34 :   Tried: \\HPD2022LAWSOFT\C$\HPD ESRI\04_Scripts
+2026-02-16 04:02:34 :   Tried: \\10.0.0.157\C$\HPD ESRI\04_Scripts
+
+Prompting for credentials to map admin share...
+2026-02-16 04:02:54 :   Failed with \\HPD2022LAWSOFT\C$ : The user name or password is incorrect
+2026-02-16 04:02:54 :   Failed with \\10.0.0.157\C$ : The specified network password is not correct
+2026-02-16 04:02:54 : ERROR: Could not map drive with provided credentials (tried hostname and IP). PS C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality>
+
+keeps on faiuling to take the credentials
+
+---
+
+**Cursor**
+
+
+Checking the deploy script and adding a cached-credentials workflow so we can deploy without the credential prompt. Adding a cached-credentials workflow: opening Explorer to the share and improving the failure message so we don't rely on the credential prompt. Adding an early shortcut so running with `-OpenExplorer` opens Explorer and exits without showing the error block:
+
+
+
+Summary of what was fixed and how to use it:
+
+**Why the credential prompt fails**  
+PowerShell’s `Get-Credential` often can’t use the same credentials that work in File Explorer, so you get “network password not correct” even with the right username/password. Letting Explorer cache the login and then using that cached session is more reliable. **What changed in the script**
+
+1. **Default is no credential prompt**  
+   The script no longer prompts for credentials by default, so you won’t keep hitting that failure. 2. **New `-OpenExplorer` switch**  
+   Running with `-OpenExplorer` opens the server share in File Explorer so you can sign in there. After that, you run the deploy again and it uses the cached access. **What to do on your machine**
+
+**Step 1 – Open the share and sign in**
+
+```powershell
+cd "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality"
+.\Deploy-ToRDP-Simple.ps1 -OpenExplorer
+```
+
+- A File Explorer window will open to `\\HPD2022LAWSOFT\C$`. - If you get a login box, sign in with your RDP server credentials (e.g. `HACKENSACK\youruser` or `administrator` and password). - Leave that window open (or at least don’t log out or disconnect). **Step 2 – Run deploy again**
+
+```powershell
+.\Deploy-ToRDP-Simple.ps1
+```
+
+With the share already opened and cached, the script should see the path and deploy without asking for credentials. **If it still can’t access the share**
+
+- Confirm you’re on the same network/VPN as when you RDP to the server. - Try opening the share manually: press Win+R, type `\\HPD2022LAWSOFT\C$`, press Enter, sign in, then run `.\Deploy-ToRDP-Simple.ps1` again. - As a fallback, copy the files by hand: copy the contents of your repo’s `scripts` folder into `\\HPD2022LAWSOFT\C$\HPD ESRI\04_Scripts\` in the Explorer window where you’re already signed in. ---
+
+**User**
+
+step 1 opened the file manager to the rdp but step 2 failed
+2026-02-16 04:05:49 : Opened: \\HPD2022LAWSOFT\C$
+  Sign in in the Explorer window if prompted. Then run deploy again:  .\Deploy-ToRDP-Simple.ps1
+PS C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality> .\Deploy-ToRDP-Simple.ps1
+
+=== Deploy to RDP Server ===
+Mode: LIVE deployment
+
+Pre-flight: Checking for existing SMB connections...
+2026-02-16 04:06:14 : ERROR: Cannot access RDP scripts directory (hostname or IP). 2026-02-16 04:06:14 :   Tried: \\HPD2022LAWSOFT\C$\HPD ESRI\04_Scripts
+2026-02-16 04:06:14 :   Tried: \\10.0.0.157\C$\HPD ESRI\04_Scripts
+
+Credential prompt often fails with 'network password not correct'. Use cached credentials instead:
+  1. Run:  .\Deploy-ToRDP-Simple.ps1 -OpenExplorer
+  2. In the Explorer window that opens, sign in if prompted. 3. Run again:  .\Deploy-ToRDP-Simple.ps1
+
+2026-02-16 04:06:14 : Action: Run with -OpenExplorer to open share and sign in, then run deploy again. PS C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality>
+
+---
+
+**Cursor**
+
+
+Adding a retry that runs `net use` (no credentials) so the current PowerShell session can use the credential Explorer cached:
+
+
+
+Summary of what was added and what you can do:
+
+**1. Automatic retry with `net use`**  
+When the script can’t see the share, it now runs:
+
+- `net use \\HPD2022LAWSOFT\C$`
+- then `net use \\10.0.0.157\C$` if the first fails  
+
+That can attach the credential you used in Explorer to the current PowerShell session.

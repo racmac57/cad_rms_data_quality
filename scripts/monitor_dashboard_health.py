@@ -15,9 +15,9 @@
 import json
 import os
 import sys
-from datetime import datetime
+import datetime as _dt  # Use module ref to avoid shadowing by ArcGIS/deps
 
-# ArcGIS API for Python
+# ArcGIS API for Python (import after datetime to avoid namespace issues)
 from arcgis.gis import GIS
 from arcgis.features import FeatureLayer
 
@@ -90,7 +90,7 @@ def ensure_dir(p: str):
 def write_report(out_dir: str, report: dict) -> str:
     """Write JSON report with timestamp, return output path."""
     ensure_dir(out_dir)
-    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    ts = _dt.datetime.now().strftime("%Y%m%d_%H%M%S")
     out_path = os.path.join(out_dir, f"monitor_{ts}.json")
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(report, f, indent=2)
@@ -121,7 +121,7 @@ def main():
 
     # Initialize report
     report = {
-        "timestamp_est": datetime.now().isoformat(),
+        "timestamp_est": _dt.datetime.now().isoformat(),
         "layer_url": layer_url,
         "expected_wkids_ok": sorted(list(expected_wkids)),
         "sample_size": sample_size,

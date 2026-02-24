@@ -11,6 +11,9 @@ Version: 1.0.0
 This script is the CRITICAL FOUNDATION of the staged backfill strategy.
 By pre-geocoding addresses offline, we eliminate the network session timeout
 that causes the silent hang at feature 564,916.
+
+On RDP, use the local NJ locator (no network dependency):
+  --locator "C:\\HPD ESRI\\NJ_Geocode\\NJ_Geocode.loc"
 """
 
 import pandas as pd
@@ -37,7 +40,12 @@ FAILED_ADDRESSES_FILE = "failed_addresses_inspection.csv"
 # Quality gate threshold
 GEOCODE_FAIL_THRESHOLD_PERCENT = 5.0
 
-def create_geocoding_cache(baseline_file, output_dir, use_arcpy=True):
+# RDP server: local NJ locator (no network dependency)
+# Use --locator "C:\HPD ESRI\NJ_Geocode\NJ_Geocode.loc" when running on RDP
+LOCATOR_NJ_RDP = r"C:\HPD ESRI\NJ_Geocode\NJ_Geocode.loc"
+WORLD_GEOCODE_SERVER = "https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer"
+
+def create_geocoding_cache(baseline_file, output_dir, use_arcpy=True, output_filename=None, address_locator=None):
     """
     Create geocoded baseline with X/Y coordinates for all records.
     
@@ -45,6 +53,9 @@ def create_geocoding_cache(baseline_file, output_dir, use_arcpy=True):
         baseline_file: Path to original baseline Excel file
         output_dir: Directory to save cached output
         use_arcpy: If True, use ArcPy geocoding. If False, use placeholder logic.
+        output_filename: Optional output Excel filename (default: CAD_ESRI_Baseline_GEO_CACHED.xlsx)
+        address_locator: Optional path to local locator (e.g. NJ_Geocode.loc on RDP) or URL.
+                        If None, uses Esri World Geocoding Service.
     
     Returns:
         dict: Quality metrics and file paths
@@ -108,32 +119,43 @@ def create_geocoding_cache(baseline_file, output_dir, use_arcpy=True):
             temp_csv = output_path / "temp_addresses.csv"
             address_df.to_csv(temp_csv, index=False)
             
-            # Geocode using ArcGIS World Geocoding Service
+            # Locator: local (e.g. NJ_Geocode on RDP) or World Geocoding Service
+            locator = address_locator or WORLD_GEOCODE_SERVER
+            if Path(str(locator)).exists() or str(locator).endswith(".loc"):
+                # Local composite locator (e.g. NJ_Geocode): use "Address OR Intersection"
+                in_address_fields = f"Address OR Intersection {address_col} VISIBLE NONE"
+                logger.info(f"    Using local locator: {locator}")
+            else:
+                in_address_fields = f"'Address or Place' {address_col} VISIBLE NONE"
+                logger.info("    Using World Geocoding Service")
+            
             logger.info("    Starting batch geocoding...")
             geocoded_fc = "memory/geocoded_cache"
             
             arcpy.geocoding.GeocodeAddresses(
                 in_table=str(temp_csv),
-                address_locator="https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer",
-                in_address_fields=f"'Address or Place' {address_col} VISIBLE NONE",
+                address_locator=locator,
+                in_address_fields=in_address_fields,
                 out_feature_class=geocoded_fc
             )
             
             logger.info("    Extracting coordinates...")
             
-            # Extract X/Y coordinates from geocoded features
-            fields = [address_col, "SHAPE@X", "SHAPE@Y", "Status", "Score"]
+            # Extract X/Y coordinates (Status/Score optional; local locators may not add them)
+            field_names = [f.name for f in arcpy.ListFields(geocoded_fc)]
+            fields = [address_col, "SHAPE@X", "SHAPE@Y"]
+            if "Status" in field_names and "Score" in field_names:
+                fields += ["Status", "Score"]
             coordinates = []
             
             with arcpy.da.SearchCursor(geocoded_fc, fields) as cursor:
                 for row in cursor:
-                    coordinates.append({
-                        address_col: row[0],
-                        'X_Coord': row[1],
-                        'Y_Coord': row[2],
-                        'Geocode_Status': row[3],
-                        'Geocode_Score': row[4]
-                    })
+                    coords = {
+                        address_col: row[0], 'X_Coord': row[1], 'Y_Coord': row[2],
+                        'Geocode_Status': row[3] if len(row) > 3 else None,
+                        'Geocode_Score': row[4] if len(row) > 4 else None
+                    }
+                    coordinates.append(coords)
             
             cache_df = pd.DataFrame(coordinates)
             
@@ -235,9 +257,16 @@ def create_geocoding_cache(baseline_file, output_dir, use_arcpy=True):
     logger.info(f"    Records with coordinates: {merged_count - len(no_coords):,}")
     logger.info(f"    Records without coordinates: {len(no_coords):,}")
     
+    # Add latitude/longitude columns for backfill compatibility (WGS84: X=lon, Y=lat)
+    if 'X_Coord' in final_df.columns and 'Y_Coord' in final_df.columns:
+        final_df['longitude'] = final_df['X_Coord']
+        final_df['latitude'] = final_df['Y_Coord']
+        logger.info("    Added latitude/longitude columns for backfill pipeline")
+    
     # Step 6: Save cached baseline
     logger.info("\n[6] Saving cached baseline...")
-    output_file_path = output_path / OUTPUT_FILE
+    out_name = output_filename if output_filename else OUTPUT_FILE
+    output_file_path = output_path / out_name
     
     final_df.to_excel(output_file_path, index=False, engine='openpyxl')
     
@@ -277,6 +306,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Generate geocoding cache for staged backfill')
     parser.add_argument('--input', default=BASELINE_FILE, help='Path to baseline Excel file')
     parser.add_argument('--output-dir', default=OUTPUT_DIR, help='Output directory')
+    parser.add_argument('--output-name', default=None, help='Output Excel filename (e.g. 2025_12_CAD_GEO_CACHED.xlsx)')
+    parser.add_argument('--locator', default=None, help=f'Local address locator path (e.g. {LOCATOR_NJ_RDP}) or leave empty for World Geocoding Service')
     parser.add_argument('--no-arcpy', action='store_true', help='Use placeholder coordinates (testing only)')
     
     args = parser.parse_args()
@@ -291,7 +322,9 @@ if __name__ == "__main__":
         result = create_geocoding_cache(
             args.input, 
             args.output_dir,
-            use_arcpy=not args.no_arcpy
+            use_arcpy=not args.no_arcpy,
+            output_filename=args.output_name,
+            address_locator=args.locator
         )
         
         logger.info("SUCCESS: Geocoding cache created")

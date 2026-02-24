@@ -22,6 +22,17 @@ PROCESSED_DATA_ROOT = Path(r"C:\Users\carucci_r\OneDrive - City of Hackensack\13
 BASELINE_PATH = PROCESSED_DATA_ROOT / "ESRI_Polished" / "base" / "CAD_ESRI_Polished_Baseline.xlsx"
 OUTPUT_PATH = PROCESSED_DATA_ROOT / "ESRI_Polished" / "base"
 
+# Map common raw-CAD / alternate column names to ESRI polished baseline names.
+# Merge output must match baseline schema so backfill (complete_backfill_simplified.py) works.
+BACKFILL_TO_BASELINE_RENAME = {
+    "Time_Of_Call": "Time of Call",
+    "How_Reported": "How Reported",
+    "Time_Dispatched": "Time Dispatched",
+    "Time_Out": "Time Out",
+    "Time_In": "Time In",
+    "PDZone": "ZoneCalc",  # some exports use PDZone, baseline uses ZoneCalc
+}
+
 
 def analyze_gap(baseline_file: Path, gap_start: str = "2026-01-01", gap_end: str = "2026-01-09"):
     """
@@ -125,6 +136,14 @@ def merge_backfill_data(
     
     df_baseline = pd.read_excel(baseline_file)
     baseline_count = len(df_baseline)
+    baseline_has_time_of_call = 'Time of Call' in df_baseline.columns
+    # Normalize time column (ESRI polished uses "Time of Call", exports may use TimeOfCall)
+    if 'Time of Call' in df_baseline.columns and 'TimeOfCall' not in df_baseline.columns:
+        df_baseline['TimeOfCall'] = df_baseline['Time of Call']
+    baseline_time_col = 'TimeOfCall' if 'TimeOfCall' in df_baseline.columns else ('Time of Call' if 'Time of Call' in df_baseline.columns else None)
+    
+    # Canonical schema: output will match baseline columns exactly (required for backfill script)
+    baseline_columns = [c for c in df_baseline.columns if c != 'TimeOfCall']
     
     print(f"    [OK] Loaded {baseline_count:,} records")
     
@@ -132,8 +151,8 @@ def merge_backfill_data(
         baseline_unique = df_baseline['ReportNumberNew'].nunique()
         print(f"    Unique cases: {baseline_unique:,}")
     
-    if 'TimeOfCall' in df_baseline.columns:
-        df_baseline['TimeOfCall'] = pd.to_datetime(df_baseline['TimeOfCall'])
+    if baseline_time_col and baseline_time_col in df_baseline.columns:
+        df_baseline['TimeOfCall'] = pd.to_datetime(df_baseline[baseline_time_col])
         baseline_min = df_baseline['TimeOfCall'].min()
         baseline_max = df_baseline['TimeOfCall'].max()
         print(f"    Date range: {baseline_min} to {baseline_max}")
@@ -146,8 +165,21 @@ def merge_backfill_data(
     
     df_backfill = pd.read_excel(backfill_file)
     backfill_count = len(df_backfill)
+    # Normalize backfill column names to match baseline (ESRI polished schema)
+    rename_map = {k: v for k, v in BACKFILL_TO_BASELINE_RENAME.items()
+                  if k in df_backfill.columns and v in baseline_columns}
+    if rename_map:
+        df_backfill = df_backfill.rename(columns=rename_map)
+        print(f"    Renamed columns to match baseline: {list(rename_map.keys())} -> {list(rename_map.values())}")
+    # Align to baseline schema: same columns and order; missing cols become NaN
+    for c in baseline_columns:
+        if c not in df_backfill.columns:
+            df_backfill[c] = pd.NA
+    df_backfill = df_backfill[baseline_columns]
+    if 'Time of Call' in df_backfill.columns and 'TimeOfCall' not in df_backfill.columns:
+        df_backfill['TimeOfCall'] = df_backfill['Time of Call']
     
-    print(f"    [OK] Loaded {backfill_count:,} records")
+    print(f"    [OK] Loaded {backfill_count:,} records (schema aligned to baseline)")
     
     if 'ReportNumberNew' in df_backfill.columns:
         backfill_unique = df_backfill['ReportNumberNew'].nunique()
@@ -244,16 +276,20 @@ def merge_backfill_data(
     
     print(f"[5] Saving merged data...")
     print(f"    Output: {output_file.name}")
+    print(f"    (Writing 758k+ rows to Excel can take 5-15 minutes...)")
     
     if not dry_run:
-        df_merged.to_excel(output_file, index=False, engine='openpyxl')
+        # Output exactly baseline schema (columns and order) so backfill script succeeds
+        out_cols = [c for c in baseline_columns if c in df_merged.columns]
+        out_df = df_merged[out_cols].copy()
+        out_df.to_excel(output_file, index=False, engine='openpyxl')
         
         file_size_mb = output_file.stat().st_size / (1024**2)
-        print(f"    [OK] Saved: {file_size_mb:.1f} MB")
+        print(f"    [OK] Saved: {file_size_mb:.1f} MB (schema matches baseline)")
         
         # Also update generic pointer
         generic_path = OUTPUT_PATH / "CAD_ESRI_Polished_Baseline.xlsx"
-        df_merged.to_excel(generic_path, index=False, engine='openpyxl')
+        out_df.to_excel(generic_path, index=False, engine='openpyxl')
         print(f"    [OK] Updated generic pointer: {generic_path.name}")
     else:
         print(f"    [DRY RUN] Would save here")
@@ -266,9 +302,12 @@ def merge_backfill_data(
     print(f"Summary:")
     print(f"  Baseline records: {baseline_count:,}")
     print(f"  Backfill records: {backfill_count:,}")
-    print(f"  Duplicates removed: {duplicate_count:,}")
+    print(f"  Duplicates removed (backfill vs baseline): {duplicate_count:,} cases")
     print(f"  New records added: {len(df_backfill_unique):,}")
-    print(f"  Final total: {merged_count:,}")
+    print(f"  Final total: {merged_count:,} rows")
+    if 'ReportNumberNew' in df_merged.columns:
+        u = df_merged['ReportNumberNew'].nunique()
+        print(f"  Unique ReportNumberNew: {u:,} (multiple rows per case is normal if baseline had them)")
     print()
     
     if not dry_run:
@@ -288,12 +327,16 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Analyze gap in baseline
+  # Analyze gap (default baseline, gap 2026-01-01 to 2026-01-09)
+  python scripts/backfill_gap_analysis.py
+  python scripts/backfill_gap_analysis.py --analyze
+
+  # Analyze with custom gap range
   python scripts/backfill_gap_analysis.py --analyze --gap-start 2026-01-01 --gap-end 2026-01-09
-  
+
   # Merge backfill data (dry run first!)
   python scripts/backfill_gap_analysis.py --merge --backfill "path/to/2026_01_01_to_2026_01_09_CAD.xlsx" --dry-run
-  
+
   # Actual merge
   python scripts/backfill_gap_analysis.py --merge --backfill "path/to/2026_01_01_to_2026_01_09_CAD.xlsx"
         """
@@ -310,10 +353,9 @@ Examples:
     
     args = parser.parse_args()
     
+    # Default to analyze if no mode given (e.g. "python backfill_gap_analysis.py")
     if not args.analyze and not args.merge:
-        print("Error: Must specify --analyze or --merge")
-        parser.print_help()
-        return 1
+        args.analyze = True
     
     try:
         if args.analyze:

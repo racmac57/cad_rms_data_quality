@@ -1,0 +1,36 @@
+v1.6.1 Gap Backfill Date Fix Complete
+
+Added surgical API update scripts to fix 2,680 gap records (Feb 3-15, 2026)
+showing wrong calldate values.
+
+Scripts Created:
+- probe_gap_record.py (277 lines) - Timezone & field verification
+- fix_gap_calldate_local.py (720 lines) - Local baseline correction
+- fix_gap_calldate_online.py (991 lines) - Online layer surgical update
+
+Key Features:
+- CLI with --live, --rollback, --dry-run (default)
+- Forced America/New_York timezone (prevents DST bugs)
+- Numeric range enforcement (26-011288 to 26-014999)
+- Schema preflight checks, audit assertions
+- Batch processing (200 records/call, 14 batches)
+- JSON artifacts (snapshot, changes, summary) + CSV exports
+- Rollback capability from snapshot.json
+
+Results:
+- 571,282 total records with corrected dates
+- Gap closure complete: Feb 3-15, 2026
+- Dashboard chronological sort working
+- Execution time: ~10-15 minutes
+
+Documentation:
+- GAP_BACKFILL_UNIFIED_IMPLEMENTATION_PLAN.md - Complete execution guide
+- Updated CHANGELOG, SUMMARY, README, Claude.md
+- Updated perplexity_spaces_handoff.md (marked complete)
+- Added section 9.4 to HANDOFF_20260216_BACKFILL_SESSION.md
+
+Multi-AI Collaboration:
+- Perplexity: Gap backfill architecture, date issue identification
+- Claude Opus: Production script creation (v4)
+- Code Copilot: Safety review (6 risks addressed)
+- Cursor AI: Documentation, unified plan, git integration

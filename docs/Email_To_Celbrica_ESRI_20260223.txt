@@ -1,0 +1,40 @@
+Subject: RE: Publish Call Data Model - Generate Incident Statistics Error & Resolution Options
+
+Hi Celbrica,
+
+Thank you for testing the Publish Call Data model and identifying the error in the Generate Incident Statistics tool. I was able to reproduce the issue and have identified the root cause.
+
+ROOT CAUSE:
+During the large-scale data backfill of 571,000+ CAD records, approximately 2,732 records were appended with NULL values in the Call ID and Call Date fields. These originated from source records where the Report Number was blank or the date/time value could not be parsed correctly. When the Generate Incident Statistics tool performs its preliminary data scan, it encounters these NULL dates and throws the TypeError shown in the traceback.
+
+RESOLUTION OPTIONS:
+I'd like to walk through the best path forward during our Teams meeting tomorrow. Here are the options I've prepared:
+
+Option 1: Delete NULL Records from the Feature Layer
+  - Remove the 2,732 records that have NULL Call ID and/or Call Date values
+  - These records are incomplete and not meaningful for analysis or reporting
+  - This can be done live during our call using a short Python script
+  - Estimated time: 5-10 minutes
+
+Option 2: Add a Definition Query to the Incident Statistics Data Source
+  - Apply a filter (callid IS NOT NULL AND calldate IS NOT NULL) so the Generate Incident Statistics tool skips the NULL records without deleting them
+  - The records remain in the layer but are excluded from processing
+  - This can be configured in the model or tool parameters during our call
+  - Estimated time: 5 minutes
+
+Option 3: Both - Clean Up and Prevent
+  - Delete the 2,732 NULL records (Option 1)
+  - Then re-run the full Publish Call Data model together to confirm it completes successfully end-to-end
+  - I have also updated the backfill script to validate that Call ID and Call Date are non-null before appending, preventing this from recurring
+  - Estimated time: 15-20 minutes
+
+Note: These resolution options were developed with the assistance of Claude Opus (Anthropic AI), which also assisted with the original backfill scripting and data analysis throughout this project.
+
+I'd recommend Option 3 so we can verify the full pipeline works cleanly, but I'm happy to go with whichever approach you prefer. Please let me know if you'd like me to prepare anything else ahead of the meeting.
+
+Best regards,
+
+Robert Carucci
+Principal Analyst
+Hackensack Police Department
+Email: carucci_r@hackensack.org
