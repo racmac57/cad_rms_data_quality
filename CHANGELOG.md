@@ -9,6 +9,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - CLAUDE.md Rewrite and Claude Code Custom Skills
+
+**CLAUDE.md rewrite:**
+- Renamed `Claude.md` → `CLAUDE.md` (correct casing for Claude Code on Linux)
+- Restructured from 542-line historical narrative to 237-line actionable reference
+- Agent rules moved to top of file (were buried at bottom)
+- Added quick commands, directory map, data model tables, architecture decision log
+- Removed duplicate code blocks and verbose v1.6.0 narrative (already in docs/)
+
+**6 Claude Code custom skills** added in `.claude/skills/`:
+
+| Skill | Purpose |
+|-------|---------|
+| `/handoff` | Generate structured AI handoff documents with Cursor/Claude Code opening prompts |
+| `/pipeline-status` | Generate PowerShell to verify nightly Task Scheduler jobs on HPD2022LAWSOFT |
+| `/validate-monthly` | Run monthly CAD/RMS validation and summarize quality score |
+| `/check-paths` | Lint configs and scripts for path convention violations |
+| `/consolidation-run` | Execute full consolidation with pre/post-flight checks |
+| `/deploy-script` | Generate deployment commands for the RDP server |
+
+**Supporting changes:**
+- `.gitignore` updated: `.claude/` → `.claude/*` + `!.claude/skills/` (skills are version-controlled)
+- `README.md` updated: new project structure tree, skills section, architecture principle #7
+- `SUMMARY.md` updated: version bump, skills documentation, refreshed project structure
+- `validation/DOCUMENTATION_INDEX.md` updated: `Claude.md` → `CLAUDE.md`
+
 ---
 
 ## [1.7.1] - 2026-04-10

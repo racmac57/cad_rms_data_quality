@@ -4,7 +4,7 @@
 **Created:** 2026-01-29
 **Updated:** 2026-04-10
 **Author:** R. A. Carucci
-**Status:** ✅ v1.7.1 | Nightly Call Data pipeline fixed (2026-04-09) | Standards audit all 9 gaps closed | Crime Data automation pending
+**Status:** ✅ v1.7.1 | Nightly Call Data pipeline fixed (2026-04-09) | Standards audit all 9 gaps closed | Crime Data automation pending | Claude Code skills added
 
 ---
 
@@ -323,86 +323,94 @@ This release resolves the critical 564,916 record hang issue that prevented succ
 
 ```
 cad_rms_data_quality/
+├── CLAUDE.md                    # AI agent context, rules, and skill docs
 ├── README.md                    # This file
 ├── CHANGELOG.md                 # Version history
-├── INCREMENTAL_RUN_GUIDE.md    # Incremental CAD run + copy to 13_PROCESSED_DATA ✅
-├── PLAN.md                      # Detailed implementation plan
-├── NEXT_STEPS.md               # Roadmap for next session
-├── requirements.txt            # Python dependencies ✅
-├── pyproject.toml              # Project configuration ✅
-├── Makefile                    # Automation commands (TO DO - in chunk_00010.txt)
-├── .gitignore                  # Git ignore rules ✅
-├── consolidate_cad_2019_2026.py # Production consolidation (baseline + incremental) ✅
-├── scripts/                    # Post-consolidation utilities ✅
-│   └── copy_polished_to_processed_and_update_manifest.py  # Copy to 13_PROCESSED_DATA, update manifest
+├── SUMMARY.md                   # Project summary and key metrics
+├── PLAN.md                      # Implementation plan (historical)
+├── pyproject.toml               # Project config, ruff, mypy, pytest
+├── requirements.txt             # Python dependencies
+├── .gitignore                   # Git ignore rules
+├── consolidate_cad_2019_2026.py # Main consolidation entry point (--full mode)
+├── scheduled_publish_call_data.py # Scheduled ArcGIS Online publishing
 │
-├── config/                     # Configuration files ✅
-│   ├── schemas.yaml            # Paths to 09_Reference/Standards schemas ✅
-│   ├── validation_rules.yaml  # Validation configuration ✅
-│   └── consolidation_sources.yaml  # 2019-2025 CAD file paths (actual: 714K records) ✅
+├── .claude/skills/              # Claude Code custom slash commands ✅
+│   ├── handoff/SKILL.md         #   /handoff — Generate AI session handoff docs
+│   ├── pipeline-status/SKILL.md #   /pipeline-status — Nightly task health check
+│   ├── validate-monthly/SKILL.md#   /validate-monthly — Monthly export validation
+│   ├── check-paths/SKILL.md     #   /check-paths — Lint configs for path violations
+│   ├── consolidation-run/SKILL.md#  /consolidation-run — Full consolidation + verify
+│   └── deploy-script/SKILL.md   #   /deploy-script — Deploy to RDP server
 │
-├── consolidation/              # Component 1: Historical data consolidation
-│   ├── scripts/
-│   │   ├── consolidate_cad.py         # Merge 2019-2025 CAD files (714K records) (TO DO)
-│   │   └── prepare_arcgis.py          # Create ArcGIS-ready output (TO DO)
-│   ├── output/                        # Consolidated datasets (empty)
-│   ├── reports/                       # Validation reports (empty)
-│   └── logs/                          # Processing logs (empty)
+├── config/                      # YAML configuration ✅
+│   ├── schemas.yaml             #   Paths to Standards JSON schemas (${standards_root})
+│   ├── validation_rules.yaml    #   Field rules, quality scoring, anomaly thresholds
+│   ├── consolidation_sources.yaml # CAD source paths, baseline, performance tuning
+│   └── rms_sources.yaml         #   RMS source paths
 │
-├── monthly_validation/         # Component 2: Ongoing validation ✅
-│   ├── scripts/
-│   │   ├── validate_cad.py            # Monthly CAD validator ✅
-│   │   └── validate_rms.py            # Monthly RMS validator ✅
-│   ├── templates/
-│   │   └── validation_report_template.html  # Report template (TO DO)
-│   ├── processed/                     # Processed monthly outputs ✅
-│   ├── reports/                       # Monthly reports (YYYY_MM_cad/, YYYY_MM_rms/) ✅
-│   └── logs/                          # Validation logs
+├── shared/                      # Shared library code ✅
+│   ├── utils/
+│   │   ├── schemas_loader.py    #   Load schemas.yaml with variable expansion
+│   │   ├── version_check.py     #   Standards version validation
+│   │   ├── report_builder.py    #   HTML/Excel report generation
+│   │   └── call_type_normalizer.py # Normalize call types to ESRI categories
+│   ├── validators/              #   Base validator classes
+│   └── processors/              #   Data processing utilities
 │
-├── shared/                     # Shared utilities (refactored from legacy projects)
-│   ├── validators/
-│   │   ├── validation_engine.py       # Core validation framework (TO DO)
-│   │   ├── pre_run_checks.py          # Pre-run environment checks (TO DO)
-│   │   ├── post_run_checks.py         # Post-run quality checks (TO DO)
-│   │   ├── address_validator.py       # Address validation (TO DO)
-│   │   ├── case_number_validator.py   # Case number validation (TO DO)
-│   │   └── quality_scorer.py          # 0-100 quality scoring (TO DO)
-│   ├── processors/
-│   │   ├── field_normalizer.py        # Advanced Normalization v3.2 (TO DO)
-│   │   ├── datetime_processor.py      # Time artifact fixes (TO DO)
-│   │   └── address_standardizer.py    # USPS standardization (TO DO)
-│   ├── reporting/
-│   │   ├── html_generator.py          # HTML report generation (TO DO)
-│   │   ├── excel_generator.py         # Excel report generation (TO DO)
-│   │   └── json_generator.py          # JSON metrics export (TO DO)
-│   └── utils/
-│       ├── schema_loader.py           # Load schemas from Standards (TO DO)
-│       ├── hash_utils.py              # File integrity checks (TO DO)
-│       └── audit_trail.py             # Change tracking (TO DO)
+├── validation/                  # Comprehensive validation framework ✅
+│   ├── run_all_validations.py   #   Master orchestrator (9 validators + 2 drift detectors)
+│   ├── validators/              #   Individual field validators (9 total)
+│   │   ├── how_reported_validator.py
+│   │   ├── disposition_validator.py
+│   │   ├── case_number_validator.py
+│   │   ├── datetime_validator.py
+│   │   ├── geography_validator.py
+│   │   └── ...
+│   └── sync/                    #   Drift detection (call type, personnel)
 │
-├── tests/                      # Test suite
-│   ├── test_validators.py             # Validator tests (TO DO)
-│   ├── test_processors.py             # Processor tests (TO DO)
-│   ├── test_consolidation.py          # Consolidation tests (TO DO)
-│   └── fixtures/                      # Test data (empty)
+├── monthly_validation/          # Monthly export validation ✅
+│   └── scripts/
+│       ├── validate_cad.py      #   Monthly CAD validation CLI
+│       └── validate_rms.py      #   Monthly RMS validation CLI
 │
-└── docs/                       # Documentation
-    ├── arcgis/                        # ArcGIS import and automation ✅
-    │   ├── README.md                  # Workflow guide for geodatabase import ✅
-    │   ├── README_Backfill_Process.md # User guide for backfill automation ✅
-    │   ├── config.json                # Central configuration for backfill workflow ✅
-    │   ├── discover_tool_info.py      # Tool discovery script ✅
-    │   ├── run_publish_call_data.py   # Python runner for ArcGIS Pro tool ✅
-    │   ├── Test-PublishReadiness.ps1  # Pre-flight checks ✅
-    │   ├── Invoke-CADBackfillPublish.ps1  # Main orchestrator ✅
-    │   ├── Copy-PolishedToServer.ps1  # Robust file copy script ✅
-    │   └── import_cad_polished_to_geodatabase.py  # Legacy arcpy import script
-    ├── ARCHITECTURE.md                # System design (TO DO)
-    ├── MIGRATION_NOTES.md             # What came from legacy projects (TO DO)
-    ├── CONSOLIDATION_GUIDE.md         # How to run consolidation (TO DO)
-    ├── MONTHLY_VALIDATION_GUIDE.md    # How to run monthly validation (TO DO)
-    └── STANDARDS_REFERENCE.md         # How to use 09_Reference/Standards (TO DO)
+├── consolidation/               # Consolidation outputs and reports
+│   ├── output/                  #   Generated CSV files
+│   └── reports/                 #   Run reports and metrics JSON
+│
+├── scripts/                     # Operational scripts (run on RDP server) ✅
+│   ├── complete_backfill_simplified.py  # v1.6.0 production backfill (winner)
+│   ├── backup_current_layer.py  #   Export online layer to local FGDB
+│   ├── truncate_online_layer.py #   Delete all records (triple confirmation)
+│   ├── restore_from_backup.py   #   Emergency rollback
+│   ├── cad_fulladdress2_qc.py   #   Address quality analysis
+│   ├── monitor_dashboard_health.py # Post-publish health monitoring
+│   └── ...                      #   50+ utility and diagnostic scripts
+│
+├── docs/                        # Documentation
+│   ├── ai_handoff/              #   Session handoff docs (Cursor/Claude Code prompts)
+│   ├── arcgis/                  #   ArcGIS import and automation
+│   ├── chatlog/                 #   Historical session logs
+│   └── project_knowledge/       #   Reference materials
+│
+└── backups/                     # Backup copies of modified scripts
 ```
+
+---
+
+## Claude Code Skills (Slash Commands)
+
+Project-level custom skills in `.claude/skills/`. Invoke with `/<name>` in Claude Code.
+
+| Skill | Usage | Purpose |
+|-------|-------|---------|
+| `/handoff` | `/handoff Crime-Data-Scheduler` | Generate a structured AI handoff document for the next session |
+| `/pipeline-status` | `/pipeline-status all` | Generate PowerShell to check nightly Task Scheduler results on RDP |
+| `/validate-monthly` | `/validate-monthly cad 2026-03` | Run monthly CAD or RMS validation with quality scoring |
+| `/check-paths` | `/check-paths` | Lint configs for path convention violations (carucci_r, junctions) |
+| `/consolidation-run` | `/consolidation-run --dry-run` | Execute full consolidation and verify record counts |
+| `/deploy-script` | `/deploy-script scripts/monitor.py --schedule 02:00` | Deploy a script to the RDP server with optional scheduling |
+
+See `CLAUDE.md` for full project context and AI agent rules.
 
 ---
 
@@ -593,7 +601,7 @@ See [CHANGELOG.md](CHANGELOG.md#110---2026-01-31) for complete details.
 
 ### ✅ Phase 1: Consolidation Operational (2026-01-31)
 - [x] Project directory structure created
-- [x] README.md, CHANGELOG.md, PLAN.md, NEXT_STEPS.md, Claude.md, SUMMARY.md
+- [x] README.md, CHANGELOG.md, PLAN.md, NEXT_STEPS.md, CLAUDE.md, SUMMARY.md
 - [x] **config/schemas.yaml** - Paths to 09_Reference/Standards
 - [x] **config/validation_rules.yaml** - Validation patterns and quality scoring
 - [x] **config/consolidation_sources.yaml** - 2019-2025 CAD source files (actual: 714K records)
@@ -672,6 +680,7 @@ See `outputs/consolidation/CAD_CONSOLIDATION_EXECUTION_GUIDE.txt` and `INCREMENT
 4. **Production-Ready**: Pre-run/post-run checks, audit trails, comprehensive logging
 5. **Performance-Optimized**: Vectorized operations, parallel processing, quality scoring
 6. **Baseline + Incremental**: Load baseline once, append new monthly data only (skip re-reading 7 years)
+7. **AI-Assisted Workflow**: Claude Code skills automate recurring tasks (handoffs, validation, deployment)
 
 ---
 
