@@ -1,4 +1,17 @@
-# Claude.md - CAD/RMS Data Quality System Context
+# SUPERSEDED — See root Claude.md (v1.7.0) for current state.
+
+This planning artifact is preserved for historical reference. The authoritative version is `cad_rms_data_quality/Claude.md` at repo root.
+
+**Key changes since this snapshot (v1.0.1, Jan 2026):**
+- Historical consolidation and backfill complete (v1.6.0/v1.6.1)
+- Standards audit Phases 1, 2, 3 complete — all 9 gaps closed
+- Normalization mappings loaded from Standards JSON (not hardcoded)
+- `shared/utils/schemas_loader.py` and `shared/utils/version_check.py` added
+- Standards version: v3.0.0 (rationalized 2026-03-17)
+
+---
+
+# Claude.md - CAD/RMS Data Quality System Context (v1.0.1 planning snapshot)
 
 This file provides context and rules for any Claude instance working in this repository. It lives at the repo root and complements any `.claude/` settings directory if present.
 
@@ -518,3 +531,22 @@ See `docs/MIGRATION_NOTES.md` for complete migration details.
 **Status:** Phase 1 Complete - Ready for Python Module Extraction
 
 **Next Phase:** Phase 2 - Extract Python modules from chat transcripts (see EXTRACTION_REPORT.txt)
+
+## Path Resolution
+
+OneDrive root resolves via two junctions (created 2026-03-22):
+1. Profile junction:
+     C:\Users\carucci_r  →  C:\Users\RobertCarucci
+2. OneDrive junction (laptop only — must be replicated on desktop):
+     C:\Users\RobertCarucci\OneDrive
+     →  C:\Users\RobertCarucci\OneDrive - City of Hackensack
+
+Active root returned by path_config.get_onedrive_root():
+  C:\Users\carucci_r\OneDrive - City of Hackensack
+
+### Rules for AI agents
+- DO NOT change carucci_r to RobertCarucci in scripts or configs
+- Do not rename PowerBI_Data back to the old misspelled folder name; the canonical folder is PowerBI_Data.
+- scripts.json uses carucci_r paths — this is correct and intentional
+- path_config.py resolves the correct root at runtime via get_onedrive_root()
+- If a path appears broken, check junction status before editing any file

@@ -15,35 +15,26 @@ This repository contains a unified data quality system for CAD (Computer-Aided D
 
 ---
 
-## Project Status & Critical Success
+## Project Status (v1.7.0 — 2026-04-10)
+
+### Standards Audit — All Phases Complete
+
+The three-phase Standards Audit (Phase 1: inventory, Phase 2: gap resolution, Phase 3: validation & close) is **complete**. All 9 gaps identified in Phase 1 have been resolved. See `09_Reference/Standards/docs/ai_handoff/Phase1_Standards_Audit.md` for the full record.
+
+**Key changes affecting this repo:**
+- `shared/utils/schemas_loader.py` — `load_schemas()` resolves `${standards_root}` in `config/schemas.yaml`
+- `shared/utils/version_check.py` — `check_standards_version()` warns if `schemas.yaml` version diverges from `Standards/VERSION`
+- `CAD_Data_Cleaning_Engine/scripts/enhanced_esri_output_generator.py` now loads normalization mappings from `Standards/CAD_RMS/mappings/*.json` at runtime (not hardcoded dicts)
+  - `how_reported_normalization_map.json`: 140 entries → 12 canonical targets
+  - `disposition_normalization_map.json`: 55 entries → 20 canonical targets
+- `CAD_Data_Cleaning_Engine/data/` archived to `02_ETL_Scripts/archive/CAD_Data_Cleaning_Engine_data_20260409/` (1.4 GB freed)
 
 ### ✅ v1.6.1 - Gap Backfill Date Fix (Feb 16, 2026)
 
-**The Challenge:**
-- **Problem 1:** Gap records (Feb 3-15, 2026) showing wrong `calldate` values ("2/6/26 10:00:00" estimate)
-- **Problem 2:** Derived fields (day-of-week, hour) incorrect due to wrong calldate
-- **Problem 3:** Response metrics (dispatch time) calculated from wrong dates
-
-**The Solution (Surgical API Update):**
-1. **Probe First:** Timezone verification (forced America/New_York prevents DST bugs)
-2. **Fix Local Baseline:** Update CFStable_GeocodeAddresses with real dates from gap_for_append_v2
-3. **Fix Online Layer:** ArcGIS API for Python surgical update (only 2,680 records, no truncate/reload)
-
-**Results:**
-- ✅ **571,282 records** total with valid geometry and correct dates
-- ✅ **Gap closure complete** (Feb 3-15, 2026)
-- ✅ **Dashboard chronological sort working** (most recent calls display first)
-- ✅ **Execution time:** ~10-15 minutes (probe → local → online → verify)
-- ✅ **Rollback available** via snapshot.json
-
-**Production Scripts:** `probe_gap_record.py`, `fix_gap_calldate_local.py`, `fix_gap_calldate_online.py`
-
-**Official Baseline Created (Feb 16, 2026):**
-- **Location:** `C:\HPD ESRI\03_Data\CAD\Backfill\Baseline_v1_6_1.gdb\CallsForService_Baseline_20190101_20260215`
-- **Records:** 571,282 (verified match with online layer)
-- **Date Range:** 2019-01-01 to 2026-02-15
-- **Status:** Gold standard for future backfills, emergency rollback, audit trail
-- **Script:** `backup_baseline_v1_6_1.py`
+- Gap records (Feb 3-15, 2026) had wrong `calldate` values — surgical ArcGIS API update fixed 2,680 records
+- **571,282 records** total with valid geometry and correct dates
+- Baseline: `C:\HPD ESRI\03_Data\CAD\Backfill\Baseline_v1_6_1.gdb\CallsForService_Baseline_20190101_20260215`
+- Production scripts: `probe_gap_record.py`, `fix_gap_calldate_local.py`, `fix_gap_calldate_online.py`
 
 ---
 
@@ -519,12 +510,33 @@ Source → Target mappings with transformations applied during backfill.
 
 | Version | Date | Status |
 |---------|------|--------|
-| 1.6.0 | 2026-02-09 | ✅ Backfill SUCCESS |
+| 1.7.0 | 2026-04-10 | ✅ Standards audit Phases 1-3 complete; schemas_loader + version_check added; data/ archived |
+| 1.6.1 | 2026-02-16 | ✅ Gap backfill date fix (2,680 records) |
+| 1.6.0 | 2026-02-09 | ✅ Historical backfill SUCCESS (565,470 records) |
 | 1.5.0 | 2026-02-06 | ✅ Staged planning |
 | 1.4.0 | 2026-02-04 | ✅ Validation |
 
 ---
 
-**Current Version:** 1.6.0 ✅  
-**Last Updated:** 2026-02-09  
-**Status:** Historical backfill complete | Daily automation ready
+**Current Version:** 1.7.0 ✅  
+**Last Updated:** 2026-04-10  
+**Status:** Standards audit complete | Pipeline ready for next consolidation run
+
+## Path Resolution
+
+OneDrive root resolves via two junctions (created 2026-03-22):
+1. Profile junction:
+     C:\Users\carucci_r  →  C:\Users\RobertCarucci
+2. OneDrive junction (laptop only — must be replicated on desktop):
+     C:\Users\RobertCarucci\OneDrive
+     →  C:\Users\RobertCarucci\OneDrive - City of Hackensack
+
+Active root returned by path_config.get_onedrive_root():
+  C:\Users\carucci_r\OneDrive - City of Hackensack
+
+### Rules for AI agents
+- DO NOT change carucci_r to RobertCarucci in scripts or configs
+- Do not rename PowerBI_Data back to the old misspelled folder name; the canonical folder is PowerBI_Data.
+- scripts.json uses carucci_r paths — this is correct and intentional
+- path_config.py resolves the correct root at runtime via get_onedrive_root()
+- If a path appears broken, check junction status before editing any file
