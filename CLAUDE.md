@@ -84,6 +84,21 @@ but the `tests/` directory has not been created.
 
 ---
 
+## Custom Skills (Slash Commands)
+
+Project-level skills in `.claude/skills/`. Invoke with `/<name>` in Claude Code.
+
+| Skill | Usage | Purpose |
+|-------|-------|---------|
+| `/handoff` | `/handoff Crime-Data-Scheduler` | Generate a structured AI handoff document for the next session |
+| `/pipeline-status` | `/pipeline-status all` | Generate PowerShell to check nightly Task Scheduler results on the RDP server |
+| `/validate-monthly` | `/validate-monthly cad 2026-03` | Run monthly CAD or RMS validation and summarize quality score |
+| `/check-paths` | `/check-paths` | Lint configs and scripts for path convention violations (carucci_r, junctions) |
+| `/consolidation-run` | `/consolidation-run --dry-run` | Execute full consolidation and verify record counts against thresholds |
+| `/deploy-script` | `/deploy-script scripts/monitor.py --schedule 02:00` | Generate PowerShell to deploy a script to the RDP server and optionally schedule it |
+
+---
+
 ## Directory Structure
 
 ```
