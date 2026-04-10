@@ -68,7 +68,7 @@ YEARLY_FILES = [
 
 # Date range filter
 START_DATE = pd.Timestamp("2019-01-01")
-END_DATE = pd.Timestamp("2026-02-28 23:59:59")  # Extended to include all of February 2026
+END_DATE = pd.Timestamp("2026-03-31 23:59:59")  # Extended to include all of March 2026
 
 
 # ============================================================================
