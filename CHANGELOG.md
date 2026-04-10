@@ -11,6 +11,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.7.1] - 2026-04-10
+
+### Fixed - Nightly ESRI Call Data Pipeline Restored
+
+**Problem:** `Publish Call Data_2026_NEW` Task Scheduler task had been failing nightly since ~early February 2026 (exit code 1). Root cause: task ran as `SYSTEM (Local System, S-1-5-18)` which cannot write to `C:\Users\administrator.HPD\AppData\...` and has no ArcGIS Named User license. The `PermissionError` in `task.py`'s `finally` block (XML log write) caused Python to exit with code 1.
+
+**Solution:** Changed task account from SYSTEM to `HPD\administrator` with RunLevel Highest. Also changed `pythonw.exe` → `python.exe` for stdout/stderr capture.
+
+```powershell
+schtasks /change /tn "Publish Call Data_2026_NEW" /ru "HPD\administrator" /rp <password> /rl HIGHEST
+```
+
+**Manual test run (2026-04-09, exit code 0):**
+- 21,833 features geocoded and appended to TempCallLayer
+- 11 features updated with geometry → AGOL `CallsForService` feature service  
+- 11,574 features updated with attribute changes
+- Task awaiting 1 AM confirmation run
+
+### Discovered - Two-Pipeline Architecture Clarified
+
+During diagnosis, confirmed the production ESRI pipeline is split across two directories and GDBs:
+
+| Pipeline | Tool | GDB |
+|----------|------|-----|
+| Call Data (nightly) | `TransformCallData` | `C:\ESRIExport\LawEnforcementDataManagement_New\` |
+| Crime Data (manual only) | `Model1` | `C:\HPD ESRI\LawEnforcementDataManagement_New\` |
+
+**Crime Data has no scheduled task** — runs manually via ArcGIS Pro only. Automation is planned next session (see `docs/ai_handoff/HANDOFF_20260410_Crime_Data_Automation.md`).
+
+### Added - Session Handoff Documents
+- `docs/ai_handoff/HANDOFF_20260410_ESRI_Pipeline_Fixed.md` — morning verification guide with Cursor/Claude Code prompts
+- `docs/ai_handoff/HANDOFF_20260410_Crime_Data_Automation.md` — Crime Data automation implementation guide
+
+---
+
 ## [1.6.1] - 2026-02-16
 
 ### Fixed - Gap Record Calldate Values (Surgical API Update)

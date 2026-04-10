@@ -1,10 +1,10 @@
 # CAD/RMS Data Quality System
 
-**Version:** 1.6.1 ✅ (Gap Backfill Complete + Date Fix)
+**Version:** 1.7.1 (ESRI Pipeline Restored + Standards Audit Phases 1-3 Complete)
 **Created:** 2026-01-29
-**Updated:** 2026-02-16
+**Updated:** 2026-04-10
 **Author:** R. A. Carucci
-**Status:** ✅ v1.6.1 Released | Historical backfill 571,282 records | Gap dates corrected | Dashboard fully operational
+**Status:** ✅ v1.7.1 | Nightly Call Data pipeline fixed (2026-04-09) | Standards audit all 9 gaps closed | Crime Data automation pending
 
 ---
 
@@ -21,7 +21,24 @@ Unified data quality system for CAD (Computer-Aided Dispatch) and RMS (Records M
 
 ---
 
-## Latest Release: Gap Backfill Date Fix (v1.6.1)
+## Latest Release: Nightly ESRI Pipeline Restored (v1.7.1) — 2026-04-10
+
+### What Changed
+The `Publish Call Data_2026_NEW` Task Scheduler task on HPD2022LAWSOFT had been failing nightly since early February 2026. The task ran as `SYSTEM` (no ArcGIS license, no write access to `administrator.HPD\AppData`). Fixed by changing to `HPD\administrator / RunLevel: Highest`.
+
+**Nightly pipeline status (as of 2026-04-10):**
+| Task | Time | Status |
+|------|------|--------|
+| `LawSoftESRICADExport` | 12:30 AM | ✅ Working |
+| `LawSoftESRINIBRSExport` | 1:00 AM | ✅ Working |
+| `Publish Call Data_2026_NEW` | 1:00 AM | ✅ Fixed |
+| Crime Data publish | — | ⏳ Pending automation |
+
+**Next session:** See `docs/ai_handoff/HANDOFF_20260410_Crime_Data_Automation.md`
+
+---
+
+## Previous Release: Gap Backfill Date Fix (v1.6.1)
 
 ### The Challenge
 

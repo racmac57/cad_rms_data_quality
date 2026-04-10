@@ -1,0 +1,146 @@
+# Handoff: ESRI Nightly Pipeline — Fixed, Awaiting Confirmation
+
+**Date:** 2026-04-10  
+**Status:** Fix applied. Verify 1 AM run result at start of session.  
+**Repo:** `C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality`  
+**Server:** HPD2022LAWSOFT (10.0.0.157) — RDP as `HPD\administrator`
+
+---
+
+## Opening Prompt — Cursor
+
+Paste this as your first message in a new Cursor chat:
+
+```
+Read C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\docs\ai_handoff\HANDOFF_20260410_ESRI_Pipeline_Fixed.md before responding.
+
+Context: I'm doing a morning-after check on a nightly ESRI pipeline fix we applied last night on HPD2022LAWSOFT (10.0.0.157). We changed the "Publish Call Data_2026_NEW" Task Scheduler task from running as SYSTEM to HPD\administrator. The task ran at 1:00 AM and I need to verify it succeeded.
+
+Step 1: Walk me through checking the task result on the server (I'll RDP and run commands). Step 2: If it failed, help me diagnose from the ArcGIS log file. Step 3: If it succeeded, move to planning the Crime Data scheduled task — see HANDOFF_20260410_Crime_Data_Automation.md.
+```
+
+## Opening Prompt — Claude Code
+
+Run `claude` from the repo root, then paste:
+
+```
+I'm starting a morning-after verification session for the ESRI nightly pipeline. Read docs/ai_handoff/HANDOFF_20260410_ESRI_Pipeline_Fixed.md for full context.
+
+The "Publish Call Data_2026_NEW" Task Scheduler task on HPD2022LAWSOFT was changed last night from SYSTEM/Limited to HPD\administrator/Highest. I need to:
+1. Verify the 1 AM run succeeded (LastTaskResult = 0)
+2. If it failed, read the ArcGIS XML log and diagnose
+3. If it succeeded, plan the Crime Data automation task
+
+I will RDP to the server and run PowerShell commands as you direct. Start with the verification commands.
+```
+
+---
+
+## What Was Fixed (2026-04-09 Session)
+
+### Root Cause
+The `Publish Call Data_2026_NEW` Task Scheduler task had been running as **SYSTEM (Local System, S-1-5-18)** since setup. SYSTEM cannot write to `C:\Users\administrator.HPD\AppData\...` and has no ArcGIS Named User license. This caused a `PermissionError` in `task.py`'s `finally` block when writing the XML log — resulting in Python exit code 1 every night since ~early February 2026.
+
+### Fix Applied
+```powershell
+schtasks /change /tn "Publish Call Data_2026_NEW" /ru "HPD\administrator" /rp <password> /rl HIGHEST
+# Also: pythonw.exe → python.exe in the task action
+```
+
+**Confirmed task settings after fix:**
+```
+User      : administrator (HPD\administrator)
+RunLevel  : Highest
+Executable: C:\Program Files\ArcGIS\Pro\bin\Python\envs\arcgispro-py3\python.exe
+Script    : C:\Users\administrator.HPD\AppData\Local\ESRI\ArcGISPro\Geoprocessing\ScheduledTools\Publish Call Data_2026_NEW\task.py
+```
+
+### Manual Test Run (same session) — Confirmed Exit Code 0
+- 21,833 features geocoded and appended to `TempCallLayer`
+- 11 features updated with geometry → AGOL `CallsForService` feature service
+- 11,574 features updated with attribute changes
+- Two `DeprecationWarning` lines are **harmless** (Python 3.12 `datetime.utcnow()` in auto-generated task.py)
+
+---
+
+## Morning Verification (Run on RDP)
+
+```powershell
+# Step 1 — Task result
+Get-ScheduledTaskInfo -TaskName "Publish Call Data_2026_NEW" |
+    Select-Object LastRunTime, LastTaskResult, NextRunTime
+# SUCCESS = LastTaskResult: 0
+
+# Step 2 — ArcGIS XML log (written by task.py itself)
+Get-ChildItem "C:\Users\administrator.HPD\AppData\Local\ESRI\ArcGISPro\Geoprocessing\ScheduledTools\Logs" |
+    Sort-Object LastWriteTime -Descending | Select-Object -First 3 Name, LastWriteTime
+
+# Step 3 — Read the log (replace filename with most recent from Step 2)
+# [System.Xml.Linq.XDocument]::Load("C:\Users\administrator.HPD\AppData\Local\ESRI\ArcGISPro\Geoprocessing\ScheduledTools\Logs\<filename>.log") | Out-String
+```
+
+---
+
+## Architecture Reference
+
+### Two Pipelines — Two GDBs
+
+| Pipeline | Tool | GDB | Input | Scheduled? |
+|----------|------|-----|-------|------------|
+| Call Data | `TransformCallData` | `C:\ESRIExport\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb` | `ESRI_CADExport.xlsx` | Yes — `Publish Call Data_2026_NEW` (**now fixed**) |
+| Crime Data | `Model1` | `C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb` | `ESRI_NIBRSExport.xlsx` | **No — manual only** |
+
+Both models live in: `C:\ESRIExport\LawEnforcementDataManagement_New\LawEnforcementDataManagement.atbx`
+
+### Nightly Task Schedule
+| Time | Task | Status |
+|------|------|--------|
+| 12:30 AM | `LawSoftESRICADExport` — copies ESRI_CADExport.xlsx | Working |
+| 1:00 AM | `LawSoftESRINIBRSExport` — copies ESRI_NIBRSExport.xlsx | Working |
+| 1:00 AM | `Publish Call Data_2026_NEW` — runs TransformCallData | **Fixed 2026-04-09** |
+| None | Crime Data publish | **Does not exist** |
+
+### task.py Behavior Notes
+- Auto-generated by ArcGIS Pro "Schedule Geoprocessing" feature
+- `except: pass` silently swallows all ArcPy errors — check XML log for true status
+- XML log written to `C:\Users\administrator.HPD\AppData\Local\ESRI\ArcGISPro\Geoprocessing\ScheduledTools\Logs\`
+- Log status field: `4` = success, `5` = ArcPy import failure (license issue)
+- **Do not modify task.py** — ArcGIS Pro overwrites it on re-export
+
+### Key Paths on Server
+```
+C:\ESRIExport\LawEnforcementDataManagement_New\   ← Call Data pipeline home
+C:\HPD ESRI\LawEnforcementDataManagement_New\     ← Crime Data pipeline home
+C:\HPD ESRI\Publish_Call_Data_2026_FINAL.py       ← Exists but NOT used (debugging artifact)
+C:\HPD ESRI\04_Scripts\                           ← Many Feb 2026 debugging scripts
+C:\Program Files\FileMaker\FileMaker Server\Data\Documents\ESRI\  ← Live exports
+```
+
+### AGOL References
+| Item | Value |
+|------|-------|
+| Org | https://hpd0223.maps.arcgis.com |
+| Calls For Service feature service | `CallsForService_2153d1ef33a0414291a8eb54b938507b/FeatureServer/0` |
+| Crimes feature service | `Crimes_2153d1ef33a0414291a8eb54b938507b/FeatureServer/0` |
+
+---
+
+## If 1 AM Run Failed (LastTaskResult ≠ 0)
+
+**Check the XML log** for `status` attribute:
+- `status="4"` = ArcPy ran successfully
+- `status="5"` = ArcPy couldn't import (license failure — task still running as wrong account?)
+- `status="0"` with empty messages = exception was caught and swallowed
+
+**Most likely failure modes:**
+1. Password expired for `HPD\administrator` → update task credential
+2. AGOL session token expired → sign in to ArcGIS Pro on the server interactively once
+3. GDB locked from prior run → check for `.wr.lock` files in `C:\ESRIExport\...\LawEnforcementDataManagement.gdb`
+
+---
+
+## Next Steps After Verification
+
+1. ✅ Confirm `LastTaskResult: 0`
+2. → Move to `HANDOFF_20260410_Crime_Data_Automation.md` to schedule Crime Data
+3. → Resolve `2026_02_RMS.xlsx` is 0 bytes (needs regeneration from LawSoft before April monthly validation)
