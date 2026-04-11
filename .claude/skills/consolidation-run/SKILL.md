@@ -24,7 +24,7 @@ Read `config/consolidation_sources.yaml` and check:
 
 ```bash
 # Show configured sources and their expected counts
-python3 -c "
+python -c "
 import yaml
 with open('config/consolidation_sources.yaml') as f:
     cfg = yaml.safe_load(f)
@@ -62,7 +62,7 @@ ls -la consolidation/reports/
 ### 4. Dependencies available
 
 ```bash
-python3 -c "import pandas, yaml, openpyxl, numpy; print('All dependencies OK')"
+python -c "import pandas, yaml, openpyxl, numpy; print('All dependencies OK')"
 ```
 
 ## If `--dry-run`: stop here and report pre-flight results.
@@ -87,7 +87,7 @@ If this fails because the script expects Windows paths (OneDrive), tell the user
 LATEST=$(ls -td consolidation/reports/*/  | head -1)
 echo "Latest report: $LATEST"
 cat "${LATEST}consolidation_summary.txt"
-cat "${LATEST}consolidation_metrics.json" | python3 -m json.tool
+cat "${LATEST}consolidation_metrics.json" | python -m json.tool
 ```
 
 ### 2. Validate against thresholds
