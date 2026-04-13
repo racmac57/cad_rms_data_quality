@@ -1,0 +1,367 @@
+The process is still working, just not printing anything. This phase can take 2-5 minutes. ## PowerShell Buffer Limit:
+
+Yes! PowerShell has a **screen buffer limit** (default: 3000 lines). Your early commands have scrolled off. This is **normal** and doesn't mean anything is wrong. ---
+
+## 🔍 Diagnostic Commands (Run in NEW PowerShell):
+
+```powershell
+# 1. Check if Python process is ACTIVELY running (CPU should be changing)
+Get-Process python* | Select-Object ProcessName, Id, CPU, WorkingSet
+
+# Wait 5 seconds, then run again to see if CPU is INCREASING
+Start-Sleep -Seconds 5
+Get-Process python* | Select-Object ProcessName, Id, CPU, WorkingSet
+
+# 2. Check lock file
+Test-Path "C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\_LOCK.txt"
+
+# 3. Check if staging file was modified recently (should show recent timestamp)
+Get-Item "C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\ESRI_CADExport.xlsx" | Select-Object LastWriteTime
+```
+
+---
+
+## What to Look For:
+
+✅ **Process IS working if:**
+- CPU time **increases** between the two checks
+- Lock file returns `True`
+- Python process exists
+
+❌ **Process IS stalled if:**
+- CPU time **stays the same** (frozen)
+- No Python process found
+
+---
+
+Run those commands and tell me what you see! ---
+
+**User**
+
+PS C:\Users\administrator.HPD> # 1. Check if Python process is ACTIVELY running (CPU should be changing)
+>> Get-Process python* | Select-Object ProcessName, Id, CPU, WorkingSet
+>>
+>> # Wait 5 seconds, then run again to see if CPU is INCREASING
+>> Start-Sleep -Seconds 5
+>> Get-Process python* | Select-Object ProcessName, Id, CPU, WorkingSet
+>>
+>> # 2. Check lock file
+>> Test-Path "C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\_LOCK.txt"
+>>
+>> # 3. Check if staging file was modified recently (should show recent timestamp)
+>> Get-Item "C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\ESRI_CADExport.xlsx" | Select-Object LastWriteTime
+
+ProcessName    Id          CPU WorkingSet
+-----------    --          --- ----------
+python      13788  22527.46875  180310016
+python      13788 22527.484375  179585024
+True
+
+
+
+PS C:\Users\administrator.HPD>
+PS C:\Users\administrator.HPD>
+
+---
+
+**Cursor**
+
+## ⚠️ CONCERN: Process Appears Stalled
+
+The diagnostic results show:
+
+**🔴 RED FLAG:**
+- CPU only increased by **0.015 seconds** over 5 seconds
+- This is **extremely low** - a healthy process should show much more activity
+
+**✅ Process is alive:**
+- Lock file exists
+- Python process (ID 13788) is running
+
+---
+
+## What This Means:
+
+The process is **alive but not actively processing**. It's likely:
+1. **Stuck in a loop** or hung operation
+2. **Waiting for I/O** (disk/network bottleneck)
+3. **Deadlocked** in the ArcGIS Pro tool
+
+---
+
+## 🔍 Check the Original Orchestrator Window:
+
+**Go back to the RDP PowerShell window where you ran the backfill** and:
+
+1. **Scroll to the bottom** - What's the last line shown? 2. **Is it still showing geocoding warnings**, or has it moved past that? If it's **still frozen at feature 564916** with no new output for 10+ minutes, the process is **stalled**. ---
+
+## 💡 Your Options:
+
+### Option 1: Wait Another 5 Minutes
+If you haven't been stuck for more than 15 minutes total, give it a bit more time. The "Join" operation after geocoding can be slow. ### Option 2: Kill and Retry (If Stuck > 15 Min)
+If it's been frozen for 15+ minutes:
+
+```powershell
+# Kill the process
+Stop-Process -Id 13788 -Force
+
+# Remove lock file
+Remove-Item "C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\_LOCK.txt" -Force
+```
+
+---
+
+**How long has it been since you saw the last warning (564916)? ** If it's been more than 15 minutes with no change, we should kill it. ---
+
+**User**
+
+WARNING 000635: Skipping feature 563007 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 563095 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 564135 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 564295 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 564883 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 564916 because of NULL or EMPTY geometry. the last line has not changed in 10 or so minutes. ---
+
+**Cursor**
+
+## ⚠️ CONFIRMED: Process is Stalled
+
+With **10+ minutes frozen** and **near-zero CPU activity**, the process is definitely hung. This is the same behavior as last night's failed run. ---
+
+## 🛑 Kill the Process Now
+
+Run these commands in your **new PowerShell window**:
+
+```powershell
+# 1. Kill the Python process
+Stop-Process -Id 13788 -Force
+
+# 2. Remove the lock file
+Remove-Item "C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\_LOCK.txt" -Force
+
+# 3. Restore the default export to staging
+Copy-Item "C:\Program Files\FileMaker\FileMaker Server\Data\Documents\ESRI\ESRI_CADExport.xlsx" "C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\ESRI_CADExport.xlsx" -Force
+
+# 4. Verify cleanup
+Test-Path "C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\_LOCK.txt"
+# Should return: False
+```
+
+---
+
+## 🔍 Why Did It Hang? Looking at last night's log and tonight's behavior:
+
+**Likely Causes:**
+1. **Geodatabase lock** - ArcGIS Pro can't write to the feature layer
+2. **Network timeout** - Publishing to ArcGIS Online failed
+3. **Memory exhaustion** - 754K records overwhelmed the tool
+4. **ArcGIS Pro bug** - The tool has a known issue with large datasets
+
+---
+
+## 💡 Your Options Now:
+
+### Option 1: Abort for Today (RECOMMENDED - Given Time Constraint)
+- You're out of time
+- Same failure as last night (hung at geocoding completion)
+- Dashboard still has yesterday's data (will update tonight at 12:30 AM with daily export)
+
+### Option 2: Retry with Smaller Dataset (RISKY - May Still Hang)
+- Use a smaller date range (e.g., 2024-2026 only, ~100K records)
+- Still might hang, but faster if it works
+
+### Option 3: Investigate the Root Cause (TOMORROW)
+Check if there's a geodatabase lock or ArcGIS Online connectivity issue
+
+---
+
+## 📋 What Should You Do? Given your time constraint and two consecutive failures, I recommend:
+
+**For Tonight:**
+1. Kill the process (commands above)
+2. Let the scheduled task run at 12:30 AM (will update with today's data)
+
+**For Tomorrow:**
+- Investigate why the process hangs at geocoding completion
+- Check geodatabase locks, ArcGIS Online connectivity
+- Consider alternative approach (smaller batches, API upload)
+
+---
+
+**Do you want to kill the process now and call it a night? **
+
+---
+
+**User**
+
+WARNING 000635: Skipping feature 564883 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 564916 because of NULL or EMPTY geometry. [ERROR] Publish Call Data tool failed with exit code -1
+
+[ERROR] Workflow failed: Publish tool failed
+
+Attempting emergency restore of default export...
+[OK] Emergency restore completed
+
+[8] Cleaning up...
+PS C:\HPD ESRI\04_Scripts>
+
+---
+
+**Cursor**
+
+## ❌ BACKFILL FAILED - But Emergency Restore Worked! Good news: The orchestrator's **emergency restore** worked correctly! Your system is back to normal state. ---
+
+## ✅ Verify Cleanup
+
+Run these checks to confirm everything is clean:
+
+```powershell
+# 1. Lock file should be GONE
+Test-Path "C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\_LOCK.txt"
+# Should return: False
+
+# 2. Staging file should be restored to default export
+Get-Item "C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\ESRI_CADExport.xlsx" | Select-Object LastWriteTime, Length
+# Should show: 2/4/2026 12:30 AM (today's FileMaker export)
+
+# 3. No Python processes should be running
+Get-Process python* -ErrorAction SilentlyContinue
+# Should return nothing
+```
+
+---
+
+## 🔍 What Happened:
+
+The backfill process **hung after geocoding** and the orchestrator correctly:
+1. Detected the failure (exit code -1)
+2. Restored the default export to staging
+3. Cleaned up the lock file
+4. Exited gracefully
+
+**The dashboard is safe** - tonight's scheduled task at 12:30 AM will run normally. ---
+
+## 📋 Next Steps:
+
+### Tonight (Done):
+✅ Emergency restore completed  
+✅ System back to normal  
+✅ Daily task will run at 12:30 AM as usual
+
+### Tomorrow - Investigation Needed:
+
+The process is **consistently hanging** at the same point. We need to investigate:
+
+1. **Check ArcGIS Pro logs** for the actual error:
+   ```powershell
+   # Check for geoprocessing errors
+   Get-ChildItem "C:\Users\administrator.HPD\AppData\Local\ESRI\Desktop*\Staging\*.log" | 
+       Sort-Object LastWriteTime -Descending | 
+       Select-Object -First 3
+   ```
+
+2. **Check geodatabase locks**
+3. **Test with smaller dataset** (2024-2026 only, ~100K records)
+4. **Consider alternative approaches** (API upload, batch processing)
+
+---
+
+**For now, you're done for the night. The system is stable and will update normally at 12:30 AM. **
+
+---
+
+**User**
+
+>> Stop-Process -Id 13788 -Force
+>>
+>> # 2. Remove the lock file
+>> Remove-Item "C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\_LOCK.txt" -Force
+>>
+>> # 3. Restore the default export to staging
+>> Copy-Item "C:\Program Files\FileMaker\FileMaker Server\Data\Documents\ESRI\ESRI_CADExport.xlsx" "C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\ESRI_CADExport.xlsx" -Force
+>>
+>> # 4. Verify cleanup
+>> Test-Path "C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\_LOCK.txt"
+>> # Should return: False
+False
+PS C:\Users\administrator.HPD> # 1. Lock file should be GONE
+>> Test-Path "C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\_LOCK.txt"
+>> # Should return: False
+>>
+>> # 2. Staging file should be restored to default export
+>> Get-Item "C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\ESRI_CADExport.xlsx" | Select-Object LastWriteTime, Length
+>> # Should show: 2/4/2026 12:30 AM (today's FileMaker export)
+>>
+>> # 3. No Python processes should be running
+>> Get-Process python* -ErrorAction SilentlyContinue
+>> # Should return nothing
+False
+
+LastWriteTime        Length
+-------------        ------
+2/5/2026 12:30:04 AM 245154
+
+
+PS C:\Users\administrator.HPD>
+
+---
+
+**Cursor**
+
+Perfect! The cleanup is complete and verified:
+
+✅ **Lock file removed** - False (gone)  
+✅ **Staging file restored** - 2/5/2026 12:30:04 AM (today's fresh FileMaker export)  
+✅ **No Python processes** - All cleaned up  
+
+The system is now stable and ready for the nightly automated task. ---
+
+## Investigation Needed - Why Did It Hang? The backfill consistently stalls at feature 564916 (end of geocoding phase). This is the second time it's failed at this exact point. Let's investigate:
+
+### Check ArcGIS Pro Logs
+
+Run these commands to find the actual error:
+
+```powershell
+# 1. Find recent geoprocessing logs
+Get-ChildItem "C:\Users\administrator.HPD\AppData\Local\ESRI\Desktop*\Staging\*.log" |
+    Sort-Object LastWriteTime -Descending |
+    Select-Object -First 5 |
+    ForEach-Object { 
+        Write-Host "`n=== $($_.Name) ===" -ForegroundColor Cyan
+        Get-Content $_.FullName -Tail 50
+    }
+
+# 2. Check for Python crash dumps
+Get-ChildItem "C:\HPD ESRI\04_Scripts\*.dmp" -ErrorAction SilentlyContinue |
+    Sort-Object LastWriteTime -Descending |
+    Select-Object -First 3
+
+# 3. Check Windows Event Log for ArcGIS crashes
+Get-EventLog -LogName Application -Source "ArcGIS*" -Newest 10 -After (Get-Date).AddHours(-2) -ErrorAction SilentlyContinue |
+    Format-Table TimeGenerated, EntryType, Message -AutoSize
+```
+
+### Possible Root Causes
+
+Based on the symptoms (hangs after geocoding at feature 564916):
+
+1. **Geodatabase lock** - Another process holding a lock on `CAD_Data.gdb`
+2. **Memory exhaustion** - 754K records might exceed available RAM
+3. **ArcGIS Online timeout** - Upload phase stalling on network
+4. **Corrupt geometry** - Feature 564916 triggering an unhandled exception
+
+---
+
+## Alternative Approaches (If Logs Don't Help)
+
+### Option 1: Smaller Test Dataset (Recommended First)
+
+Try with just 2024-2026 data (~100K records) to isolate the issue:
+
+```powershell
+# Create a test subset on local machine first
+# Then try backfill with smaller file
+```
+
+### Option 2: Batch Processing
+
+Split the 754K records into smaller chunks (e.g., 100K each), publish sequentially. ### Option 3: API Upload (Most Reliable)
+
+Bypass the Model Builder tool entirely - upload directly to ArcGIS Online via REST API. This would require development work but would be more reliable. ---
+
+## What Should You Do Now?

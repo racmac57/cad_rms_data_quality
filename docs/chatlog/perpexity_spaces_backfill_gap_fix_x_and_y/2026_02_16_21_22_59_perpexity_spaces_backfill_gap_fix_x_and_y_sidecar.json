@@ -1,0 +1,159 @@
+{
+  "source_file": "perpexity_spaces_backfill_gap_fix_x_and_y.md",
+  "source_path": "C:\\_chunker\\02_data\\perpexity_spaces_backfill_gap_fix_x_and_y.md",
+  "manifest_path": "C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\KB_Shared\\04_output\\perpexity_spaces_backfill_gap_fix_x_and_y\\2026_02_16_21_22_59_perpexity_spaces_backfill_gap_fix_x_and_y.origin.json",
+  "created_at": "2026_02_16_21_22_59",
+  "tags": [
+    "ai",
+    "code",
+    "conversation",
+    "data",
+    "docs",
+    "excel",
+    "it-ops",
+    "json",
+    "legal",
+    "markdown",
+    "police",
+    "powershell",
+    "python",
+    "sql"
+  ],
+  "metadata": {
+    "project_name": "02_data",
+    "source_type": "documentation",
+    "language": "en",
+    "department": "admin",
+    "key_terms": [
+      "records",
+      "print",
+      "script",
+      "calldate",
+      "you",
+      "step"
+    ],
+    "enrichment_version": "1.0.0"
+  },
+  "summaries": {
+    "file_summary": "Finance\n\n\nESRI Backfill\nSection A: Optimized Prompt\n<optimized_prompt>\n<role>Senior Data Engineer (Law Enforcement Systems & RAG Operations)</role>\n<context>\nThe user is managing a Knowledge Base/RAG system backfill operation within a Wi...",
+    "first_line": "Finance"
+  },
+  "chunks": [
+    {
+      "chunk_id": "2026-02-16T21:22:59+00:00_perpexity_spaces_backfill_gap_fix_x_and_y_chunk1",
+      "chunk_index": 1,
+      "file": "chunk_00000.txt",
+      "tags": [
+        "2026-02-16",
+        "ai",
+        "ai-chat",
+        "backfill",
+        "check",
+        "code",
+        "conversation",
+        "data",
+        "docs",
+        "excel",
+        "info",
+        "it-ops",
+        "json",
+        "legal",
+        "markdown",
+        "police",
+        "powershell",
+        "python",
+        "records",
+        "sql",
+        "step"
+      ],
+      "key_terms": [
+        "records",
+        "2026-02-16",
+        "step",
+        "check",
+        "info",
+        "backfill"
+      ],
+      "summary": "Finance\n\n\nESRI Backfill\nSection A: Optimized Prompt\n<optimized_prompt>\n<role>Senior Data Engineer (Law Enforcement Systems & RAG Operations)</role>\n<context>\nThe user is managing a Knowledge Base/RAG system backfill operation within a Wi...",
+      "char_length": 30032,
+      "byte_length": 30869
+    },
+    {
+      "chunk_id": "2026-02-16T21:22:59+00:00_perpexity_spaces_backfill_gap_fix_x_and_y_chunk2",
+      "chunk_index": 2,
+      "file": "chunk_00001.txt",
+      "tags": [
+        "ai",
+        "calldate",
+        "code",
+        "conversation",
+        "data",
+        "datetime",
+        "docs",
+        "excel",
+        "fields",
+        "it-ops",
+        "json",
+        "legal",
+        "markdown",
+        "police",
+        "powershell",
+        "print",
+        "python",
+        "records",
+        "script",
+        "sql"
+      ],
+      "key_terms": [
+        "print",
+        "records",
+        "calldate",
+        "script",
+        "datetime",
+        "fields"
+      ],
+      "summary": "Step 1: Check What Tables Have the Real Dates\npython\nimport arcpy\n\nworkspace = r\"C:\\HPD ESRI\\LawEnforcementDataManagement_New\\LawEnforcementDataManagement.gdb\"\narcpy.env.workspace = workspace\n\nprint(\"=\"*80)\nprint(\"FIND: Tables with Gap C...",
+      "char_length": 29840,
+      "byte_length": 30789
+    },
+    {
+      "chunk_id": "2026-02-16T21:22:59+00:00_perpexity_spaces_backfill_gap_fix_x_and_y_chunk3",
+      "chunk_index": 3,
+      "file": "chunk_00002.txt",
+      "tags": [
+        "ai",
+        "baseline",
+        "calldate",
+        "code",
+        "conversation",
+        "data",
+        "dispatchtime",
+        "docs",
+        "excel",
+        "it-ops",
+        "json",
+        "legal",
+        "local",
+        "markdown",
+        "police",
+        "powershell",
+        "python",
+        "script",
+        "sql",
+        "wrong"
+      ],
+      "key_terms": [
+        "script",
+        "calldate",
+        "wrong",
+        "dispatchtime",
+        "local",
+        "baseline"
+      ],
+      "summary": "Out-of-range dispatchtime handling leaves stale values (MEDIUM PRIORITY)\n   - If computed dispatchtime is negative or >1440 min, script skips update\n   - Risk: Correct calldate but WRONG dispatchtime/responsetime (built from old bad call...",
+      "char_length": 3686,
+      "byte_length": 3790
+    }
+  ],
+  "enrichment_version": "1.0.0"
+}

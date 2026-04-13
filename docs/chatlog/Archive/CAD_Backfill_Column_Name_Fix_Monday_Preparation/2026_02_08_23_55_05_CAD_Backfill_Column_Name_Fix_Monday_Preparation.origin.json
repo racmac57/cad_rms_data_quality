@@ -1,0 +1,41 @@
+{
+  "tags": [
+    "ai",
+    "code",
+    "conversation",
+    "docs",
+    "excel",
+    "it-ops",
+    "json",
+    "markdown",
+    "police",
+    "powershell",
+    "python",
+    "sql",
+    "training"
+  ],
+  "metadata_enrichment": {
+    "metadata": {
+      "project_name": "02_data",
+      "source_type": "documentation",
+      "language": "en",
+      "department": "admin",
+      "key_terms": [
+        "esri",
+        "hpd",
+        "true",
+        "gdb",
+        "file",
+        "lawenforcementdatamanagement_new"
+      ],
+      "enrichment_version": "1.0.0"
+    },
+    "summaries": {
+      "file_summary": "# ArcGIS Pro CAD backfill setup\n_Exported on 2/8/2026 at 23:54:39 EST from Cursor (2.4.31)_\n\n---\n\n**User**\n\n@CHANGELOG.md @README.md @SUMMARY.md @BACKFILL_TONIGHT_CHECKLIST.md @ArcGIS_Pro_CAD_Backfill_Setup_Guide.md \nI am at my desktop t...",
+      "first_line": "# ArcGIS Pro CAD backfill setup"
+    },
+    "enrichment_version": "1.0.0"
+  },
+  "last_processed_at": "2026-02-08T23:55:05.468361",
+  "department": "admin"
+}

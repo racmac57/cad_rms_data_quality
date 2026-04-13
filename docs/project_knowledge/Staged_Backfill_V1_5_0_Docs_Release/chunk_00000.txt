@@ -1,0 +1,586 @@
+# ArcGIS data staged backfill strategy
+_Exported on 2/6/2026 at 18:15:17 EST from Cursor (2.4.28)_
+
+---
+
+**User**
+
+Role: Senior Data Engineer / ArcGIS Automation Specialist
+Task: Implement a "Staged Backfill" system to resolve the silent hang during the 754K record upload. Context & Files:
+Primary Reference: @BACKFILL_INVESTIGATION_20260205.md (Failure analysis) and @BACKFILL_PERFORMANCE_OPTIMIZATION_PLAN.md (Strategic goal). Current Logic: @Invoke-CADBackfillPublish.ps1 and @run_publish_call_data.py. Data Source: @CAD_ESRI_Polished_Baseline_20190101_20260203.xlsx. Constraint: Use "With Codebase" to analyze the existing ArcGIS Pro tool alias (TransformCallData_tbx1) confirmed in @SUMMARY.md. Implementation Steps (Plan Mode first):
+Batching Logic: Modify the orchestrator logic to split the 754,409 records into chronological batches (e.g., 50,000 records or 1-year increments). Checkpoint System: Create a small JSON state file (e.g., backfill_progress.json) to track which years/batches have been successfully published. Script Modification:
+Update @Invoke-CADBackfillPublish.ps1 to accept a -BatchSize parameter. Update @run_publish_call_data.py to handle "Append" vs "Overwrite" logic if the ArcGIS tool supports it, otherwise, implement a "Stage-then-Merge" approach in ArcGIS Online. Memory Management: Add a mandatory Start-Sleep of 60 seconds between batches to allow the server's geoprocessing workers and memory to clear. Error Recovery: If a batch fails, the script must log the specific record range and preserve the lock for manual inspection without wiping the staging directory. Expected Behavior: Instead of a 75-minute monolithic run that hangs, the system should perform ~15 smaller, 5-minute runs that are logged individually. Next Step: Propose the Python logic for chunking the Excel file into batches without losing the header schema. Once I approve the chunking strategy, proceed to Act Mode to modify the PowerShell orchestrator. Gemini AI provided:
+@docs/chatlog/Gemini_ArcGIS_CAD_Historical_Data_Staged_Backfill_Strategy 
+
+---
+
+**Cursor**
+
+I'll help you implement a staged backfill system to resolve the 754K record upload hang. Let me switch to Plan Mode first to design the solution, then we'll proceed to implementation. I'll analyze the current backfill system and design a staged approach. Let me gather the necessary context first. Now let me read the Gemini chatlog to see their recommendations:
+
+Now let me check the config.json structure to understand the current tool configuration:
+
+Perfect! Now I have all the context. Let me ask some critical questions before creating the plan:
+
+Based on the comprehensive context, I'll create a detailed plan using Gemini's recommendations as the baseline (50K fixed batches, 60-second cooling, marker file approach) while incorporating improvements based on your existing codebase architecture. ## Staged Backfill Implementation Plan
+
+### Executive Summary
+
+The current monolithic backfill hangs at feature 564,916 (75% complete) due to network timeout during geocoding or ArcGIS Online upload. The solution is to split the 754,409-record baseline into 15-16 batches of ~50,000 records each, processing them sequentially with memory cooling periods between runs. **Expected Results:**
+- Current: 75-minute run → silent hang → failure
+- Proposed: 15-16 batches × 5-7 minutes = 75-112 minutes total with **guaranteed completion**
+- Each batch publishes independently, eliminating the "all-or-nothing" risk
+
+---
+
+### Architecture Overview
+
+```mermaid
+flowchart TD
+    subgraph prep [Phase 1: Local Preparation]
+        baseline[CAD_ESRI_Polished_Baseline<br/>754,409 records<br/>76.1 MB]
+        splitter[split_baseline_into_batches.py]
+        baseline --> splitter
+        splitter --> batch_files[Batch Files<br/>BATCH_01 through BATCH_16<br/>~50K records each]
+    end
+    
+    subgraph server [Phase 2: Server Execution]
+        batch_files --> copy[Copy to Server<br/>C:\HPD ESRI\03_Data\CAD\Backfill\Batches]
+        copy --> orchestrator[Invoke-CADBackfillPublish.ps1<br/>-Staged Mode]
+        
+        orchestrator --> loop{For Each Batch}
+        loop --> swap[Atomic Swap to _STAGING]
+        swap --> marker{First Batch?} marker -->|Yes| overwrite[run_publish_call_data.py<br/>Overwrite Mode]
+        marker -->|No| append[run_publish_call_data.py<br/>Append Mode]
+        overwrite --> publish[TransformCallData_tbx1]
+        append --> publish
+        publish --> success{Success?} success -->|Yes| move[Move to Completed/]
+        success -->|No| fail[Halt & Preserve State]
+        move --> cool[Cool Down 60s]
+        cool --> loop
+        fail --> manual[Manual Investigation]
+    end
+    
+    subgraph cleanup [Phase 3: Cleanup]
+        move --> final_check{All Batches<br/>Complete?} final_check -->|Yes| remove_marker[Remove is_first_batch.txt]
+        remove_marker --> clear_staging[Clear Staging Files]
+        clear_staging --> ready[System Ready for<br/>Nightly Automation]
+    end
+```
+
+---
+
+### Implementation Plan
+
+#### **Phase 1: Create Python Batch Splitter** (Local Machine)
+
+**Location:** `c:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\scripts\split_baseline_into_batches.py`
+
+**New File Contents:**
+```python
+"""
+Batch Splitter for Staged ArcGIS Backfill
+==========================================
+Purpose: Split 754K record baseline into manageable chunks for sequential publishing
+Strategy: Fixed 50,000 record batches to prevent network timeout and memory issues
+Date: 2026-02-06
+"""
+import pandas as pd
+import json
+from pathlib import Path
+from datetime import datetime
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+def split_baseline_into_batches(
+    input_file: str,
+    output_dir: str,
+    batch_size: int = 50000,
+    create_manifest: bool = True
+):
+    """
+    Split large Excel baseline into sequential batches. Args:
+        input_file: Path to CAD_ESRI_Polished_Baseline_*.xlsx
+        output_dir: Directory to save batch files
+        batch_size: Records per batch (default 50,000)
+        create_manifest: Generate batch_manifest.json tracking file
+    
+    Returns:
+        dict: Batch metadata (count, filenames, record ranges)
+    """
+    input_path = Path(input_file)
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+    
+    logger.info(f"Reading baseline: {input_path.name}")
+    logger.info(f"File size: {input_path.stat().st_size / (1024**2):.2f} MB")
+    
+    # Load full dataset (requires ~400-500MB RAM for 754K records)
+    df = pd.read_excel(input_path, engine='openpyxl')
+    total_records = len(df)
+    
+    # Calculate batch count
+    num_batches = (total_records + batch_size - 1) // batch_size
+    
+    logger.info(f"Total records: {total_records:,}")
+    logger.info(f"Batch size: {batch_size:,}")
+    logger.info(f"Total batches: {num_batches}")
+    logger.info("")
+    
+    batch_metadata = []
+    
+    for i in range(num_batches):
+        start_idx = i * batch_size
+        end_idx = min((i + 1) * batch_size, total_records)
+        
+        # Extract chunk
+        chunk = df.iloc[start_idx:end_idx]
+        
+        # Get date range for this batch (for debugging)
+        if 'TimeOfCall' in chunk.columns:
+            min_date = pd.to_datetime(chunk['TimeOfCall']).min()
+            max_date = pd.to_datetime(chunk['TimeOfCall']).max()
+            date_range = f"{min_date.strftime('%Y-%m-%d')} to {max_date.strftime('%Y-%m-%d')}"
+        else:
+            date_range = "Unknown"
+        
+        # Generate batch filename
+        batch_num = i + 1
+        batch_filename = f"BATCH_{batch_num:02d}_records_{start_idx}_{end_idx}.xlsx"
+        batch_file_path = output_path / batch_filename
+        
+        # Save batch (preserving exact ESRI polished schema)
+        chunk.to_excel(batch_file_path, index=False, engine='openpyxl')
+        
+        file_size_mb = batch_file_path.stat().st_size / (1024**2)
+        
+        logger.info(f"✓ {batch_filename}")
+        logger.info(f"  Records: {len(chunk):,} | Size: {file_size_mb:.2f} MB | Date range: {date_range}")
+        
+        batch_metadata.append({
+            "batch_number": batch_num,
+            "filename": batch_filename,
+            "start_record": start_idx,
+            "end_record": end_idx,
+            "record_count": len(chunk),
+            "date_range": date_range,
+            "file_size_mb": round(file_size_mb, 2),
+            "status": "pending"
+        })
+    
+    # Create manifest file for tracking
+    if create_manifest:
+        manifest = {
+            "source_file": str(input_path),
+            "total_records": total_records,
+            "batch_size": batch_size,
+            "num_batches": num_batches,
+            "created_at": datetime.now().isoformat(),
+            "batches": batch_metadata
+        }
+        
+        manifest_path = output_path / "batch_manifest.json"
+        with open(manifest_path, 'w') as f:
+            json.dump(manifest, f, indent=2)
+        
+        logger.info("")
+        logger.info(f"✓ Manifest created: {manifest_path}")
+    
+    logger.info("")
+    logger.info("=" * 70)
+    logger.info("BATCH SPLITTING COMPLETE")
+    logger.info(f"Output directory: {output_path}")
+    logger.info(f"Total batches: {num_batches}")
+    logger.info(f"Total size: {sum(b['file_size_mb'] for b in batch_metadata):.2f} MB")
+    logger.info("=" * 70)
+    
+    return batch_metadata
+
+if __name__ == "__main__":
+    import sys
+    
+    # Default paths
+    baseline_file = r"C:\Users\carucci_r\OneDrive - City of Hackensack\13_PROCESSED_DATA\ESRI_Polished\base\CAD_ESRI_Polished_Baseline_20190101_20260203.xlsx
+
+---
+
+**User**
+
+Based on the strategy we just finalized in the previous session to resolve the "silent hang" at record 564,916, here are the recommended answers for your Cursor AI questions:
+
+---
+
+### 1. What batching strategy would you prefer for splitting the 754,409 records? **Recommended Answer: B (Fixed 50K records per batch)**
+
+* 
+**Reasoning:** The provided Python function `split_backfill_into_batches` was specifically designed to use a `batch_size=50000`. * 
+**Context:** This splits the 754K records into approximately 15 batches, which is intended to reset network sessions and memory overhead before reaching the failure point at feature 564,916. ### 2. How should we handle the append vs overwrite logic? **Recommended Answer: A (Marker file approach - `is_first_batch.txt`)**
+
+* 
+**Reasoning:** The refined `run_publish_call_data.py` script explicitly uses this marker file to toggle logic. * 
+**Context:** If the marker doesn't exist, the script performs an **Initial Overwrite** for Batch 01 and then creates the marker so all subsequent batches in that run trigger the **Append** mode. ### 3. What checkpoint/resume mechanism would you like? **Recommended Answer: A (Move completed batches to 'Completed' folder)**
+
+* 
+**Reasoning:** This logic was integrated into the `Invoke-CADBackfillPublish.ps1` orchestrator. * 
+**Context:** Moving successful files is a simple, effective way to resume; if the script stops at Batch 11, you simply re-run it, and it will automatically pick up with Batch 12 because the previous 10 are no longer in the source folder. ### 4. How long should the cooling period be between batches? **Recommended Answer: A (60 seconds)**
+
+* 
+**Reasoning:** Both the initial plan and the final PowerShell code set `$WaitTime = 60`. * 
+**Context:** This 60-second "Cool-down" is critical to allow ArcGIS Online to finish indexing the previous batch and to ensure the server's geoprocessing workers fully clear their memory. To ensure you can recover from a mid-run failure without restarting the entire 754K record process, here is the draft for the **Staged Backfill Resume Script**. This script leverages the "Completed" folder logic previously established in your orchestrator. ---
+
+## Staged Backfill Resume Script
+
+### `Resume-CADBackfill.ps1`
+
+```powershell
+# --- CONFIGURATION ---
+$BatchDir    = "C:\HPD ESRI\03_Data\CAD\Backfill\Batches"
+$StagingFile = "C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\ESRI_CADExport.xlsx"
+$MarkerPath  = "C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\is_first_batch.txt"
+$WaitTime    = 60 
+
+# --- RESUME LOGIC ---
+Write-Host "--- RESUMING STAGED BACKFILL ---" -ForegroundColor Cyan
+
+# 1. Check for remaining batches
+$remainingBatches = Get-ChildItem $BatchDir -Filter "BATCH_*.xlsx" | Sort-Object Name
+
+if ($remainingBatches.Count -eq 0) {
+    Write-Host "[!] No pending batches found in $BatchDir. Backfill may already be complete." -ForegroundColor Yellow
+    exit
+}
+
+# 2. Safety Check: Ensure the marker file exists if we are NOT on Batch 01
+# This prevents the system from accidentally triggering an 'Overwrite' mid-stream. if (-not (Test-Path $MarkerPath)) {
+    Write-Host "[!] Warning: is_first_batch.txt not found." -ForegroundColor Yellow
+    $confirm = Read-Host "Is this a resume of a previous run? (Y/N)"
+    if ($confirm -eq 'Y') {
+        "Sequence Resumed" | Out-File -FilePath $MarkerPath
+        Write-Host "[OK] Marker recreated to ensure APPEND mode." -ForegroundColor Green
+    }
+}
+
+# 3. Process Remaining Batches
+foreach ($batch in $remainingBatches) {
+    Write-Host "Processing $($batch.Name)..." -ForegroundColor Yellow
+    Copy-Item $batch.FullName $StagingFile -Force
+    
+    & python "C:\HPD ESRI\04_Scripts\run_publish_call_data.py"
+    
+    if ($LASTEXITCODE -eq 0) {
+        Move-Item $batch.FullName (Join-Path $BatchDir "Completed") -Force
+        Start-Sleep -Seconds $WaitTime
+    } else {
+        Write-Error "Batch $($batch.Name) failed. Check logs and staging file." break
+    }
+}
+
+Write-Host "--- RESUME SEQUENCE COMPLETE ---" -ForegroundColor Cyan
+
+```
+
+---
+
+### Key Features of the Resume Logic
+
+* 
+**Automatic Detection**: The script only targets files still sitting in the `$BatchDir`. Any file already moved to the `Completed` folder is ignored. * 
+**Marker Protection**: It includes a check for the `is_first_batch.txt` marker. This ensures that if you are resuming at Batch 05, the Python runner still identifies it as a "Subsequent Batch" and uses **Append** mode instead of accidentally wiping your progress with an **Overwrite**. * 
+**Atomic State**: By using the physical move of the `.xlsx` file as the "State," there is no risk of a database/JSON mismatch if the server reboots. > 
+> **Important Note**: Before running this, ensure the `_LOCK.txt` file from the failed session is manually removed from the `_STAGING` directory to avoid access denied errors. > 
+> 
+
+This Pre-Flight Checklist is designed to ensure the environment is correctly staged for the 754K record backfill, preventing the silent hangs and session timeouts encountered in previous attempts. ---
+
+## 📋 Staged Backfill Pre-Flight Checklist
+
+### 1. Data Preparation (Local Machine)
+
+* [ ] **Validation:** Ensure the master baseline `CAD_ESRI_Polished_Baseline_20190101_20260203.xlsx` is present on your local machine. * [ ] **Partitioning:** Run the `prepare_staged_batches` Python script to split the master file into ~15 batches of 50,000 records each. * [ ] **Verification:** Confirm that files named `BATCH_01.xlsx` through `BATCH_15.xlsx` exist in your local output directory. ### 2. Server Directory Setup
+
+* [ ] **Target Directory:** Create or verify the existence of `C:\HPD ESRI\03_Data\CAD\Backfill\Batches` on the server. * [ ] **Batch Transfer:** Upload all 15 batch files to the server's `\Batches` directory. * [ ] **Staging Area:** Ensure `C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\` exists and is empty. * [ ] **Checkpoint Folder:** Create a `\Completed` subfolder within the `\Batches` directory to store processed files. ### 3. Environment Sanitization
+
+* [ ] **Lock Check:** Manually delete `_LOCK.txt` from the `_STAGING` folder if it exists from a previous failed run. * [ ] **Marker Reset:** Delete `is_first_batch.txt` from the `_STAGING` folder to ensure the sequence starts with an **Initial Overwrite**. * [ ] **Nightly Task Pause:** Verify that the 12:30 AM nightly automation task will not conflict with the backfill window. ### 4. Script & Tool Verification
+
+* [ ] **Config Check:** Verify that `C:\HPD ESRI\04_Scripts\config.json` contains the correct `toolbox_path`. * [ ] **ArcPy Toolbox:** Confirm the ArcGIS Pro tool alias `tbx1` (TransformCallData_tbx1) is accessible in the server environment. * [ ] **Append Logic:** Open the `TransformCallData_tbx1` tool in ArcGIS Pro and ensure it is configured to **Append** data if the target feature class is not empty. ### 5. Execution Parameters
+
+* [ ] **Cooling Period:** Confirm the `$WaitTime` is set to `60` seconds in `Invoke-CADBackfillPublish.ps1` to prevent API throttling. * [ ] **Python Path:** Ensure the PowerShell script is calling the correct `python.exe` path for the ArcGIS Pro environment. To ensure the integrity of the data after the **Staged Backfill Strategy** is complete, this **Post-Execution Validation** script will verify that the total record count in your ArcGIS Online feature layer matches the expected **754,409** records. This script uses `ArcPy` to query the live service and provides a status report to confirm that no records were lost during the batch transitions. ---
+
+## Post-Execution Validation Script
+
+### `Validate-CADBackfillCount.py`
+
+```python
+import arcpy
+import json
+import logging
+import os
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
+logger = logging.getLogger(__name__)
+
+def validate_backfill():
+    """
+    Validates the final record count in ArcGIS Online against the expected baseline.
+    """ # 1. Load Configuration for Service URL
+    config_path = r"C:\HPD ESRI\04_Scripts\config.json"
+    if not os.path.exists(config_path):
+        logger.error(f"Config not found at {config_path}")
+        return
+
+    with open(config_path, 'r') as f:
+        config = json.load(f)
+    
+    # Use the target layer defined in your config (e.g., LawSoft_CAD_Calls)
+    target_layer = config.get('target_service_url')
+    [cite_start]expected_total = 754409  # Total records from the polished baseline [cite: 14]
+
+    logger.info("--- INITIATING POST-EXECUTION VALIDATION ---")
+    
+    try:
+        # 2. Get the current count from ArcGIS Online
+        # Using GetCount_management on the service URL
+        result = arcpy.management.GetCount(target_layer)
+        actual_count = int(result.getOutput(0))
+
+        # 3. Comparison Logic
+        diff = actual_count - expected_total
+        
+        if actual_count == expected_total:
+            logger.info(f"SUCCESS: Record count matches baseline exactly ({actual_count:,}).") elif actual_count > expected_total:
+            logger.warning(f"OVERAGE: Found {actual_count:,} records. (Diff: +{diff:,}). Check for batch overlaps.") else:
+            logger.error(f"UNDERAGE: Found {actual_count:,} records. (Diff: {diff:,}). Some batches may have failed.") logger.info(f"Validation Target: {expected_total:,}")
+        logger.info(f"Actual Service Count: {actual_count:,}")
+
+    except Exception as e:
+        logger.error(f"Validation failed: {str(e)}")
+
+if __name__ == "__main__":
+    validate_backfill()
+
+```
+
+---
+
+## Summary of Success Indicators
+
+* 
+**Final Record Count:** Should exactly match **754,409**. * 
+**Completed Folder:** Should contain exactly **15 batch files**. * 
+**Staging Directory:** Should be empty (no `_LOCK.txt`, `is_first_batch.txt`, or `.xlsx` files). * **ArcGIS Online Indexing:** Check the ArcGIS Online "Data" tab; ensure there are no duplicate "ReportNumberNew" values, which would indicate a batch was appended twice. ---
+
+**Cursor**
+
+"
+    output_directory = r"C:\Users\carucci_r\OneDrive - City of Hackensack\13_PROCESSED_DATA\ESRI_Polished\staged_batches"
+    
+    # Override from command line if provided
+    if len(sys.argv) > 1:
+        baseline_file = sys.argv[1]
+    if len(sys.argv) > 2:
+        output_directory = sys.argv[2]
+    
+    # Execute splitting
+    split_baseline_into_batches(baseline_file, output_directory)
+    
+    print("\nNext steps:")
+    print(f"1. Copy batch files from {output_directory} to server")
+    print("2. Run: Copy-PolishedToServer.ps1 -SourceDir (path to staged_batches)")
+    print("3. Run: Invoke-CADBackfillPublish.ps1 -BatchFolder (server batch path) -Staged")
+```
+
+---
+
+#### **Phase 2: Modify Python Runner for Append Logic**
+
+**Location:** `c:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\docs\arcgis\run_publish_call_data.py`
+
+**Modifications Needed:**
+1. Add marker file detection for first batch vs subsequent batches
+2. Handle append vs overwrite mode (if tool supports it)
+3. Add batch number logging
+4. Improve error messages for debugging specific batches
+
+**Updated Code:**
+
+```python
+"""
+ArcGIS Pro Publish Tool Runner - Staged Batch Support
+======================================================
+Purpose: Execute TransformCallData_tbx1 with append/overwrite logic for staged backfill
+Run via: ArcGIS Pro Python environment (propy.bat)
+Date: 2026-02-06
+Author: R. A. Carucci
+"""
+import arcpy
+import sys
+import json
+from pathlib import Path
+from datetime import datetime
+
+def load_config(config_path):
+    """Load configuration from JSON file.""" try:
+        with open(config_path, 'r') as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"ERROR: Failed to load config from {config_path}: {e}")
+        sys.exit(1)
+
+def detect_batch_number(staging_file):
+    """Extract batch number from staging file metadata if available.""" # Try to read batch number from temp marker file created by orchestrator
+    marker_dir = Path(staging_file).parent
+    batch_marker = marker_dir / "_current_batch.txt"
+    
+    if batch_marker.exists():
+        try:
+            return int(batch_marker.read_text().strip())
+        except:
+            pass
+    
+    return None
+
+def main():
+    """Main execution function with staged batch support.""" print("=" * 70)
+    print("ARCGIS PRO PUBLISH TOOL RUNNER - STAGED MODE")
+    print("=" * 70)
+    print(f"Run time: {datetime.now().isoformat()}")
+    print(f"ArcGIS Pro version: {arcpy.GetInstallInfo()['Version']}")
+    print()
+    
+    # Get config path from command line argument
+    if len(sys.argv) < 2:
+        print("ERROR: Config path not provided")
+        print("Usage: propy.bat run_publish_call_data.py <config.json>")
+        sys.exit(1)
+    
+    config_path = sys.argv[1]
+    print(f"[1] Loading configuration from: {config_path}")
+    config = load_config(config_path)
+    print("    ✓ Config loaded successfully")
+    
+    # Extract paths from config
+    toolbox_path = config['paths']['arcgis_toolbox']
+    toolbox_alias = config['paths']['arcgis_tool_alias']
+    tool_name = config['paths']['arcgis_tool_python_name']
+    tool_callable = config['paths']['arcgis_tool_callable']
+    staging_file = config['paths']['staging_file']
+    staging_dir = Path(config['paths']['staging_dir'])
+    
+    print(f"\n[2] Configuration:")
+    print(f"    Toolbox:       {toolbox_path}")
+    print(f"    Alias:         {toolbox_alias}")
+    print(f"    Tool:          {tool_name}")
+    print(f"    Callable:      {tool_callable}")
+    print(f"    Staging file:  {staging_file}")
+    
+    # Verify staging file exists
+    if not Path(staging_file).exists():
+        print(f"\n✗ ERROR: Staging file does not exist: {staging_file}")
+        sys.exit(1)
+    
+    staging_size = Path(staging_file).stat().st_size / (1024 * 1024)  # MB
+    print(f"    Staging size:  {staging_size:.2f} MB")
+    
+    # Detect batch mode
+    marker_file = staging_dir / "is_first_batch.txt"
+    batch_num = detect_batch_number(staging_file)
+    
+    if marker_file.exists():
+        mode = "APPEND"
+        batch_info = f"Batch {batch_num or 2+}" if batch_num else "Subsequent Batch"
+    else:
+        mode = "OVERWRITE"
+        batch_info = "Batch 01 (Initial)"
+    
+    print(f"\n[3] Batch Mode Detected:")
+    print(f"    Mode:          {mode}")
+    print(f"    Batch:         {batch_info}")
+    print(f"    Marker exists: {marker_file.exists()}")
+    
+    try:
+        # Step 4: Import toolbox
+        print(f"\n[4] Importing toolbox with alias '{toolbox_alias}'...")
+        arcpy.ImportToolbox(toolbox_path, toolbox_alias)
+        print("    ✓ Toolbox imported successfully")
+        
+        # Step 5: Run the tool
+        print(f"\n[5] Running tool: {tool_name} ({mode} mode)")
+        print(f"    This may take several minutes...")
+        print()
+        
+        # Call the tool using the confirmed callable format
+        # NOTE: If tool doesn't support append mode natively, we may need to:
+        #   1. Use arcpy.management.Append() after the tool runs, OR
+        #   2. Modify the model to check for existing data
+        result = arcpy.TransformCallData_tbx1()
+        
+        # Step 6: Capture and display geoprocessing messages
+        messages = arcpy.GetMessages()
+        print("\n" + "=" * 70)
+        print("GEOPROCESSING MESSAGES")
+        print("=" * 70)
+        print(messages)
+        print("=" * 70)
+        
+        # Step 7: Check for errors
+        severity = arcpy.GetMaxSeverity()
+        
+        print(f"\n[6] Tool execution completed")
+        print(f"    Max severity: {severity}")
+        print(f"    Batch mode:   {mode}")
+        
+        if severity == 2:
+            print("    ✗ ERROR: Tool failed")
+            sys.exit(1)
+        elif severity == 1:
+            print("    ⚠ WARNING: Tool completed with warnings")
+            # Create marker file after first successful run
+            if not marker_file.exists():
+                marker_file.write_text(f"First batch completed at {datetime.now().isoformat()}")
+                print(f"    ✓ Marker file created: {marker_file}")
+            sys.exit(0)
+        else:
+            print("    ✓ SUCCESS: Tool completed successfully")
+            # Create marker file after first successful run
+            if not marker_file.exists():
+                marker_file.write_text(f"First batch completed at {datetime.now().isoformat()}")
+                print(f"    ✓ Marker file created: {marker_file}")
+            sys.exit(0)
+            
+    except Exception as e:
+        print(f"\n✗ EXCEPTION: {e}")
+        print("\n" + "=" * 70)
+        print("ARCPY MESSAGES")
+        print("=" * 70)
+        try:
+            print(arcpy.GetMessages())
+        except:
+            print("(No ArcPy messages available)")
+        print("=" * 70)
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
+```
+
+---
+
+#### **Phase 3: Create Staged PowerShell Orchestrator**
+
+**Location:** `c:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality\docs\arcgis\Invoke-CADBackfillPublish.ps1`
+
+**Modifications Needed:**
+1. Add `-Staged` parameter to enable batch mode
+2. Add `-BatchFolder` parameter for batch file location
+3. Implement batch loop with atomic swaps
+4. Add batch number tracking file for Python runner
+5. Implement 60-second cooling period
+6. Move completed batches to `Completed/` folder
+7.

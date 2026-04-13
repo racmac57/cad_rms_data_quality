@@ -1,5 +1,5 @@
 # Canonical CAD Data Sources
-# Updated: 2026-01-30 20:15:00 EST
+# Updated: 2026-04-10
 # NOTE: Updated to use new canonical directory structure (yearly/ instead of full_year/)
 # Per 05_EXPORTS\_CAD directory restructure v2.0.0 (2026-01-30)
 
@@ -66,10 +66,6 @@ sources:
       expected_records: 34000
 
   monthly:
-    # 2025 Q4: Monthly exports
-    - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\monthly\\2025\\2025_10_CAD.xlsx'
-    - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\monthly\\2025\\2025_11_CAD.xlsx'
-    - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\monthly\\2025\\2025_12_CAD.xlsx'
     # 2026: Monthly exports
     - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\monthly\\2026\\2026_01_CAD.xlsx'
       month: "2026-01"
@@ -77,6 +73,9 @@ sources:
     - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\monthly\\2026\\2026_02_CAD.xlsx'
       month: "2026-02"
       notes: "February 2026 - append records from 2026-02-01 onward"
+    - path: 'C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\05_EXPORTS\\_CAD\\monthly\\2026\\2026_03_CAD.xlsx'
+      month: "2026-03"
+      notes: "March 2026 monthly export"
 
 # ============================================================================
 # BASELINE CONFIGURATION (Added 2026-02-01, Updated 2026-02-03)
@@ -223,8 +222,8 @@ monthly_processing:
 # ============================================================================
 metadata:
   config_version: "2.1.0"
-  standards_version: "v2.3.0"
-  last_updated: "2026-02-02"
+  standards_version: "v3.0.0"
+  last_updated: "2026-04-10"
   total_years_consolidated: 7
   canonical_source: "05_EXPORTS/_CAD/yearly"
   schema_reference: "09_Reference/Standards/unified_data_dictionary/schemas/cad_fields_schema_latest.json"

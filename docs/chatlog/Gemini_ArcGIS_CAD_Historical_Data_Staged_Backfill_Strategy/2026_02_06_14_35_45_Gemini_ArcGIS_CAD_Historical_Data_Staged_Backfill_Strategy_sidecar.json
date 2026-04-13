@@ -1,0 +1,119 @@
+{
+  "source_file": "Gemini_ArcGIS_CAD_Historical_Data_Staged_Backfill_Strategy.json",
+  "source_path": "C:\\_chunker\\02_data\\Gemini_ArcGIS_CAD_Historical_Data_Staged_Backfill_Strategy.json",
+  "manifest_path": "C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\KB_Shared\\04_output\\Gemini_ArcGIS_CAD_Historical_Data_Staged_Backfill_Strategy\\2026_02_06_14_35_45_Gemini_ArcGIS_CAD_Historical_Data_Staged_Backfill_Strategy.origin.json",
+  "created_at": "2026_02_06_14_35_45",
+  "tags": [
+    "ai",
+    "code",
+    "conversation",
+    "data",
+    "dataset",
+    "docs",
+    "excel",
+    "it-ops",
+    "json",
+    "markdown",
+    "police",
+    "powershell",
+    "python",
+    "sql"
+  ],
+  "metadata": {
+    "project_name": "02_data",
+    "source_type": "data",
+    "language": "en",
+    "department": "admin",
+    "key_terms": [
+      "batch",
+      "backfill",
+      "batches",
+      "logic",
+      "arcgis",
+      "file"
+    ],
+    "enrichment_version": "1.0.0"
+  },
+  "summaries": {
+    "file_summary": "{\n  \"metadata\": {\n    \"title\": \"Prompt Improvement for Data Backfill\",\n    \"user\": {\n      \"name\": \"RAC\"\n    },\n    \"dates\": {\n      \"exported\": \"2/6/2026 14:34:30\"\n    },\n    \"link\": \"https://gemini.google.com/app/de7c4a15db2e33d0?utm_s...",
+    "first_line": "{"
+  },
+  "chunks": [
+    {
+      "chunk_id": "2026-02-06T14:35:45+00:00_Gemini_ArcGIS_CAD_Historical_Data_Staged_Backfill_Strategy_chunk1",
+      "chunk_index": 1,
+      "file": "chunk_00000.txt",
+      "tags": [
+        "ai",
+        "arcgis",
+        "backfill",
+        "batch",
+        "batches",
+        "code",
+        "conversation",
+        "data",
+        "dataset",
+        "docs",
+        "excel",
+        "file",
+        "it-ops",
+        "json",
+        "logic",
+        "markdown",
+        "police",
+        "powershell",
+        "python",
+        "sql"
+      ],
+      "key_terms": [
+        "batch",
+        "backfill",
+        "logic",
+        "batches",
+        "arcgis",
+        "file"
+      ],
+      "summary": "{\n  \"metadata\": {\n    \"title\": \"Prompt Improvement for Data Backfill\",\n    \"user\": {\n      \"name\": \"RAC\"\n    },\n    \"dates\": {\n      \"exported\": \"2/6/2026 14:34:30\"\n    },\n    \"link\": \"https://gemini.google.com/app/de7c4a15db2e33d0?utm_s...",
+      "char_length": 29549,
+      "byte_length": 29615
+    },
+    {
+      "chunk_id": "2026-02-06T14:35:45+00:00_Gemini_ArcGIS_CAD_Historical_Data_Staged_Backfill_Strategy_chunk2",
+      "chunk_index": 2,
+      "file": "chunk_00001.txt",
+      "tags": [
+        "ai",
+        "batch",
+        "batchdir",
+        "batches",
+        "code",
+        "conversation",
+        "data",
+        "dataset",
+        "docs",
+        "esri",
+        "excel",
+        "it-ops",
+        "json",
+        "markdown",
+        "police",
+        "powershell",
+        "python",
+        "script",
+        "sql"
+      ],
+      "key_terms": [
+        "batch",
+        "batches",
+        "hpd",
+        "esri",
+        "script",
+        "batchdir"
+      ],
+      "summary": "Staged PowerShell Orchestrator (Invoke-CADBackfillPublish.ps1)\\n\\n\\nThis script iterates through the batches, handling the file swaps and cooling periods.\\n\\n\\n$BatchDir = \\\"C:\\\\HPD ESRI\\\\03_Data\\\\CAD\\\\Backfill\\\\Batches\\\"\\n$StagingFile =...",
+      "char_length": 1600,
+      "byte_length": 1602
+    }
+  ],
+  "enrichment_version": "1.0.0"
+}

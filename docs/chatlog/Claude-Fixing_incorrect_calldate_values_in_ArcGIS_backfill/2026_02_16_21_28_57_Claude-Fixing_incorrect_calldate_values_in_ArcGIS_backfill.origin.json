@@ -1,0 +1,40 @@
+{
+  "tags": [
+    "ai",
+    "code",
+    "data",
+    "dataset",
+    "docs",
+    "excel",
+    "it-ops",
+    "json",
+    "markdown",
+    "police",
+    "python",
+    "sql"
+  ],
+  "metadata_enrichment": {
+    "metadata": {
+      "project_name": "02_data",
+      "source_type": "data",
+      "language": "en",
+      "department": "admin",
+      "key_terms": [
+        "script",
+        "online",
+        "local",
+        "all",
+        "process",
+        "scripts"
+      ],
+      "enrichment_version": "1.0.0"
+    },
+    "summaries": {
+      "file_summary": "{\n  \"metadata\": {\n    \"title\": \"Fixing incorrect calldate values in ArcGIS backfill\",\n    \"dates\": {\n      \"created\": \"2/16/2026 20:06:06\",\n      \"updated\": \"2/16/2026 21:24:50\",\n      \"exported\": \"2/16/2026 21:28:41\"\n    },\n    \"link\":...",
+      "first_line": "{"
+    },
+    "enrichment_version": "1.0.0"
+  },
+  "last_processed_at": "2026-02-16T21:28:57.901524",
+  "department": "admin"
+}

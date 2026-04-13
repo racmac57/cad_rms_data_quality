@@ -1,0 +1,190 @@
+{
+  "source_file": "Response_Time_Backfill_Baseline_And_Fresh_Calculator.md",
+  "source_path": "C:\\_chunker\\02_data\\Response_Time_Backfill_Baseline_And_Fresh_Calculator.md",
+  "manifest_path": "C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\KB_Shared\\04_output\\Response_Time_Backfill_Baseline_And_Fresh_Calculator\\2026_02_09_21_57_39_Response_Time_Backfill_Baseline_And_Fresh_Calculator.origin.json",
+  "created_at": "2026_02_09_21_57_39",
+  "tags": [
+    "ai",
+    "code",
+    "conversation",
+    "data",
+    "docs",
+    "excel",
+    "it-ops",
+    "json",
+    "legal",
+    "markdown",
+    "police",
+    "powershell",
+    "python",
+    "sql"
+  ],
+  "metadata": {
+    "project_name": "02_data",
+    "source_type": "documentation",
+    "language": "en",
+    "department": "admin",
+    "key_terms": [
+      "data",
+      "let",
+      "your",
+      "text",
+      "response",
+      "you"
+    ],
+    "enrichment_version": "1.0.0"
+  },
+  "summaries": {
+    "file_summary": "# Documentation review for updates and implementations\n_Exported on 2/9/2026 at 21:56:50 EST from Cursor (2.4.31)_\n\n---\n\n**User**\n\nfor context read @CHANGELOG.md @Claude.md @README.md @SUMMARY.md @config/response_time_filters.json C:\\Use...",
+    "first_line": "# Documentation review for updates and implementations"
+  },
+  "chunks": [
+    {
+      "chunk_id": "2026-02-09T21:57:39+00:00_Response_Time_Backfill_Baseline_And_Fresh_Calculator_chunk1",
+      "chunk_index": 1,
+      "file": "chunk_00000.txt",
+      "tags": [
+        "2025",
+        "ai",
+        "code",
+        "conversation",
+        "data",
+        "docs",
+        "excel",
+        "it-ops",
+        "json",
+        "legal",
+        "markdown",
+        "police",
+        "powershell",
+        "python",
+        "response",
+        "sql"
+      ],
+      "key_terms": [
+        "let",
+        "data",
+        "now",
+        "response",
+        "2025",
+        "all"
+      ],
+      "summary": "# Documentation review for updates and implementations\n_Exported on 2/9/2026 at 21:56:50 EST from Cursor (2.4.31)_\n\n---\n\n**User**\n\nfor context read @CHANGELOG.md @Claude.md @README.md @SUMMARY.md @config/response_time_filters.json C:\\Use...",
+      "char_length": 21504,
+      "byte_length": 22154
+    },
+    {
+      "chunk_id": "2026-02-09T21:57:39+00:00_Response_Time_Backfill_Baseline_And_Fresh_Calculator_chunk2",
+      "chunk_index": 2,
+      "file": "chunk_00001.txt",
+      "tags": [
+        "ai",
+        "calculator",
+        "code",
+        "conversation",
+        "data",
+        "docs",
+        "excel",
+        "fresh",
+        "it-ops",
+        "january",
+        "json",
+        "legal",
+        "markdown",
+        "police",
+        "powershell",
+        "python",
+        "sql",
+        "visual",
+        "your"
+      ],
+      "key_terms": [
+        "data",
+        "your",
+        "fresh",
+        "calculator",
+        "january",
+        "visual"
+      ],
+      "summary": "---\n\n**User**\n\n@data/visual_export/2026_12/Average Response Times  Values are in mmss.csv @data/visual_export/2026_12/Response Times by Priority.csv attached are the data exports of the visuals after the refresh\n\n---\n\n**Cursor**\n\nLet me...",
+      "char_length": 23456,
+      "byte_length": 24045
+    },
+    {
+      "chunk_id": "2026-02-09T21:57:39+00:00_Response_Time_Backfill_Baseline_And_Fresh_Calculator_chunk3",
+      "chunk_index": 3,
+      "file": "chunk_00002.txt",
+      "tags": [
+        "ai",
+        "code",
+        "conversation",
+        "data",
+        "docs",
+        "else",
+        "excel",
+        "it-ops",
+        "json",
+        "legal",
+        "markdown",
+        "police",
+        "powershell",
+        "python",
+        "sql",
+        "table",
+        "text",
+        "then",
+        "your"
+      ],
+      "key_terms": [
+        "text",
+        "table",
+        "data",
+        "then",
+        "else",
+        "your"
+      ],
+      "summary": "<> null otherwise false\n        ),\n        \"C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\PowerBI_Date\\Backfill\"\n    ),\n    \n    BackfillBasePath = FindValidPath,\n    \n    // ===========================================================...",
+      "char_length": 29619,
+      "byte_length": 30393
+    },
+    {
+      "chunk_id": "2026-02-09T21:57:39+00:00_Response_Time_Backfill_Baseline_And_Fresh_Calculator_chunk4",
+      "chunk_index": 4,
+      "file": "chunk_00003.txt",
+      "tags": [
+        "2026-02-09",
+        "ai",
+        "arcgis",
+        "backfill",
+        "code",
+        "conversation",
+        "data",
+        "docs",
+        "excel",
+        "info",
+        "it-ops",
+        "json",
+        "legal",
+        "markdown",
+        "online",
+        "police",
+        "powershell",
+        "python",
+        "sql",
+        "step"
+      ],
+      "key_terms": [
+        "2026-02-09",
+        "info",
+        "backfill",
+        "arcgis",
+        "online",
+        "step"
+      ],
+      "summary": "**Claude.md** - Added v1.12.0 section:\n   - Backfill baseline summary\n   - Monthly workflow\n   - System status updates\n\n### Git Commit:\n\n```\nCommit: 1b5122c\nBranch: docs/update-20260114-1447\nMessage: v1.12.0 - Response Time Backfill Base...",
+      "char_length": 4677,
+      "byte_length": 4871
+    }
+  ],
+  "enrichment_version": "1.0.0"
+}

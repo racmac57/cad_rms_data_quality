@@ -1,8 +1,8 @@
 # Project Summary - CAD/RMS Data Quality System
 
-**Version:** 1.5.0 (Staged Backfill System Released)
-**Last Updated:** 2026-02-06
-**Status:** v1.5.0 released, ready for production deployment
+**Version:** 1.7.1 ✅ (ESRI Pipeline Restored + Standards Audit Complete + Claude Code Skills)
+**Last Updated:** 2026-04-10
+**Status:** v1.7.1 | Nightly pipeline fixed | Standards audit complete | 6 Claude Code skills added | Crime Data automation pending
 
 ---
 
@@ -10,7 +10,70 @@
 
 Enterprise data quality system for CAD (Computer-Aided Dispatch) and RMS (Records Management System) public safety data. Consolidates historical records, validates monthly exports, and generates ESRI-compatible datasets with comprehensive quality reporting.
 
-### Latest Release (v1.5.0 - Released Feb 6, 2026)
+### Latest: v1.7.1 (2026-04-10) — ESRI Pipeline Restored + Claude Code Skills
+
+**Key changes:**
+- ✅ Nightly `Publish Call Data_2026_NEW` pipeline fixed (SYSTEM → HPD\administrator)
+- ✅ Standards audit Phases 1-3 complete (all 9 gaps closed)
+- ✅ `schemas_loader.py` + `version_check.py` utilities added
+- ✅ Normalization mappings loaded from JSON at runtime (not hardcoded)
+- ✅ `CLAUDE.md` rewritten (542 → 237 lines, agent rules up front, actionable reference)
+- ✅ 6 Claude Code custom skills added (handoff, pipeline-status, validate-monthly, check-paths, consolidation-run, deploy-script)
+
+**Claude Code Skills (`.claude/skills/`):**
+
+| Skill | Purpose |
+|-------|---------|
+| `/handoff` | Generate AI session handoff docs with Cursor/Claude Code prompts |
+| `/pipeline-status` | Check nightly Task Scheduler health on HPD2022LAWSOFT |
+| `/validate-monthly` | Run monthly CAD/RMS validation with quality scoring |
+| `/check-paths` | Lint configs for path convention violations |
+| `/consolidation-run` | Execute full consolidation with pre/post-flight checks |
+| `/deploy-script` | Deploy scripts to RDP server with optional scheduling |
+
+**Pending:** Crime Data automation (see `docs/ai_handoff/HANDOFF_20260410_Crime_Data_Automation.md`)
+
+### Previous: v1.6.1 (2026-02-16) — Gap Backfill Date Fix
+
+- ✅ 571,282 total records with valid geometry and correct dates
+- ✅ 2,680 gap records (Feb 3-15) surgically updated with real CAD timestamps
+- ✅ Official baseline: `Baseline_v1_6_1.gdb\CallsForService_Baseline_20190101_20260215`
+
+---
+
+### Previous Release (v1.6.0 - Released Feb 9, 2026)
+
+**Historical Backfill Complete** - Successfully loaded 565,470 CAD records to ArcGIS Online dashboard
+
+**Problem Solved:** 
+- Live geocoding hung at feature 564,897 (network timeout)
+- Field schema mismatch caused NULL attributes (ReportNumberNew vs callid)
+- FieldMappings API failed silently
+
+**Solution Delivered:**
+1. ✅ **XY Coordinates** - Bypassed live geocoding using existing lat/lon
+2. ✅ **Field Copying** - Created duplicate fields with target names, copied values directly
+3. ✅ **Two-Stage Append** - Temp FC → Local CFStable → Online Service
+
+**Release Highlights:**
+- ✅ 565,470 records loaded with complete attribute data
+- ✅ Dashboard fully operational (Call ID, Call Type, Call Source, Full Address all visible)
+- ✅ Total duration: 13.8 minutes (vs hours of hanging)
+- ✅ Success rate: 99.93%
+- ✅ No more NULL values
+
+**Scripts Created:**
+- ✅ 12 total scripts (backup, truncate, restore, backfill iterations, diagnostics)
+- ✅ 4 backfill iterations documenting solution evolution
+- ✅ Field copying approach confirmed as winner
+
+**Key Insight:** Field copying (create duplicate fields + copy values) is more reliable than FieldMappings API for schema translation in ArcPy operations.
+
+**Dashboard Access:**
+- Live Dashboard: https://hpd0223.maps.arcgis.com/apps/dashboards/d9315ff773484ca999ae3e16758cbec1
+- Data Table: https://hpd0223.maps.arcgis.com/home/item.html?id=44173f3345974fe79a01bfa463350ce2#data
+
+### Previous Release (v1.5.0 - Released Feb 6, 2026)
 
 **Staged Backfill System** - Successfully resolved the 564,916 record hang during ArcGIS Online upload
 
@@ -57,35 +120,40 @@ Enterprise data quality system for CAD (Computer-Aided Dispatch) and RMS (Record
 ## Project Structure
 
 ### Configuration
-- `config/schemas.yaml` - Schema paths to 09_Reference/Standards
+- `config/schemas.yaml` - Schema paths to 09_Reference/Standards (uses `${standards_root}`)
 - `config/validation_rules.yaml` - Validation patterns and quality scoring
-- `config/consolidation_sources.yaml` - CAD source files (714,689 records verified)
+- `config/consolidation_sources.yaml` - CAD source files, baseline, performance tuning
 - `config/rms_sources.yaml` - RMS source files
 
-### Scripts
-- `consolidate_cad_2019_2026.py` - Production consolidation script (baseline + incremental)
-- `scripts/copy_polished_to_processed_and_update_manifest.py` - Copy polished Excel to 13_PROCESSED_DATA, update manifest
-- `verify_record_counts.py` - Record count verification utility
-
-### ArcGIS Automation Scripts (NEW in v1.3.0)
-- `docs/arcgis/discover_tool_info.py` - Tool discovery script
-- `docs/arcgis/run_publish_call_data.py` - Python runner for ArcGIS Pro tool
-- `docs/arcgis/Test-PublishReadiness.ps1` - Pre-flight checks
-- `docs/arcgis/Invoke-CADBackfillPublish.ps1` - Main orchestrator
-- `docs/arcgis/Copy-PolishedToServer.ps1` - Robust file copy script
-- `docs/arcgis/config.json` - Central configuration
+### Key Scripts
+- `consolidate_cad_2019_2026.py` - Main consolidation entry point (`--full` mode)
+- `validation/run_all_validations.py` - Master validation orchestrator (9 validators + 2 drift detectors)
+- `monthly_validation/scripts/validate_cad.py` - Monthly CAD validation CLI
+- `monthly_validation/scripts/validate_rms.py` - Monthly RMS validation CLI
+- `scripts/complete_backfill_simplified.py` - Production backfill script (v1.6.0)
+- `scripts/copy_polished_to_processed_and_update_manifest.py` - Copy to 13_PROCESSED_DATA
 
 ### Shared Utilities
+- `shared/utils/schemas_loader.py` - Load schemas.yaml with `${standards_root}` expansion
+- `shared/utils/version_check.py` - Standards version validation
 - `shared/utils/call_type_normalizer.py` - Runtime call type normalization
+- `shared/utils/report_builder.py` - HTML/Excel report generation
+
+### Claude Code Skills (`.claude/skills/`)
+- `/handoff` - Generate AI session handoff docs
+- `/pipeline-status` - Check nightly Task Scheduler health
+- `/validate-monthly` - Monthly export validation with quality scoring
+- `/check-paths` - Lint configs for path convention violations
+- `/consolidation-run` - Full consolidation with verification
+- `/deploy-script` - Deploy scripts to RDP server
 
 ### Documentation
+- `CLAUDE.md` - AI agent context, rules, and skill reference
 - `README.md` - Complete project documentation
 - `CHANGELOG.md` - Version history
-- `INCREMENTAL_RUN_GUIDE.md` - Incremental CAD run (baseline + Jan/Feb), copy script, January reports
-- `PLAN.md` - Implementation roadmap
-- `Claude.md` - AI context and rules
-- `docs/arcgis/README_Backfill_Process.md` - ArcGIS Pro backfill automation guide (NEW in v1.3.0)
-- `outputs/consolidation/` - Execution guides and analysis reports (24 files)
+- `PLAN.md` - Implementation roadmap (historical)
+- `docs/ai_handoff/` - Session handoff documents for Cursor/Claude Code
+- `docs/arcgis/` - ArcGIS import and automation guides
 
 ---
 
@@ -288,7 +356,7 @@ All 6 milestones implemented. cad_rms_data_quality is the unified, production-re
 - ✅ SHA256 hashes confirmed, manifest synchronized
 - ✅ Quality gates passed: <5% geocoding failure threshold
 - ✅ Git commit `5765607` completed
-- ✅ Documentation synchronized (Claude.md, README.md, plan files)
+- ✅ Documentation synchronized (CLAUDE.md, README.md, plan files)
 
 **System Status:**
 - **Local Environment:** Verified and ready for RDP transfer
@@ -316,23 +384,24 @@ All 6 milestones implemented. cad_rms_data_quality is the unified, production-re
 
 ## Documentation Index
 
+### AI and Workflow
+- `CLAUDE.md` - AI agent context, rules, coding conventions, and skill reference
+- `.claude/skills/` - 6 Claude Code custom slash commands
+- `docs/ai_handoff/` - Session handoff documents with opening prompts
+
 ### Execution Guides
-- `INCREMENTAL_RUN_GUIDE.md` - Incremental CAD run (baseline + Jan/Feb), copy to 13_PROCESSED_DATA, January reports
+- `INCREMENTAL_RUN_GUIDE.md` - Incremental CAD run (baseline + Jan/Feb), copy to 13_PROCESSED_DATA
 - `outputs/consolidation/CAD_CONSOLIDATION_EXECUTION_GUIDE.txt` - Step-by-step instructions
 - `outputs/consolidation/EXECUTIVE_SUMMARY_2026_01_30.txt` - Quick overview
-- `outputs/consolidation/VERIFICATION_CHECKLIST.txt` - Quality assurance checklist
 
 ### Analysis Reports
 - `outputs/consolidation/VALIDATION_GAP_ANALYSIS_AND_SOLUTIONS.txt` - Validation roadmap
 - `outputs/consolidation/VALIDATION_LOGIC_REFERENCE_LIBRARY.txt` - Transformation catalog
 - `outputs/consolidation/RECORD_COUNT_DISCREPANCY_ANALYSIS.txt` - Count verification
-- `outputs/consolidation/UNIFIED_DATA_DICTIONARY_REVIEW.txt` - Standards review
 
 ### Planning Documents
-- `PLAN.md` - Complete implementation plan with architecture
-- `NEXT_STEPS.md` - Phase-by-phase roadmap
-- `Claude.md` - AI assistant context and rules
+- `PLAN.md` - Implementation plan with architecture (historical)
 
 ---
 
-Last updated: 2026-02-06 (v1.5.0-beta implementation complete)
+Last updated: 2026-04-10 (v1.7.1 + CLAUDE.md rewrite + Claude Code skills)

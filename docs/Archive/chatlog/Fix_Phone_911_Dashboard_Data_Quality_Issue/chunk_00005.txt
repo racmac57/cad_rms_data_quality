@@ -1,0 +1,686 @@
+column in the CAD export. shows either 9-1-1 phone I would like to split these up if possible, showing which one came in via the phone versus which one came in via 911. I'm not sure if something in the ArcGIS Pro project needs to be updated, but I would like the data to show how the call came in. And not combine the two. ---
+
+**Cursor**
+
+Excellent point! This is a **critical distinction** for emergency analytics. The value `Phone/911` shouldn't be collapsed - we need to determine which one it actually was. Let me investigate the raw data:
+
+Interesting! Let me check the first command and also look for other patterns:
+
+Perfect! Now I can see the issue. **There is NO `Phone/911` pattern in the raw data** - which means my mapping suggestion was incorrect. Let me search for what pattern you're actually seeing in the dashboard:
+
+Let me check the actual CAD export source files to understand the original values:
+
+Let me create a proper Python script to analyze this:
+
+Excellent! Now let me read the analysis file and also check one of the source Excel files:
+
+Perfect! Now I understand. **There is NO `Phone/911` value in the raw data**. Looking at line 53, I can see:
+
+```
+'9-1-1\nWalk-In'                         :        3 (  0.00%)
+```
+
+This reveals the real issue: **The CAD system stores MULTIPLE values separated by newlines (`\n`) when a call comes in via multiple channels! **
+
+Let me check if there are Phone+911 combinations:
+
+Interesting - the CSV read stripped the newlines. Let me check the Excel source directly:
+
+Great! I found the multi-value pattern - but these are just trailing newlines, not actual "Phone/911" combinations. Let me check the column names and look more carefully at what you're seeing in the dashboard:
+
+## 🔍 Analysis Summary
+
+Based on the data investigation:
+
+**Finding 1: No `Phone/911` Pattern in Raw Data**
+- Searched 754,409 records
+- Found ZERO instances of "Phone/911" or similar slash-separated combinations
+- The value you're seeing in the dashboard is **NOT in the source data**
+
+**Finding 2: Multi-Value Pattern Exists (But Rare)**
+- Only 6 records with newline characters (trailing newlines like `'911\n'`)
+- NO records with actual multi-channel entries like `'Phone\n9-1-1'`
+
+**Finding 3: Dashboard is Showing Something Different**
+The `Phone/911` you're seeing must be coming from:
+1. **ArcGIS Pro field calculation** - Is there a calculated field in the dashboard? 2. **Old cached data** - Before the baseline was updated? 3. **Different source file** - Is the dashboard pointing to a different file? ## 🎯 Recommendations
+
+### Option A: Check ArcGIS Pro Dashboard Configuration
+**Most Likely:** The dashboard itself may have a field that concatenates or displays multiple values
+
+**To investigate:**
+1. Open the ArcGIS Pro project for the dashboard
+2. Check if "Call Source" is a calculated field
+3. Look for any field that combines `HowReported` with other fields
+
+### Option B: Verify Dashboard Data Source
+**Check:**
+- Which file is the dashboard actually reading? - Is it using the correct baseline path? - Could it be reading an old cached version? ### Option C: If You Want to Split Real Multi-Channel Calls
+**If the CAD system SHOULD be recording multiple channels but isn't**, we could:
+1. Check if there's another field that indicates the secondary channel
+2. Look at the RMS data for additional call source information
+3. Cross-reference with dispatch logs
+
+## ❓ Questions for You
+
+1. **Can you take a screenshot of the exact field in Arc GIS Pro** showing "Phone/911"? 2. **In ArcGIS Pro**, right-click that field → **Field Properties** - is it a calculated field? 3. **What's the layer name** in the ArcGIS Pro project that shows this data? 4. Do you want me to check if there are **any other fields** in the CAD data that might contain secondary call source information? Without seeing the actual ArcGIS Pro configuration, I can't determine where `Phone/911` is coming from, since it's definitively **not in the source data**. Let me know what you find! ---
+
+**User**
+
+can you provide an arcpy script for this? I'm ion the RDP and in the arcgis project now. I think the combining of 911/phone happens in the model
+
+---
+
+**Cursor**
+
+Perfect! You're right - if it's happening in the ArcGIS model, we need to investigate the field calculations or domain mappings. Here's a diagnostic ArcPy script:
+
+Perfect! I've created a comprehensive diagnostic script. Here's how to use it:
+
+## 🎯 How to Run the Script
+
+### Option 1: In ArcGIS Pro Python Window (Recommended)
+
+1. **Open ArcGIS Pro** with your dashboard project
+2. **Update the script** with your specific paths:
+   - Open `C:\Users\carucci_r\Desktop\diagnose_call_source.py` in Notepad
+   - Update lines 12-17 with your actual project/layer names
+3. **Open Python window** in ArcGIS Pro (Analysis tab → Python)
+4. **Run the script:**
+   ```python
+   exec(open(r'C:\Users\carucci_r\Desktop\diagnose_call_source.py').read())
+   ```
+
+### Option 2: Quick Check (Python Window)
+
+If you just want a quick check, paste this directly into the ArcGIS Pro Python window:
+
+```python
+import arcpy
+from collections import Counter
+
+# Get current project and map
+aprx = arcpy.mp.ArcGISProject("CURRENT")
+map_obj = aprx.listMaps()[0]
+
+# List all layers
+print("Available layers:")
+for lyr in map_obj.listLayers():
+    print(f"  - {lyr.name}")
+
+# Get the CAD layer (update name if needed)
+layer_name = "CAD"  # <-- UPDATE THIS
+cad_layer = map_obj.listLayers(layer_name)[0]
+
+# Find HowReported field
+fields = arcpy.ListFields(cad_layer)
+how_field = None
+for f in fields:
+    if 'How' in f.aliasName or 'How' in f.name:
+        how_field = f.name
+        print(f"\nFound field: {f.name} (alias: {f.aliasName})")
+        break
+
+# Get unique values
+if how_field:
+    values = Counter()
+    with arcpy.da.SearchCursor(cad_layer, [how_field]) as cursor:
+        for row in cursor:
+            values[str(row[0]) if row[0] else "NULL"] += 1
+    
+    print(f"\nTop 20 values:")
+    for val, count in values.most_common(20):
+        print(f"  {val:30s}: {count:,}")
+    
+    # Check for Phone/911
+    phone_911 = [v for v in values.keys() if '/' in v and ('phone' in v.lower() or '911' in v.lower())]
+    if phone_911:
+        print(f"\n⚠️ Found Phone/911 patterns: {phone_911}")
+    else:
+        print(f"\n✅ No Phone/911 patterns found")
+```
+
+## 📋 What the Script Does
+
+1. **Opens your ArcGIS Pro project**
+2. **Lists all layers** (so you can confirm the layer name)
+3. **Examines all fields** - looking for domains, calculated fields
+4. **Samples the actual data** - gets all unique "How Reported" values
+5. **Identifies Phone/911 patterns** - finds where the combination is happening
+6. **Exports 4 detailed reports** to your Desktop
+
+## 📊 Output Files
+
+The script creates 4 text files on your Desktop:
+
+1. **`field_analysis.txt`** - Every field, its type, domain, whether it's calculated
+2. **`how_reported_values.txt`** - All unique values with counts
+3. **`layer_configuration.txt`** - Symbology, definition queries, label expressions
+4. **`phone_911_samples.txt`** - Sample records showing the Phone/911 pattern (if found)
+
+## 🔍 What to Look For
+
+### If Phone/911 is in the data:
+- Check `phone_911_samples.txt` - see actual case numbers
+- Compare to the Excel baseline - are these records in the source? ### If Phone/911 is NOT in the data:
+- Check `layer_configuration.txt` - look for symbology grouping
+- Dashboard widget might be combining values for display
+- Definition query might be modifying display
+
+### Check for Domains:
+- Look in `field_analysis.txt` for the HowReported field
+- If it has a **domain**, the domain might be mapping multiple source values to "Phone/911"
+
+## 🚨 Most Likely Scenario
+
+Based on your description, I suspect one of these:
+
+1. **Domain Mapping** - ArcGIS has a coded value domain that maps both "Phone" and "9-1-1" to a display value of "Phone/911"
+2. **Symbology Grouping** - The layer symbology groups "Phone" and "9-1-1" together and labels it "Phone/911"
+3. **Dashboard Widget** - The dashboard widget itself is combining categories
+
+The script will reveal which one it is! Let me know what you find, and I can help you fix it! ---
+
+**User**
+
+the quick version returned :
+Available layers:
+  - World Topographic Map
+  - World Hillshade
+Traceback (most recent call last):
+﻿  File "<string>", line 15, in <module>
+﻿IndexError: list index out of range
+﻿
+"""
+ArcGIS Pro Call Source Field Diagnostic Script
+Investigates how "Phone/911" values are being created in the dashboard
+
+Run this in the ArcGIS Pro Python window or as a standalone script
+"""
+the diagnose_call_source.py returned
+================================================================================
+ArcGIS Pro Call Source Field Diagnostic
+================================================================================
+Created output directory: C:\Users\carucci_r\Desktop\arcgis_diagnostic
+
+STEP 1: Opening ArcGIS Pro project...
+? ERROR: Could not open project: C:\Path\To\Your\Project.aprx
+
+TIP: Update APRX_PATH at top of script
+
+---
+
+**Cursor**
+
+Ah! The issue is:
+1. **The CAD layer isn't in the main map** - only basemaps are showing
+2. **The path needs to be updated** in the full script
+
+Let me give you a better version that automatically finds your project and all layers:
+
+Perfect! I've created an improved version. Here's what to do:
+
+## 🎯 Run This in ArcGIS Pro
+
+**Copy and paste this entire block into the ArcGIS Pro Python window:**
+
+```python
+exec(open(r'C:\Users\carucci_r\Desktop\diagnose_call_source_auto.py').read())
+```
+
+## 🔍 This Version Will:
+
+1. ✅ **Automatically use your current project** (no path needed)
+2. ✅ **Find ALL layers** (including nested ones)
+3. ✅ **Auto-detect the CAD layer** (looks for keywords like "cad", "call", "dispatch")
+4. ✅ **Find the How Reported field** (checks names and aliases)
+5. ✅ **Analyze all values** and look for `Phone/911` patterns
+6. ✅ **Check for domains** that might be combining values
+
+## 📊 What It Will Tell You
+
+The script will determine if:
+- ✅ `Phone/911` values **exist in the data** → Need to split them
+- ✅ `Phone/911` values **don't exist** → Dashboard is grouping them for display
+
+## ⚠️ If You Only See Basemaps
+
+If the quick check only showed "World Topographic Map" and "World Hillshade", it means:
+
+**Your CAD data layer isn't loaded in the current map! **
+
+### To fix:
+1. In ArcGIS Pro, check the **Contents pane** (left side)
+2. Look for your CAD feature layer - is it there? 3. If not, you need to:
+   - Add the CAD data to the map
+   - OR open the correct map/project that has the CAD data
+   - OR the dashboard might be using a different layer source
+
+### Quick Check:
+Paste this in the Python window first:
+
+```python
+import arcpy
+aprx = arcpy.mp.ArcGISProject("CURRENT")
+for m in aprx.listMaps():
+    print(f"\nMap: {m.name}")
+    for lyr in m.listLayers():
+        print(f"  - {lyr.name} ({lyr.isFeatureLayer})")
+```
+
+This will show you **all** maps and layers in your current project. Find which map has your CAD data, then we can target that specific one! Let me know what you see! ---
+
+**User**
+
+exec(open(r'C:\Users\carucci_r\Desktop\diagnose_call_source_auto.py').read())
+Traceback (most recent call last):
+﻿  File "<string>", line 1, in <module>
+﻿FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\carucci_r\\Desktop\\diagnose_call_source_auto.py'
+
+================================================================================
+ArcGIS Pro Call Source Field Diagnostic
+================================================================================
+Created output directory: C:\Users\carucci_r\Desktop\arcgis_diagnostic
+
+STEP 1: Opening ArcGIS Pro project...
+? ERROR: Could not open project: C:\Path\To\Your\Project.aprx
+
+TIP: Update APRX_PATH at top of script
+import arcpy
+aprx = arcpy.mp.ArcGISProject("CURRENT")
+for m in aprx.listMaps():
+    print(f"\nMap: {m.name}")
+    for lyr in m.listLayers():
+        print(f"  - {lyr.name} ({lyr.isFeatureLayer})")
+
+Map: Data Transformation Map
+  - World Topographic Map (False)
+  - World Hillshade (False)
+
+Map: Map
+  - Calls For Service (True)
+  - Crimes (True)
+  - Beat (True)
+  - District (True)
+  - World Topographic Map (False)
+  - World Hillshade (False)
+
+Map: Map1
+  - Crimes (True)
+  - World Topographic Map (False)
+  - World Hillshade (False)
+
+Map: Map2
+  - TempCallLayer (True)
+  - World Topographic Map (False)
+  - World Hillshade (False)
+
+Map: Map3
+  - TempCallLayer (True)
+  - PolicePosts (True)
+  - World Topographic Map (False)
+  - World Hillshade (False)
+
+
+---
+
+**Cursor**
+
+Perfect! I found it! The CAD layer is **"Calls For Service"** in the map called **"Map"**. Since the file path isn't working on the RDP, paste this script directly into the Python window (it's shorter and self-contained):
+
+```python
+import arcpy
+from collections import defaultdict
+
+print("="*80)
+print("Call Source Field Analysis")
+print("="*80)
+
+# Get the correct map and layer
+aprx = arcpy.mp.ArcGISProject("CURRENT")
+map_obj = aprx.listMaps("Map")[0]
+cad_layer = map_obj.listLayers("Calls For Service")[0]
+
+print(f"\n✅ Using layer: {cad_layer.name}")
+print(f"   Data source: {cad_layer.dataSource}")
+
+# Find How Reported field
+fields = arcpy.ListFields(cad_layer)
+print(f"\n📋 Fields in layer:")
+how_field = None
+for f in fields:
+    if 'how' in f.name.lower() or 'how' in (f.aliasName or "").lower() or 'source' in f.name.lower():
+        print(f"  ✓ {f.name:30s} (alias: {f.aliasName:30s}) - Type: {f.type}")
+        if f.domain:
+            print(f"    🔗 Has domain: {f.domain}")
+        if 'how' in f.name.lower():
+            how_field = f.name
+
+if not how_field:
+    print("\n⚠️ Could not find How Reported field. Available fields:")
+    for f in fields[:20]:
+        print(f"  - {f.name} (alias: {f.aliasName})")
+    how_field = input("Enter field name to analyze: ")
+
+# Analyze values
+print(f"\n📊 Analyzing field: {how_field}")
+value_counts = defaultdict(int)
+phone_911_samples = []
+
+try:
+    with arcpy.da.SearchCursor(cad_layer, [how_field, "ReportNumberNew"]) as cursor:
+        count = 0
+        for row in cursor:
+            value = str(row[0]) if row[0] is not None else "NULL"
+            value_counts[value] += 1
+            
+            if '/' in value:
+                phone_911_samples.append({'value': value, 'case': row[1]})
+            
+            count += 1
+            if count % 50000 == 0:
+                print(f"  Processed {count:,} records...")
+        
+        print(f"\n✅ Analyzed {count:,} records")
+        print(f"   Found {len(value_counts)} unique values")
+except Exception as e:
+    print(f"Error: {e}")
+    with arcpy.da.SearchCursor(cad_layer, [how_field]) as cursor:
+        count = 0
+        for row in cursor:
+            value = str(row[0]) if row[0] is not None else "NULL"
+            value_counts[value] += 1
+            if '/' in value:
+                phone_911_samples.append({'value': value, 'case': 'N/A'})
+            count += 1
+        print(f"\n✅ Analyzed {count:,} records (simplified)")
+
+# Display results
+print("\n" + "="*80)
+print("Top 30 Values:")
+print("="*80)
+
+sorted_vals = sorted(value_counts.items(), key=lambda x: x[1], reverse=True)
+for i, (val, cnt) in enumerate(sorted_vals[:30], 1):
+    pct = (cnt / count) * 100
+    marker = "⚠️ " if '/' in val else "   "
+    print(f"{marker}{i:2d}. {val:40s}: {cnt:>8,} ({pct:>6.2f}%)")
+
+# Check for Phone/911
+print("\n" + "="*80)
+print("Phone/911 Analysis:")
+print("="*80)
+
+slash_vals = [v for v in value_counts.keys() if '/' in v]
+if slash_vals:
+    print(f"\n⚠️ FOUND {len(slash_vals)} values with '/':")
+    for v in slash_vals:
+        print(f"  '{v}': {value_counts[v]:,} records")
+    
+    if phone_911_samples:
+        print(f"\nSample cases:")
+        for s in phone_911_samples[:5]:
+            print(f"  {s['case']}: {s['value']}")
+else:
+    print("\n✅ NO '/' values found in data")
+    print("   Phone/911 must be coming from dashboard widget grouping")
+
+print("\n" + "="*80)
+print("Complete!") print("="*80)
+```
+
+This will:
+1. ✅ Target the correct map and layer ("Calls For Service")
+2. ✅ Find the "How Reported" field
+3. ✅ Analyze all values
+4. ✅ Show if `Phone/911` exists in the actual data or not
+
+Paste the whole thing and hit Enter! ---
+
+**User**
+
+✅ Using layer: Calls For Service
+   Data source: https://services1.arcgis.com/JYl0Hy0wQdiiV0qh/arcgis/rest/services/CallsForService_2153d1ef33a0414291a8eb54b938507b/FeatureServer/0
+Traceback (most recent call last):
+﻿  File "<string>", line 17, in <module>
+﻿  File "C:\Program Files\ArcGIS\Pro\Resources\ArcPy\arcpy\__init__.py", line 1229, in ListFields
+    return gp.listFields(dataset, wild_card, field_type)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+﻿  File "C:\Program Files\ArcGIS\Pro\Resources\ArcPy\arcpy\geoprocessing\_base.py", line 378, in listFields
+    self._gp.ListFields(*gp_fixargs(args, True)))
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+﻿OSError: "Calls For Service" does not exist
+
+in the cad export the column header is How Reported
+
+---
+
+**Cursor**
+
+Ah! The layer is a **hosted feature service** (ArcGIS Online), not a local file. That changes things. Here's a version that works with feature services:
+
+```python
+import arcpy
+from collections import defaultdict
+
+print("="*80)
+print("Call Source Field Analysis - Feature Service Version")
+print("="*80)
+
+# Get the layer
+aprx = arcpy.mp.ArcGISProject("CURRENT")
+map_obj = aprx.listMaps("Map")[0]
+cad_layer = map_obj.listLayers("Calls For Service")[0]
+
+print(f"\n✅ Using layer: {cad_layer.name}")
+print(f"   Source: Feature Service (ArcGIS Online)")
+
+# For feature services, get fields from the layer connection string
+print("\n📋 Getting fields from feature service...")
+
+# The field name you confirmed
+how_field = "How Reported"
+print(f"✅ Using field: '{how_field}'")
+
+# Analyze values directly from the feature service
+print(f"\n📊 Analyzing values...")
+value_counts = defaultdict(int)
+phone_911_samples = []
+
+try:
+    # Read from feature service
+    fields_to_read = [how_field, "ReportNumberNew"]
+    
+    with arcpy.da.SearchCursor(cad_layer, fields_to_read) as cursor:
+        count = 0
+        for row in cursor:
+            value = str(row[0]) if row[0] is not None else "NULL"
+            value_counts[value] += 1
+            
+            # Look for slash patterns
+            if '/' in value:
+                phone_911_samples.append({
+                    'value': value,
+                    'case': row[1] if row[1] else 'N/A'
+                })
+            
+            count += 1
+            if count % 25000 == 0:
+                print(f"  Processed {count:,} records...")
+    
+    print(f"\n✅ Analyzed {count:,} records")
+    print(f"   Found {len(value_counts)} unique values")
+
+except Exception as e:
+    print(f"\n⚠️ Error with ReportNumberNew: {e}")
+    print(f"   Trying with just '{how_field}'...")
+    
+    with arcpy.da.SearchCursor(cad_layer, [how_field]) as cursor:
+        count = 0
+        for row in cursor:
+            value = str(row[0]) if row[0] is not None else "NULL"
+            value_counts[value] += 1
+            
+            if '/' in value:
+                phone_911_samples.append({'value': value, 'case': 'N/A'})
+            
+            count += 1
+            if count % 25000 == 0:
+                print(f"  Processed {count:,} records...")
+        
+        print(f"\n✅ Analyzed {count:,} records")
+        print(f"   Found {len(value_counts)} unique values")
+
+# Display results
+print("\n" + "="*80)
+print("TOP 30 'HOW REPORTED' VALUES")
+print("="*80)
+
+sorted_vals = sorted(value_counts.items(), key=lambda x: x[1], reverse=True)
+
+for i, (val, cnt) in enumerate(sorted_vals[:30], 1):
+    pct = (cnt / count) * 100
+    marker = "⚠️ " if '/' in val else "   "
+    print(f"{marker}{i:2d}. {val:40s}: {cnt:>8,} ({pct:>6.2f}%)")
+
+# Phone/911 Analysis
+print("\n" + "="*80)
+print("PHONE/911 PATTERN ANALYSIS")
+print("="*80)
+
+slash_vals = [v for v in value_counts.keys() if '/' in v]
+
+if slash_vals:
+    print(f"\n⚠️ FOUND {len(slash_vals)} values containing '/':")
+    total_slash = sum(value_counts[v] for v in slash_vals)
+    print(f"   Total records: {total_slash:,} ({(total_slash/count)*100:.2f}%)")
+    
+    for v in sorted(slash_vals, key=lambda x: value_counts[x], reverse=True):
+        cnt = value_counts[v]
+        pct = (cnt / count) * 100
+        print(f"   '{v}': {cnt:,} records ({pct:.2f}%)")
+    
+    if phone_911_samples:
+        print(f"\n📋 Sample cases (first 10):")
+        for i, s in enumerate(phone_911_samples[:10], 1):
+            print(f"   {i}. Case {s['case']}: '{s['value']}'")
+    
+    print(f"\n⚠️ ACTION REQUIRED:")
+    print(f"   These values need to be split:")
+    print(f"   - If value is 'Phone/911' → Determine primary channel")
+    print(f"   - Update source data or add logic to split")
+    
+else:
+    print("\n✅ NO values containing '/' found")
+    print("   Phone/911 is NOT in the actual data")
+    print("\n   The dashboard is grouping/combining values for display")
+    print("   Check:")
+    print("   1. Dashboard widget category settings")
+    print("   2. Chart/filter grouping Phone and 9-1-1 together")
+    print("   3. Category selector configuration")
+
+# Check if Phone and 9-1-1 are separate
+phone_count = value_counts.get('Phone', 0)
+nine11_count = value_counts.get('9-1-1', 0)
+
+if phone_count > 0 and nine11_count > 0 and not slash_vals:
+    print(f"\n📊 Found separate values:")
+    print(f"   'Phone': {phone_count:,} records")
+    print(f"   '9-1-1': {nine11_count:,} records")
+    print(f"\n   Total: {phone_count + nine11_count:,} records")
+    print(f"\n💡 Dashboard might be grouping these together as 'Phone/911'")
+
+print("\n" + "="*80)
+print("COMPLETE!") print("="*80)
+```
+
+**This version:**
+- ✅ Works with **ArcGIS Online feature services**
+- ✅ Uses the correct field name: `"How Reported"` (with space)
+- ✅ Reads data directly from the hosted service
+- ✅ Looks for `Phone/911` patterns
+- ✅ Shows if Phone and 9-1-1 exist as separate values
+
+Paste this into the Python window and let me know what it finds! ---
+
+**User**
+
+================================================================================
+Call Source Field Analysis - Feature Service Version
+================================================================================
+
+✅ Using layer: Calls For Service
+   Source: Feature Service (ArcGIS Online)
+
+📋 Getting fields from feature service...
+✅ Using field: 'How Reported'
+
+📊 Analyzing values...
+
+⚠️ Error with ReportNumberNew: Cannot find field 'How Reported'
+   Trying with just 'How Reported'...
+Traceback (most recent call last):
+﻿  File "<string>", line 34, in <module>
+﻿RuntimeError: Cannot find field 'How Reported'
+﻿
+During handling of the above exception, another exception occurred:
+
+﻿Traceback (most recent call last):
+﻿  File "<string>", line 58, in <module>
+﻿RuntimeError: Cannot find field 'How Reported'
+
+
+where in the project can I look manually for you? ---
+
+**Cursor**
+
+Great question! Let's manually find the correct field name. Try this:
+
+```python
+import arcpy
+
+# Get the layer
+aprx = arcpy.mp.ArcGISProject("CURRENT")
+map_obj = aprx.listMaps("Map")[0]
+cad_layer = map_obj.listLayers("Calls For Service")[0]
+
+print("="*80)
+print("Finding ALL fields in 'Calls For Service' layer")
+print("="*80)
+
+# Method 1: List fields from layer object
+print("\nMethod 1: Using layer.listFields()...")
+try:
+    fields = [f.name for f in cad_layer.listFields()]
+    print(f"✅ Found {len(fields)} fields:")
+    for i, fname in enumerate(fields, 1):
+        print(f"  {i:2d}. {fname}")
+except Exception as e:
+    print(f"❌ Error: {e}")
+
+# Method 2: Read one record to see field names
+print("\n" + "="*80)
+print("Method 2: Reading actual field names from data...")
+try:
+    # Get ALL fields by using '*'
+    with arcpy.da.SearchCursor(cad_layer, '*') as cursor:
+        # Get field names from cursor
+        field_names = cursor.fields
+        print(f"✅ Found {len(field_names)} fields:")
+        for i, fname in enumerate(field_names, 1):
+            marker = "👉" if 'how' in fname.lower() or 'report' in fname.lower() or 'source' in fname.lower() or 'call' in fname.lower() else "  "
+            print(f"  {marker} {i:2d}. {fname}")
+except Exception as e:
+    print(f"❌ Error: {e}")
+
+print("\n" + "="*80)
+print("Look for field names containing:")
+print("  - 'How', 'Report', 'Source', 'Call'")
+print("="*80)
+```
+
+This will show you **ALL** the field names in the feature service. **Also, you can check manually in ArcGIS Pro:**
+
+### Option A: Layer Properties
+1. Right-click **"Calls For Service"** layer in Contents pane
+2.

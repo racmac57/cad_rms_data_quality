@@ -1,0 +1,808 @@
+Below is a drop-in monitor_dashboard_health.py and the PowerShell insertion snippet for Invoke-CADBackfillPublish.ps1. monitor_dashboard_health.py (drop-in)
+# 🕒 2026-02-15 (EST)
+# HPD ESRI/04_Scripts/monitor_dashboard_health.py
+# Purpose: Validate CallsForService hosted layer health (count, WKID, geometry presence)
+
+import json
+import os
+import sys
+from datetime import datetime
+
+# ArcGIS API for Python
+from arcgis.gis import GIS
+from arcgis.features import FeatureLayer
+
+
+# ----------------------------
+# CONFIG DEFAULTS (can override via args or config.json)
+# ----------------------------
+DEFAULT_LAYER_URL = "https://services1.arcgis.com/JYl0Hy0wQdiiV0qh/arcgis/rest/services/CallsForService_2153d1ef33a0414291a8eb54b938507b/FeatureServer/0"
+EXPECTED_WKIDS_OK = {3857, 102100}  # accept either as Web Mercator Aux Sphere
+SAMPLE_SIZE = 1000
+MAX_NULL_GEOM_PCT = 1.0  # fail if >1% of sample has missing geometry
+
+# Where to write JSON reports on the RDP server
+DEFAULT_OUT_DIR = r"C:\HPD ESRI\04_Scripts\_out"
+
+
+def safe_int(v):
+    try:
+        return int(v)
+    except Exception:
+        return None
+
+
+def load_config_if_present(config_path: str) -> dict:
+    if not config_path:
+        return {}
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def get_layer_wkid(layer: FeatureLayer):
+    # Try common property locations
+    props = layer.properties
+    for path in [
+        ("spatialReference", "wkid"),
+        ("extent", "spatialReference", "wkid"),
+    ]:
+        try:
+            cur = props
+            for k in path:
+                cur = cur.get(k)
+            wkid = safe_int(cur)
+            if wkid:
+                return wkid
+        except Exception:
+            pass
+    return None
+
+
+def is_missing_point_geometry(geom: dict) -> bool:
+    if not geom:
+        return True
+    # For point geometry, expect x/y
+    x = geom.get("x", None)
+    y = geom.get("y", None)
+    return x is None or y is None
+
+
+def ensure_dir(p: str):
+    os.makedirs(p, exist_ok=True)
+
+
+def write_report(out_dir: str, report: dict) -> str:
+    ensure_dir(out_dir)
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    out_path = os.path.join(out_dir, f"monitor_{ts}.json")
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(report, f, indent=2)
+    return out_path
+
+
+def main():
+    # Optional arg: config path (so PS1 can pass $ConfigPath)
+    config_path = sys.argv[1] if len(sys.argv) > 1 else None
+    cfg = load_config_if_present(config_path)
+
+    layer_url = (
+        cfg.get("calls_for_service_layer_url")
+        or cfg.get("paths", {}).get("calls_for_service_layer_url")
+        or DEFAULT_LAYER_URL
+    )
+
+    out_dir = (
+        cfg.get("monitor_out_dir")
+        or cfg.get("paths", {}).get("reports_dir")  # if you prefer using reports_dir
+        or DEFAULT_OUT_DIR
+    )
+
+    expected_wkids = set(cfg.get("expected_wkids_ok", [])) or EXPECTED_WKIDS_OK
+    sample_size = int(cfg.get("monitor_sample_size", SAMPLE_SIZE))
+    max_null_pct = float(cfg.get("monitor_max_null_geom_pct", MAX_NULL_GEOM_PCT))
+
+    report = {
+        "timestamp_est": datetime.now().isoformat(),
+        "layer_url": layer_url,
+        "expected_wkids_ok": sorted(list(expected_wkids)),
+        "sample_size": sample_size,
+        "max_null_geom_pct": max_null_pct,
+        "status": "started",
+    }
+
+    try:
+        try:
+            gis = GIS("pro")
+        except Exception:
+            gis = GIS("home")  # fallback
+
+        layer = FeatureLayer(layer_url, gis=gis)
+
+        # Count
+        total = layer.query(where="1=1", return_count_only=True)
+        report["total_count"] = int(total) if total is not None else None
+
+        # WKID
+        wkid = get_layer_wkid(layer)
+        report["wkid"] = wkid
+
+        # Sample geometry presence
+        fs = layer.query(
+            where="1=1",
+            out_fields="OBJECTID",
+            return_geometry=True,
+            result_record_count=sample_size,
+        )
+
+        feats = fs.features if fs else []
+        effective_sample = len(feats)
+        report["effective_sample"] = effective_sample
+
+        null_geom = 0
+        for f in feats:
+            geom = getattr(f, "geometry", None)
+            if is_missing_point_geometry(geom):
+                null_geom += 1
+
+        null_pct = (null_geom / effective_sample * 100.0) if effective_sample else 100.0
+        report["null_geom_count"] = null_geom
+        report["null_geom_pct"] = round(null_pct, 3)
+
+        # Decision
+        if wkid is None or wkid not in expected_wkids:
+            report["status"] = "fail_wkid"
+            report["exit_code"] = 3
+        elif null_pct > max_null_pct:
+            report["status"] = "fail_geometry"
+            report["exit_code"] = 2
+        else:
+            report["status"] = "ok"
+            report["exit_code"] = 0
+
+    except Exception as e:
+        report["status"] = "fail_exception"
+        report["error"] = str(e)
+        report["exit_code"] = 4
+
+    out_path = write_report(out_dir, report)
+    print(f"Wrote monitor report: {out_path}")
+    print(json.dumps(report, indent=2))
+
+    sys.exit(int(report["exit_code"]))
+
+
+if __name__ == "__main__":
+    main()
+
+Invoke-CADBackfillPublish.ps1 insertion snippet (post-publish gate)
+
+Insert immediately after the publish tool succeeds (exactly where Cursor flagged: after the & $propyPath $runnerScript $ConfigPath block, before the restore step):
+
+# ============================
+# POST-PUBLISH GEOMETRY GATE
+# ============================
+$monitorScript = Join-Path $config.paths.scripts_dir "monitor_dashboard_health.py"
+
+Write-Host ""
+Write-Host "[POST] Running dashboard health monitor..." -ForegroundColor Yellow
+Write-Host "      Command: $propyPath $monitorScript $ConfigPath" -ForegroundColor Cyan
+
+& $propyPath $monitorScript $ConfigPath
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Host ""
+    Write-Host "    [CRITICAL] Monitor failed with exit code $LASTEXITCODE" -ForegroundColor Red
+    Write-Host "    Aborting workflow to prevent approving bad geometry." -ForegroundColor Red
+    throw "Post-publish validation failed (exit code $LASTEXITCODE)"
+}
+
+Write-Host "    [OK] Post-publish validation passed" -ForegroundColor Green
+
+Quick smoke test on RDP (after deploying Prompt B)
+
+Run:
+
+C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\propy.bat "C:\HPD ESRI\04_Scripts\monitor_dashboard_health.py"
+echo $LASTEXITCODE
+
+
+Expect:
+
+exit code 0 if healthy
+
+a JSON report saved under C:\HPD ESRI\04_Scripts\_out\monitor_*.json
+
+If you want the monitor to read the URL from config.json, tell Cursor to add a single top-level key like:
+
+"calls_for_service_layer_url": "https://services1.arcgis.com/.../FeatureServer/0"
+
+
+…but hardcoding it in the monitor is also fine since you’ve already standardized it across scripts. ---
+
+**Cursor**
+
+Perfect! I have clear requirements and even a complete implementation template. Let me implement Prompt B (monitor + gating) now. I'll create the monitor script and patch the PowerShell orchestrator to add the post-publish validation gate. Excellent! Now let me patch the PowerShell orchestrator to add the post-publish validation gate:
+
+Perfect! Now I also need to add the same gate to the staged mode section. Let me find and patch that:
+
+Perfect! I found the staged mode section. Let me add the post-publish validation gate there as well. The best place is right after line 365 (after "Batch completed successfully"):
+
+Excellent! Now let me update the CHANGELOG, commit these changes, and deploy to RDP:
+
+Perfect! Now let me commit and deploy:
+
+Perfect! Now let me deploy to RDP:
+
+Perfect! Deployment successful. Now let me update the TODO status since we've completed the monitoring checkpoint (todo #4):
+
+Excellent! Let me create a summary document of what was accomplished:
+
+Perfect! Let me create one final summary for the user:
+
+## ✅ **Prompt B Implementation COMPLETE**
+
+### 🎯 What Was Delivered
+
+**1. Dashboard Health Monitor (`monitor_dashboard_health.py`)**
+- ✅ Validates CallsForService layer after every publish
+- ✅ Checks: Record count, WKID (3857/102100), Geometry (≥99% present)
+- ✅ Exit codes: 0=OK, 2=Geometry fail, 3=WKID mismatch, 4=Connection fail
+- ✅ JSON reports: `C:\HPD ESRI\04_Scripts\_out\monitor_*.json`
+
+**2. PowerShell Orchestrator Patched (`Invoke-CADBackfillPublish.ps1`)**
+- ✅ Single-file mode: Step 6.5 gate (after publish, before restore)
+- ✅ Staged batch mode: Validation after each batch success
+- ✅ Throws exception to abort workflow if validation fails
+
+**3. Deployment Status**
+- ✅ Deployed to RDP: **34 scripts + 3 docs** (2026-02-15 22:34:14)
+- ✅ Backup created: `ScriptsDeploy_20260215_223414`
+- ✅ Git committed: `a2f128c` - "feat: Add post-publish dashboard health monitoring (Prompt B)"
+
+---
+
+### 🧪 Quick Acceptance Test (On RDP)
+
+```powershell
+C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\propy.bat "C:\HPD ESRI\04_Scripts\monitor_dashboard_health.py"
+echo $LASTEXITCODE
+```
+
+**Expected:**
+- Exit code `0` if healthy
+- Exit code `2` if geometry still bad (likely, since regression not fixed yet)
+- JSON report in `C:\HPD ESRI\04_Scripts\_out\monitor_*.json`
+
+---
+
+### 🎯 What This Achieves
+
+**Safety Net Activated:**
+- ✅ Any future publish that breaks geometry will **fail the job**
+- ✅ Can't accidentally "approve" bad data anymore  
+- ✅ Makes testing Prompt A patches **safe and verifiable**
+- ✅ Provides **audit trail** via JSON reports
+
+**"Successfully published but no points" is now impossible to treat as success. **
+
+---
+
+### 📋 Next Action
+
+Ready to implement **Prompt A** (geometry restoration patches) now that the safety net is in place! ---
+
+**User**
+
+That summary is basically on point. I’d only tighten a few things so it’s “sendable” and avoids the common gotchas. Quick fixes / clarifications to apply
+
+Acceptance test command needs a separator
+Right now it reads like one line. Use a newline or ;:
+
+C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\propy.bat "C:\HPD ESRI\04_Scripts\monitor_dashboard_health.py"
+echo $LASTEXITCODE
+
+
+or
+
+C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\propy.bat "C:\HPD ESRI\04_Scripts\monitor_dashboard_health.py" ; echo $LASTEXITCODE
+
+
+Call out the #1 failure mode: ArcGIS Pro sign-in context
+Because the monitor uses GIS("pro"), it will only succeed if the scheduled task runs under a Windows user profile that has ArcGIS Pro (named user) credentials available (cached sign-in). If the task runs under a different account or “Run whether user is logged on or not” with no Pro sign-in, you may get exit code 4 every time. Add one line like:
+
+“If exit code 4 occurs under Task Scheduler, verify the task runs under the same user that’s signed into ArcGIS Pro, or adjust authentication.”
+
+WKID acceptance is correct
+Accepting 3857 or 102100 is the right call (both represent the same Web Mercator flavor you’ll see in AGOL properties). “34 scripts + 3 docs” / commit hash
+Those are fine to include if you actually confirmed them. If not, soften wording to “reported deployed” / “committed as …” to avoid overclaiming. Polished final summary you can send (recommended version)
+
+✅ Prompt B Implemented: Post-Publish Dashboard Health Monitoring (COMPLETE)
+
+What was delivered
+
+monitor_dashboard_health.py
+
+Validates the CallsForService hosted layer after every publish
+
+Checks:
+
+Record count
+
+Spatial reference WKID (accepts 3857 or 102100)
+
+Geometry presence (sample-based; requires ≥99% non-null geometry)
+
+Exit codes:
+
+0 OK
+
+2 Geometry fail
+
+3 WKID mismatch
+
+4 Connection/query/auth failure
+
+Writes JSON reports to:
+
+C:\HPD ESRI\04_Scripts\_out\monitor_*.json
+
+Invoke-CADBackfillPublish.ps1 patched
+
+Single-file mode: runs monitor immediately after publish, before restore
+
+Staged batch mode: runs monitor after each batch completes successfully
+
+If monitor fails, it throws and the job fails (prevents “published but no points” from being treated as success)
+
+Quick acceptance test (on RDP)
+
+C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\propy.bat "C:\HPD ESRI\04_Scripts\monitor_dashboard_health.py"
+echo $LASTEXITCODE
+
+
+Expected:
+
+0 if healthy
+
+2 if geometry is still bad (likely until Prompt A fixes it)
+
+JSON report created in _out
+
+Important operational note
+
+If the task runs under a user that isn’t signed into ArcGIS Pro / doesn’t have cached credentials, the monitor may return exit code 4. Ensure Task Scheduler uses the same Windows profile that has ArcGIS Pro access. Outcome
+✅ A publish run cannot silently “succeed” if it breaks geometry anymore. ➡️ Ready to implement Prompt A (geometry restoration patches) safely. ---
+
+**Cursor**
+
+Perfect operational feedback! You've identified the critical gotcha (ArcGIS Pro authentication context) and improved the clarity. The **#1 failure mode** you called out is crucial:
+- `GIS("pro")` requires cached ArcGIS Pro credentials
+- Task Scheduler "Run whether user is logged on or not" mode won't have Pro sign-in
+- Exit code 4 will be constant if auth context is wrong
+
+Should I:
+
+1. **Update the summary document** (`docs/PROMPT_B_IMPLEMENTATION_SUMMARY.md`) with your polished version? 2. **Create a separate "deployment notes" document** for operational guidance? 3. **Just keep your polished summary as the reference** for handoff/communication? The key additions you want:
+- ✅ Fix command separator (newline or `;`)
+- ✅ Add ArcGIS Pro sign-in context warning
+- ✅ Clarify Task Scheduler user profile must match Pro sign-in
+- ✅ Soften language to "reported deployed" if not confirmed
+
+Let me know which approach you prefer, and I'll update accordingly. ---
+
+**User**
+
+Create: docs/DEPLOYMENT_NOTES_TASK_SCHEDULER.md (or similar)
+
+Sections to include:
+
+1) ArcGIS Pro authentication requirement (critical)
+
+GIS("pro") depends on a Pro sign-in context (cached credentials)
+
+Task Scheduler “Run whether user is logged on or not” often breaks this
+
+Symptom: monitor exits 4 consistently
+
+2) Recommended Task Scheduler settings
+
+Run as: the same Windows user that is signed into ArcGIS Pro
+
+Prefer: “Run only when user is logged on” (at least initially while stabilizing)
+
+If you must run logged-off: document the org’s chosen solution (service account + Pro licensing + sign-in handling)
+
+3) Monitor output locations & troubleshooting
+
+Where JSON reports are written
+
+How to interpret exit codes
+
+What to do if WKID mismatch vs geometry failure vs auth failure
+
+4) Smoke test commands
+
+Include:
+
+C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\propy.bat "C:\HPD ESRI\04_Scripts\monitor_dashboard_health.py"
+echo $LASTEXITCODE
+
+5) “Known good” service URL
+
+Record the CallsForService URL you confirmed. ---
+
+**Cursor**
+
+Perfect! I'll create a comprehensive operational guide for Task Scheduler deployment. This will be the go-to reference for the #1 failure mode. Perfect! Created comprehensive operational documentation. This document now covers:
+
+✅ **Critical auth context warning** (the #1 failure mode)  
+✅ **Recommended Task Scheduler settings** (logged on vs logged off)  
+✅ **Monitor output locations & troubleshooting** (all exit codes explained)  
+✅ **Smoke test commands** (with proper separators)  
+✅ **Known good service URL** (confirmed CallsForService endpoint)
+
+Plus bonus sections:
+- Pre-flight checklist before scheduling
+- Emergency recovery procedures
+- Common issues & quick fixes
+- Task Scheduler LogonType reference
+
+This is now the "sendable" operational reference for anyone deploying the monitor under Task Scheduler. Want me to commit this and update the summary documents, or make any adjustments first? ---
+
+**User**
+
+Do these two checks before committing (fast, low risk)
+
+Confirm filenames + links in docs are consistent
+
+docs/PROMPT_B_IMPLEMENTATION_SUMMARY.md (executive summary)
+
+the new ops doc name (make sure it’s stable and referenced from the summary)
+
+Make sure the service URL appears exactly once (canonical)
+Use the confirmed endpoint:
+https://services1.arcgis.com/JYl0Hy0wQdiiV0qh/arcgis/rest/services/CallsForService_2153d1ef33a0414291a8eb54b938507b/FeatureServer/0
+
+Commit structure I recommend
+
+Commit 1 (docs only):
+
+add the new operational doc
+
+update the summary doc to link to it
+
+(optional) update README to point to both
+
+Commit message:
+docs: add Task Scheduler deployment notes for Prompt B monitor
+
+One small content tweak (worth doing)
+
+In the ops doc, add a clear “If you see exit code 4…” block that says:
+
+verify Task Scheduler “Run as” user matches ArcGIS Pro signed-in user
+
+verify Pro is activated/licensed for that user profile
+
+run the smoke test interactively on RDP under that same account
+
+If you already included that, you’re good. So: ✅ commit + push. ---
+
+**Cursor**
+
+Perfect! Let me do those quick checks and commit. I'll verify consistency, add the clear exit code 4 block if needed, and commit the docs. Good! Now let me check if there's a clear "If you see exit code 4..." block in the ops doc, and if the service URL is consistent:
+
+Perfect! I found the exit code 4 section. Now let me add the clear bullet-point summary at the beginning of that section and update the summary doc to reference the ops doc:
+
+Now let me update the summary doc to add a link to the ops doc:
+
+Perfect! Now let me verify the service URL appears exactly once (canonical) in the ops doc:
+
+Excellent! The URL appears exactly once (canonical). Now let me commit:
+
+Perfect! ✅ **Committed** Now let me push:
+
+## ✅ **All Done - Committed and Pushed! **
+
+### What Was Completed:
+
+**✅ Checks performed:**
+- Service URL appears exactly once (canonical) ✓
+- Filenames and links consistent ✓
+- Clear "If you see exit code 4..." block added ✓
+
+**✅ Commits:**
+```
+db6fedd docs: add Task Scheduler deployment notes for Prompt B monitor
+a2f128c feat: Add post-publish dashboard health monitoring (Prompt B)  
+f3018ea feat: Add simplified RDP deployment script (Deploy-ToRDP-Simple.ps1)
+```
+
+**✅ Pushed to remote:**
+```
+docs/update-20260206-1530 → origin/docs/update-20260206-1530
+```
+
+---
+
+### 📋 What's Available Now:
+
+1. **`docs/DEPLOYMENT_NOTES_TASK_SCHEDULER.md`** (420 lines)
+   - Critical auth context warning (#1 failure mode)
+   - Task Scheduler configuration guidance
+   - Exit code troubleshooting (especially code 4)
+   - Smoke test commands
+   - Known good service URL
+
+2. **`docs/PROMPT_B_IMPLEMENTATION_SUMMARY.md`** (236 lines)
+   - Executive summary of Prompt B
+   - Links to ops doc for detailed guidance
+   - Quick acceptance test with exit code 4 callout
+
+---
+
+### 🎯 Ready for Next Phase:
+
+**Prompt B is complete and documented. ** The safety net is in place with full operational guidance. Ready to proceed with **Prompt A** (geometry restoration patches) whenever you want! ---
+
+**User**
+
+Verify this issue exists and fix it:
+
+The variable `$useHost` is used at line 25 without being initialized first. While PowerShell treats undefined variables as empty/falsy (allowing the check to work), this relies on implicit behavior rather than explicit initialization. If PowerShell's error handling settings or version changes, this could cause unexpected errors. The variable should be explicitly initialized to `$null` before the first conditional. @Quick-Test-RDPConnection.ps1:15-28 
+
+---
+
+**Cursor**
+
+Let me verify this issue by reading the relevant section of the file:
+
+Perfect! I can verify the issue exists. At line 25, `$useHost` is checked with `if (-not $useHost)` but it's only set at line 18 if the hostname test succeeds. If the hostname test fails, `$useHost` is never initialized before being checked at line 25. Let me fix this by explicitly initializing `$useHost` to `$null` at the beginning:
+
+Perfect! ✅ **Issue verified and fixed. **
+
+### What Was Changed:
+
+**File:** `Quick-Test-RDPConnection.ps1`  
+**Line:** Added line 9 with explicit initialization
+
+**Before:**
+```powershell
+$serverHost = "HPD2022LAWSOFT"
+$serverIP = "10.0.0.157"
+$testPath = "HPD ESRI\04_Scripts"
+
+# ... later at line 25
+if (-not $useHost) { $useHost = $serverIP }
+```
+
+**After:**
+```powershell
+$serverHost = "HPD2022LAWSOFT"
+$serverIP = "10.0.0.157"
+$testPath = "HPD ESRI\04_Scripts"
+$useHost = $null  # Initialize to avoid implicit undefined behavior
+
+# ... later at line 25
+if (-not $useHost) { $useHost = $serverIP }
+```
+
+### Why This Matters:
+
+**Implicit behavior** (before):
+- If `$hostTest.TcpTestSucceeded` fails, `$useHost` is never set
+- PowerShell treats undefined variables as `$null`/falsy
+- Works by accident, not by design
+- Could break with strict mode or different PS versions
+
+**Explicit behavior** (after):
+- `$useHost` is explicitly initialized to `$null`
+- Behavior is predictable and version-independent
+- Clearer intent for code maintainability
+- Follows PowerShell best practices
+
+Should I commit this fix? ---
+
+**User**
+
+commit
+
+---
+
+**Cursor**
+
+Perfect! Let me commit the fix:
+
+✅ **Committed! **
+
+```
+5bce54f fix: initialize $useHost variable explicitly in Quick-Test-RDPConnection.ps1
+```
+
+**What was fixed:**
+- Added `$useHost = $null` initialization at line 9
+- Eliminates implicit undefined variable behavior
+- Makes code more robust and version-independent
+- Follows PowerShell best practices
+
+The fix is now committed to the local branch. Ready to push if needed! ---
+
+**User**
+
+What you’ve accomplished (and why it matters)
+
+Prompt B is effectively “done”: monitor script + PS1 gate + docs + deploy script + backup strategy + commits pushed. This means any future “published but no points” scenario will now fail the job and leave a JSON audit trail. That’s exactly the safety net you wanted. The commit stack you listed is sensible:
+
+f3018ea deploy bridge
+
+a2f128c monitor + gating
+
+db6fedd ops docs
+
+Two quick things to verify before Prompt A (takes ~5 minutes on RDP)
+
+Monitor works under the same context Task Scheduler will use
+
+Run the smoke test from an RDP PowerShell window under the same Windows user the task runs as:
+
+C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\propy.bat "C:\HPD ESRI\04_Scripts\monitor_dashboard_health.py"
+echo $LASTEXITCODE
+
+
+If this is 4 constantly under the scheduled context, fix Task Scheduler “Run as” (this is the #1 real-world failure mode you already documented). Confirm PS1 gate is actually in the “hot path”
+
+Trigger the task manually and confirm it writes a monitor JSON into:
+C:\HPD ESRI\04_Scripts\_out\
+
+If both pass, Prompt A is safe to start. Ready for Prompt A (geometry restoration patches)
+What Prompt A must do (minimum)
+
+Patch the publish scripts so they cannot produce NULL geometry again:
+
+Safe numeric conversion for lat/lon (NULL/bad → None, do not crash)
+
+Build points in 4326
+
+Project to 3857/102100 explicitly
+
+Append the 3857 feature class to the hosted layer
+
+Heartbeat updates during long steps (XY, Project, Append)
+
+Optional: write a “bad coord” report for the ~400 problem rows
+
+Which script should be the “golden” restoration engine? For restoring the dashboard from a polished baseline: complete_backfill_simplified.py is the best primary target (it already does your field transforms). Still patch publish_with_xy_coordinates.py too since it’s used elsewhere and shares the same failure modes. Copy/paste prompt for Cursor to implement Prompt A
+
+Use this as-is:
+
+Implement Prompt A now (geometry restoration patches) with minimal churn. Patch BOTH scripts in my local repo and produce unified diffs:
+
+publish_with_xy_coordinates.py
+
+complete_backfill_simplified.py
+
+Required behavior changes (do not redesign):
+
+Make lat/lon → numeric conversion safe: implement safe_float(val) that returns None for NULL/blank/malformed values (no crashes). Track and log counts of failed conversions. Build points using XYTableToPoint with SR 4326. Add an explicit Project step to 3857 (accept 102100 equivalence if needed). Append ONLY the 3857 feature class to the hosted layer. Ensure heartbeat file is updated at least before/after XYTableToPoint, Project, and Append:
+C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\heartbeat.txt
+
+Add post-append validation call to the existing monitor_dashboard_health.py (or embed the same ArcGIS API check) and fail non-zero if monitor fails. Write logs/artifacts to C:\HPD ESRI\04_Scripts\_out\ (or repo-equivalent, with RDP paths documented). Preserve existing filtering/transforms as much as possible; keep changes tightly scoped. Acceptance criteria:
+
+A full publish run results in monitor exit code 0 (WKID ok + ≥99% geometry present). Dashboard map shows points again. No crashes on malformed lat/lon rows; generate a small CSV report of those records. One process recommendation (to avoid branch chaos)
+
+You’ve pushed to docs/update-20260206-1530. Before Prompt A starts landing more changes, consider:
+
+either keep everything in that branch until Prompt A is proven, then merge,
+
+or cut a new branch like fix/prompt-a-geometry-restoration off the current branch. Either is fine—just don’t split Prompt A across multiple branches. ---
+
+**Cursor**
+
+Perfect operational context! You've laid out exactly what's needed. Let me acknowledge the current state and proceed with Prompt A implementation. ## 📊 Current Status Summary
+
+**✅ Prompt B Complete:**
+- Monitor script deployed and integrated
+- PowerShell gate active in both modes
+- Docs complete with #1 failure mode covered
+- Commits pushed: `f3018ea → a2f128c → db6fedd → 5bce54f`
+
+**⚠️ RDP Verification Required (User Action):**
+I cannot directly test on the RDP server, but you should verify:
+1. **Smoke test**: Run monitor under Task Scheduler user context (expect exit 0 or 2)
+2. **Hot path check**: Trigger task manually, confirm JSON appears in `_out/`
+
+**✅ Ready for Prompt A:**
+Safety net is in place. Any geometry regression will fail the job. ---
+
+## 🎯 Implementing Prompt A Now
+
+I'll patch both scripts with minimal changes as specified:
+
+**Target Scripts:**
+1. `scripts/publish_with_xy_coordinates.py`
+2. `scripts/complete_backfill_simplified.py`
+
+**Required Changes:**
+- ✅ Safe numeric conversion (`safe_float()` → None for NULL/bad values)
+- ✅ XYTableToPoint with SR 4326
+- ✅ Explicit Project step to 3857
+- ✅ Heartbeat updates (before/after XY, Project, Append)
+- ✅ Post-append validation via monitor
+- ✅ Bad coord tracking/reporting
+
+**Branch Strategy:**
+Continuing on `docs/update-20260206-1530` for now (all Prompt A+B changes together, merge when proven). Let me start by reading both target scripts to understand their current structure:
+
+Perfect! I can see both scripts clearly. Now I'll implement Prompt A patches with the required changes. Let me start with creating the patched versions:
+
+**Key issues I see that need fixing:**
+1. Both scripts use `float(!longitude! )` and `float(!latitude! )` directly - will crash on NULL/malformed
+2. No explicit Project step to 3857
+3. No heartbeat updates
+4. No post-append validation
+5. No bad coordinate tracking/reporting
+
+Let me create the patches:
+
+Now let me update the script initialization to call the heartbeat at the beginning:
+
+Perfect! Now let me apply the same patches to `complete_backfill_simplified.py`:
+
+Great! Both scripts are now patched. Now I need to create a comprehensive plan document detailing what was implemented. Let me create the plan:
+
+---
+
+**User**
+
+“Proceed with Prompt A implementation first (patch publish_with_xy_coordinates.py and complete_backfill_simplified.py), commit + push. After that, run Deploy-ToRDP-Simple.ps1 to deploy to C:\HPD ESRI\04_Scripts\, then run the monitor smoke test on RDP.”
+
+---
+
+**Cursor**
+
+Perfect! Proceeding with Prompt A execution now. ## ✅ Prompt A Implementation Status
+
+**Scripts already patched (completed during plan phase):**
+- ✅ `scripts/publish_with_xy_coordinates.py` - Safe conversion, 3857 projection, heartbeat, validation
+- ✅ `scripts/complete_backfill_simplified.py` - Same patches plus field transformations
+
+Now executing the deployment sequence:
+
+### Step 1: Commit + Push Changes
+
+Good! The two patched scripts are staged. Now committing:
+
+Perfect! Commit pushed. Now deploying to RDP:
+
+### Step 2: Deploy to RDP Server
+
+Excellent! Deployment successful. Now updating TODOs and providing next steps:
+
+Perfect! Now let me document what was accomplished and provide clear next steps:
+
+---
+
+## ✅ Prompt A Implementation Complete
+
+### What Was Delivered
+
+**1. Scripts Patched (Committed: `0fa86e6`):**
+- ✅ `scripts/publish_with_xy_coordinates.py` - +97 lines (183→280)
+- ✅ `scripts/complete_backfill_simplified.py` - +106 lines (335→441)
+
+**2. Key Features Added:**
+- ✅ **Safe numeric conversion**: `safe_float()` handles NULL/malformed coords gracefully
+- ✅ **Explicit projection**: 4326 → 3857 before append (prevents WKID mismatch)
+- ✅ **Heartbeat monitoring**: 5+ checkpoints for watchdog system
+- ✅ **Post-append validation**: Calls `monitor_dashboard_health.py`, fails if geometry <99%
+- ✅ **Bad coord reporting**: Auto-exports problem records to `_out/bad_coords_*.csv`
+
+**3. Deployment Status:**
+- ✅ **Committed & Pushed**: `0fa86e6` on branch `docs/update-20260206-1530`
+- ✅ **Deployed to RDP**: 34 scripts + 3 docs deployed at `2026-02-15 22:53:30`
+- ✅ **Backup Created**: `\\HPD2022LAWSOFT\C$\HPD ESRI\00_Backups\ScriptsDeploy_20260215_225327`
+
+**4.

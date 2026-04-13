@@ -1,0 +1,174 @@
+Succeeded at Sunday, February 8, 2026 10:50:20 PM (Elapsed Time: 0.08 seconds)
+Executing (Add Date Attributes for Call Date): AddDateAttributes "C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\tempcalls_selection" calldate "DAY_FULL_NAME calldow;DAY_OF_WEEK calldownum;HOUR callhour;MONTH callmonth;YEAR callyear"
+Start Time: Sunday, February 8, 2026 10:50:20 PM
+Adding Field: calldow
+Adding Field: calldownum
+Adding Field: callhour
+Adding Field: callmonth
+Adding Field: callyear
+Calculating Field: calldow
+Calculating Field: calldownum
+Calculating Field: callhour
+Calculating Field: callmonth
+Calculating Field: callyear
+Succeeded at Sunday, February 8, 2026 10:50:21 PM (Elapsed Time: 0.67 seconds)
+Executing (Append): Append 'C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\tempcalls_selection' "C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable" NO_TEST "callid "Call ID" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\tempcalls_selection,ReportNumberNew,0,254;callcat "Call Category" true true false 5000 Text 0 0,First,#;calltype "Call Type" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\tempcalls_selection,Incident,0,254;priority "Priority" true true false 2 Short 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\tempcalls_selection,Response_Type,0,254;description "Description" true true false 5000 Text 0 0,First,#;callsource "Call Source" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\tempcalls_selection,How_Reported,0,254;callerinfo "Caller Information" true true false 5000 Text 0 0,First,#;fulladdr "Full Address" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\tempcalls_selection,FullAddress2,0,254;city "City" true true false 255 Text 0 0,First,#;state "State" true true false 255 Text 0 0,First,#;zip "Zip" true true false 5 Text 0 0,First,#;locdesc "Location Description" true true false 5000 Text 0 0,First,#;beat "Beat" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\tempcalls_selection,Grid,0,254;district "District" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\tempcalls_selection,PDZone,0,254;division "Division" true true false 5000 Text 0 0,First,#;calldate "Call Date" true true false 8 Date 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\tempcalls_selection,calldate,-1,-1;callyear "Call Year" true true false 4 Long 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\tempcalls_selection,callyear,-1,-1;callmonth "Call Month" true true false 4 Long 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\tempcalls_selection,callmonth,-1,-1;calldow "Call Day of Week" true true false 255 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\tempcalls_selection,calldow,0,8;calldownum "Call Day of Week Num" true true false 4 Long 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\tempcalls_selection,calldownum,-1,-1;callhour "Call Hour" true true false 4 Long 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\tempcalls_selection,callhour,-1,-1;dispatchdate "Dispatch Date" true true false 8 Date 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\tempcalls_selection,dispatchdate,-1,-1;enroutedate "Enroute Date" true true false 8 Date 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\tempcalls_selection,enroutedate,-1,-1;arrivaldate "Arrival Date" true true false 8 Date 0 0,First,#;cleardate "Clear Date" true true false 8 Date 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\tempcalls_selection,cleardate,-1,-1;dispatchtime "Time to Dispatch" true true false 8 Double 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\tempcalls_selection,dispatchtime,-1,-1;queuetime "Queue Time" true true false 8 Double 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\tempcalls_selection,queuetime,-1,-1;traveltime "Travel Time" true true false 8 Double 0 0,First,#;cleartime "Time on Call" true true false 8 Double 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\tempcalls_selection,cleartime,-1,-1;responsetime "Total Response Time" true true false 8 Double 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\tempcalls_selection,responsetime,-1,-1;agency "First Responding Agency" true true false 5000 Text 0 0,First,#;firstunit "First Responding Unit ID" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\tempcalls_selection,Officer,0,254;unittotal "Total Units Responding" true true false 2 Short 0 0,First,#;disposition "Disposition" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\tempcalls_selection,Disposition,0,254;comments "Comments" true true false 5000 Text 0 0,First,#;analystnotes "Analyst Notes" true true false 5000 Text 0 0,First,#;probname "Problem Name" true true false 5000 Text 0 0,First,#;probtype "Problem Type" true true false 5000 Text 0 0,First,#;x "x" true true false 8 Double 0 0,First,#;y "y" true true false 8 Double 0 0,First,#" # # # NOT_UPDATE_GEOMETRY NO_ENFORCE_DOMAINS USE_FEATURE_SERVICE_MODE
+Start Time: Sunday, February 8, 2026 10:50:21 PM
+0 row(s) from C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\tempcalls_selection were appended to C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable
+Succeeded at Sunday, February 8, 2026 10:50:21 PM (Elapsed Time: 0.31 seconds)
+Executing (Geocode Addresses): GeocodeAddresses "C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable" "C:\HPD ESRI\LawEnforcementDataManagement_New\NJ_Geocode.loc" "'Single Line Input' fulladdr VISIBLE NONE" "C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses" STATIC # ADDRESS_LOCATION # LOCATION_ONLY
+Start Time: Sunday, February 8, 2026 10:50:21 PM
+Executing Geocode Addresses... WARNING 000117: Warning empty output generated. Succeeded at Sunday, February 8, 2026 10:50:34 PM (Elapsed Time: 12.69 seconds)
+Executing (Calculate Geometry Attributes): CalculateGeometryAttributes "C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses" "X POINT_X;Y POINT_Y" # # PROJCRS["WGS_1984_Web_Mercator_Auxiliary_Sphere",BASEGEOGCRS["GCS_WGS_1984",DYNAMIC[FRAMEEPOCH[1990.5],MODEL["AM0-2"]],DATUM["D_WGS_1984",ELLIPSOID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],CS[ellipsoidal,2],AXIS["Latitude (lat)",north,ORDER[1]],AXIS["Longitude (lon)",east,ORDER[2]],ANGLEUNIT["Degree",0.0174532925199433]],CONVERSION["Mercator_Auxiliary_Sphere",METHOD["Mercator_Auxiliary_Sphere"],PARAMETER["False_Easting",0.0],PARAMETER["False_Northing",0.0],PARAMETER["Central_Meridian",0.0],PARAMETER["Standard_Parallel_1",0.0],PARAMETER["Auxiliary_Sphere_Type",0.0]],CS[Cartesian,2],AXIS["Easting (X)",east,ORDER[1]],AXIS["Northing (Y)",north,ORDER[2]],LENGTHUNIT["Meter",1.0],ID["EPSG","3857"]] DD
+Start Time: Sunday, February 8, 2026 10:50:34 PM
+WARNING 002960: 'C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses' input feature class is empty. Succeeded at Sunday, February 8, 2026 10:50:34 PM (Elapsed Time: 0.19 seconds)
+Executing (Join Attributes From Polygon (2)): JoinAttributesFromPolygon "C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses" "C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\PolicePosts" Name NO_OVERWRITE
+Start Time: Sunday, February 8, 2026 10:50:34 PM
+Succeeded at Sunday, February 8, 2026 10:50:35 PM (Elapsed Time: 1.16 seconds)
+Executing (Calculate Field (4)): CalculateField "C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses" district !Name! PYTHON3 # TEXT NO_ENFORCE_DOMAINS
+Start Time: Sunday, February 8, 2026 10:50:35 PM
+WARNING 000405: No records within table, or selection set has 0 records. Succeeded at Sunday, February 8, 2026 10:50:35 PM (Elapsed Time: 0.03 seconds)
+Executing (Delete Field): DeleteField "C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses" Name DELETE_FIELDS
+Start Time: Sunday, February 8, 2026 10:50:36 PM
+Succeeded at Sunday, February 8, 2026 10:50:36 PM (Elapsed Time: 0.11 seconds)
+Executing (Join Attributes From Polygon): JoinAttributesFromPolygon "C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses" https://services1.arcgis.com/JYl0Hy0wQdiiV0qh/arcgis/rest/services/Beat_3d1d69cc0aef4bcd89c57a3b51f5996d/FeatureServer/0 beat OVERWRITE
+Start Time: Sunday, February 8, 2026 10:50:36 PM
+Succeeded at Sunday, February 8, 2026 10:50:37 PM (Elapsed Time: 1.09 seconds)
+Executing (Export Table): ExportTable "C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses" "C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable" # NOT_USE_ALIAS "callid "Call ID" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses,callid,0,4999;callcat "Call Category" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses,callcat,0,4999;calltype "Call Type" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses,calltype,0,4999;priority "Priority" true true false 2 Short 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses,priority,-1,-1;description "Description" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses,description,0,4999;callsource "Call Source" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses,callsource,0,4999;callerinfo "Caller Information" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses,callerinfo,0,4999;fulladdr "Full Address" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses,fulladdr,0,4999;city "City" true true false 255 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses,city,0,254;state "State" true true false 255 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses,state,0,254;zip "Zip" true true false 5 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses,zip,0,4;locdesc "Location Description" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses,locdesc,0,4999;beat "Beat" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses,beat,0,4999;district "District" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses,district,0,4999;division "Division" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses,division,0,4999;calldate "Call Date" true true false 8 Date 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses,calldate,-1,-1;callyear "Call Year" true true false 4 Long 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses,callyear,-1,-1;callmonth "Call Month" true true false 4 Long 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses,callmonth,-1,-1;calldow "Call Day of Week" true true false 255 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses,calldow,0,254;calldownum "Call Day of Week Num" true true false 4 Long 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses,calldownum,-1,-1;callhour "Call Hour" true true false 4 Long 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses,callhour,-1,-1;dispatchdate "Dispatch Date" true true false 8 Date 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses,dispatchdate,-1,-1;enroutedate "Enroute Date" true true false 8 Date 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses,enroutedate,-1,-1;arrivaldate "Arrival Date" true true false 8 Date 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses,arrivaldate,-1,-1;cleardate "Clear Date" true true false 8 Date 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses,cleardate,-1,-1;dispatchtime "Time to Dispatch" true true false 8 Double 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses,dispatchtime,-1,-1;queuetime "Queue Time" true true false 8 Double 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses,queuetime,-1,-1;traveltime "Travel Time" true true false 8 Double 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses,traveltime,-1,-1;cleartime "Time on Call" true true false 8 Double 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses,cleartime,-1,-1;responsetime "Total Response Time" true true false 8 Double 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses,responsetime,-1,-1;agency "First Responding Agency" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses,agency,0,4999;firstunit "First Responding Unit ID" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses,firstunit,0,4999;unittotal "Total Units Responding" true true false 2 Short 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses,unittotal,-1,-1;disposition "Disposition" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses,disposition,0,4999;comments "Comments" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses,comments,0,4999;analystnotes "Analyst Notes" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses,analystnotes,0,4999;probname "Problem Name" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses,probname,0,4999;probtype "Problem Type" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses,probtype,0,4999;x "x" true true false 8 Double 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses,x,-1,-1;y "y" true true false 8 Double 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses,y,-1,-1" #
+Start Time: Sunday, February 8, 2026 10:50:37 PM
+WARNING 000117: Warning empty output generated. Succeeded at Sunday, February 8, 2026 10:50:37 PM (Elapsed Time: 0.66 seconds)
+Executing (Update Features With Incident Records (2)): UpdateFeaturesWithIncidentRecords "C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable" https://services1.arcgis.com/JYl0Hy0wQdiiV0qh/arcgis/rest/services/CallsForService_2153d1ef33a0414291a8eb54b938507b/FeatureServer/0 COORDINATES x y GEOGCRS["GCS_WGS_1984",DYNAMIC[FRAMEEPOCH[1990.5],MODEL["AM0-2"]],DATUM["D_WGS_1984",ELLIPSOID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],CS[ellipsoidal,2],AXIS["Latitude (lat)",north,ORDER[1]],AXIS["Longitude (lon)",east,ORDER[2]],ANGLEUNIT["Degree",0.0174532925199433],ID["EPSG","4326"]] # MULTI_FIELD_ADDRESS # "C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\invalidcallspublished" # UPDATE "callid callid" # # UPSERT KEEP_GEOMETRY AUTOMATIC "callid "Call ID" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable,callid,0,4999;callcat "Call Category" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable,callcat,0,4999;calltype "Call Type" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable,calltype,0,4999;priority "Priority" true true false 2 Short 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable,priority,-1,-1;description "Description" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable,description,0,4999;callsource "Call Source" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable,callsource,0,4999;callerinfo "Caller Information" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable,callerinfo,0,4999;fulladdr "Full Address" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable,fulladdr,0,4999;city "City" true true false 255 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable,city,0,254;state "State" true true false 255 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable,state,0,254;zip "Zip" true true false 5 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable,zip,0,4;locdesc "Location Description" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable,locdesc,0,4999;beat "Beat" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable,beat,0,4999;district "District" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable,district,0,4999;division "Division" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable,division,0,4999;calldate "Call Date" true true false 8 Date 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable,calldate,-1,-1;callyear "Call Year" true true false 4 Long 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable,callyear,-1,-1;callmonth "Call Month" true true false 4 Long 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable,callmonth,-1,-1;calldow "Call Day of Week" true true false 255 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable,calldow,0,254;calldownum "Call Day of Week Num" true true false 4 Long 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable,calldownum,-1,-1;callhour "Call Hour" true true false 4 Long 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable,callhour,-1,-1;dispatchdate "Dispatch Date" true true false 8 Date 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable,dispatchdate,-1,-1;enroutedate "Enroute Date" true true false 8 Date 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable,enroutedate,-1,-1;arrivaldate "Arrival Date" true true false 8 Date 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable,arrivaldate,-1,-1;cleardate "Clear Date" true true false 8 Date 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable,cleardate,-1,-1;dispatchtime "Time to Dispatch" true true false 8 Double 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable,dispatchtime,-1,-1;queuetime "Queue Time" true true false 8 Double 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable,queuetime,-1,-1;traveltime "Travel Time" true true false 8 Double 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable,traveltime,-1,-1;cleartime "Time on Call" true true false 8 Double 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable,cleartime,-1,-1;responsetime "Total Response Time" true true false 8 Double 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable,responsetime,-1,-1;agency "First Responding Agency" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable,agency,0,4999;firstunit "First Responding Unit ID" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable,firstunit,0,4999;unittotal "Total Units Responding" true true false 2 Short 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable,unittotal,-1,-1;disposition "Disposition" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable,disposition,0,4999;comments "Comments" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable,comments,0,4999;analystnotes "Analyst Notes" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable,analystnotes,0,4999;probname "Problem Name" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable,probname,0,4999;probtype "Problem Type" true true false 5000 Text 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable,probtype,0,4999;x "x" true true false 8 Double 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable,x,-1,-1;y "y" true true false 8 Double 0 0,First,#,C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable,y,-1,-1" # CONVERT
+Start Time: Sunday, February 8, 2026 10:50:37 PM
+WARNING 000401: No features were found for processing
+Succeeded at Sunday, February 8, 2026 10:51:06 PM (Elapsed Time: 28.79 seconds)
+Executing (Generate Incident Statistics): Script https://services1.arcgis.com/JYl0Hy0wQdiiV0qh/arcgis/rest/services/CallsForService_2153d1ef33a0414291a8eb54b938507b/FeatureServer/0 https://services1.arcgis.com/JYl0Hy0wQdiiV0qh/arcgis/rest/services/CallsForServiceStats_af933257473d49e2b4bd84f028a1c0b5/FeatureServer/0 calldate calltype;callsource beat;district '7 days';'28 days';'365 days';'Year to date' 4 28 #
+Start Time: Sunday, February 8, 2026 10:51:06 PM
+Succeeded at Sunday, February 8, 2026 10:52:01 PM (Elapsed Time: 55.22 seconds)
+Succeeded at Sunday, February 8, 2026 10:52:02 PM (Elapsed Time: 2 minutes 57 seconds)
+======================================================================
+
+[7] Tool execution completed
+    Max severity: 1
+    Batch mode:   OVERWRITE
+    ⚠ WARNING: Tool completed with warnings
+    ✓ Marker file created: C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\is_first_batch.txt
+
+    [OK] Publish Call Data completed successfully
+
+[7] Restoring default export to staging... Copying default export to temp... Verifying size match... Performing atomic swap...
+    [OK] Default export restored to staging
+
+======================================================================
+[SUCCESS] WORKFLOW COMPLETED SUCCESSFULLY
+======================================================================
+End time: 2026-02-08 22:52:05
+Duration: 03:12
+
+Dashboard has been updated with backfill data
+Staging has been restored to default export
+
+Next steps:
+1. Verify dashboard shows expected date range: 2019-01-01 through 2026-02-01
+2. Check record counts match expected values
+3. Run Test-DashboardData.ps1 for detailed verification
+======================================================================
+
+[8] Cleaning up...
+    [OK] Lock file removed
+PS C:\HPD ESRI\04_Scripts>
+
+---
+
+**Cursor**
+
+🚨 **CRITICAL ISSUE DETECTED! **
+
+The workflow **completed without errors**, but **ZERO records were processed**. Look at these key warnings in the output:
+
+```
+WARNING 000117: Warning empty output generated. 0 row(s) from ...tempcalls_selection were appended to ...CFStable
+WARNING 000401: No features were found for processing
+```
+
+---
+
+## **What Happened:**
+
+The Excel file was read successfully, but when the ArcGIS model tried to select records, it found **0 matching rows**. This is likely because:
+
+**Column name mismatch:** The model expects columns like `Time_Of_Call` (with underscores), but your baseline file has `Time of Call` (with spaces). ---
+
+## **IMMEDIATE VERIFICATION:**
+
+**Check the dashboard right now:**
+
+1. Open the ArcGIS Online dashboard in a browser
+2. Check if there are **any records** displayed
+3. Check the date range
+
+**I suspect the dashboard is now empty or showing only old data. **
+
+---
+
+## **ROOT CAUSE INVESTIGATION:**
+
+Let me check the baseline file's column names. On your **local machine** (not RDP), run:
+
+```powershell
+# Quick check of Excel column headers
+$excel = New-Object -ComObject Excel.Application
+$excel.Visible = $false
+$workbook = $excel.Workbooks.Open("C:\Users\carucci_r\OneDrive - City of Hackensack\13_PROCESSED_DATA\ESRI_Polished\base\CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx")
+$sheet = $workbook.Worksheets.Item(1)
+$headers = @()
+for ($col = 1; $col -le 10; $col++) {
+    $headers += $sheet.Cells.Item(1, $col).Text
+}
+$workbook.Close($false)
+$excel.Quit()
+$headers -join ", "
+```
+
+**Share the column names so I can confirm the issue and provide a fix! **
+
+---
+
+**User**
+
+I check the CallsForService data https://hpd0223.maps.arcgis.com/home/item.html?id=44173f3345974fe79a01bfa463350ce2#data 
+Data updated: February 5, 2026 at 12:56 AM
+Total: 561739
+last record is 26-011287 has a Call Date of 02/03/26 2:50 PM
+
+PS C:\WINDOWS\system32> # Quick check of Excel column headers
+>> $excel = New-Object -ComObject Excel.Application
+>> $excel.Visible = $false
+>> $workbook = $excel.Workbooks.Open("C:\Users\carucci_r\OneDrive - City of Hackensack\13_PROCESSED_DATA\ESRI_Polished\base\CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx")
+>> $sheet = $workbook.Worksheets.Item(1)
+>> $headers = @()
+>> for ($col = 1; $col -le 10; $col++) {
+>>     $headers += $sheet.Cells.Item(1, $col).Text
+>> }
+>> $workbook.Close($false)
+>> $excel.Quit()
+>> $headers -join ", "
+ReportNumberNew, Incident, How Reported, FullAddress2, Grid, ZoneCalc, Time of Call, cYear, cMonth, Hour_Calc
+PS C:\WINDOWS\system32>
+
+---
+
+**Cursor**
+
+**GOOD NEWS:** The dashboard was NOT wiped! Your existing 561,739 records are safe. **BAD NEWS:** The backfill added **0 records** because of a column name mismatch. ---
+
+## **ROOT CAUSE CONFIRMED:**
+
+Your baseline file has column names with **spaces**:
+- `Time of Call` ❌
+- `How Reported` ❌
+
+But the ArcGIS model expects **underscores**:
+- `Time_Of_Call` ✅
+- `How_Reported` ✅
+
+The model's filter `"Time_Of_Call IS NOT NULL"` found 0 matching rows because that column doesn't exist.

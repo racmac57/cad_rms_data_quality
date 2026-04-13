@@ -1,0 +1,488 @@
+✅ Scheduled tasks (should not be running)
+3. ✅ ArcGIS processes (should be clear or just ArcGIS Pro open)
+4. ✅ Geodatabase lock (should be writable)
+5. ✅ Backfill file validation (should find your 71 MB file with "Sheet1")
+6. ✅ Disk space (should have > 5 GB free)
+
+**If all checks pass**, you'll see:
+```
+[OK] ALL CHECKS PASSED - Ready for backfill publish
+```
+
+**Then proceed to Phase 4 (Dry Run)** from your checklist. **If any checks fail**, share the error output and I'll help troubleshoot before proceeding. Run it now and let me know what you see! 🚀
+
+---
+
+**User**
+
+======================================================================
+PRE-FLIGHT READINESS CHECKS
+======================================================================
+
+[1] Loading configuration...
+    [OK] Config loaded from: C:\HPD ESRI\04_Scripts\config.json
+
+[2] Checking lock file status...
+    [OK] No lock file present
+
+[3] Checking scheduled task status...
+    [WARN] Could not check task: LawSoftESRICADExport
+    [WARN] Could not check task: LawSoftESRINIBRSExport
+    [OK] No scheduled tasks running
+
+[4] Checking for active geoprocessing...
+    [OK] No ArcGIS processes running
+
+[5] Checking geodatabase lock...
+    [X] Geodatabase appears to be locked: Could not find a part of the path 'C:\HPD ESRI\03_Data\CAD\CAD_Data.gdb\_locktest.tmp'. [6] Validating backfill file...
+    [OK] File exists: C:\HPD ESRI\03_Data\CAD\Backfill\CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx
+    File size: 71 MB
+    Checking Excel sheet name...
+    [WARN] WARNING: Could not validate sheet name: Retrieving the COM class factory for component with CLSID {00000000-0000-0000-0000-000000000000} failed due to the following error: 80040154 Class not registered (Exception from HRESULT: 0x80040154 (REGDB_E_CLASSNOTREG)). Assuming sheet name is correct...
+
+[7] Checking disk space...
+    Drive: C:
+    Free space: 3968.5 GB
+    [OK] Sufficient disk space
+
+======================================================================
+PRE-FLIGHT SUMMARY
+======================================================================
+Checks passed: 5 / 6
+
+[X] FAILED CHECKS:
+  - Geodatabase is locked
+
+RECOMMENDATION: Do not proceed with backfill publish
+======================================================================
+PS C:\HPD ESRI\04_Scripts>
+
+---
+
+**Cursor**
+
+Good news and bad news:
+
+**✅ Good news:**
+- Lock file clear
+- No scheduled tasks running
+- No ArcGIS processes active
+- Backfill file found (71 MB)
+- Tons of disk space (3.9 TB!) **❌ Bad news:**
+- The geodatabase path in `config.json` doesn't exist on the server
+
+**The issue:** The config is looking for `C:\HPD ESRI\03_Data\CAD\CAD_Data.gdb` but that directory doesn't exist. **Let's find the correct geodatabase path:**
+
+**On the RDP server, run this command:**
+
+```powershell
+# Search for geodatabase files
+Get-ChildItem "C:\HPD ESRI" -Recurse -Filter "*.gdb" -Directory -ErrorAction SilentlyContinue | Select-Object FullName
+```
+
+This will find all geodatabase folders under `C:\HPD ESRI`. Once you share the results, I'll help you update the `config.json` with the correct path. **Alternative quick check** - Look in your ArcGIS Pro project file location. The geodatabase is usually in the same area as the ArcGIS Pro project (.aprx file). Do you know where the ArcGIS Pro project is located on this server? ---
+
+**User**
+
+FullName
+--------
+C:\HPD ESRI\00_Backups\HPD_ESRI_SNAPSHOT_20260123-122003\05_Archive\archive\Grid rtcc.gdb
+C:\HPD ESRI\00_Backups\HPD_ESRI_SNAPSHOT_20260123-122003\05_Archive\archive\2025_01_15_LawEnforcementDataManagement_New\LawEnforcementDataManagement_New\LawEnforcementD...
+C:\HPD ESRI\00_Backups\HPD_ESRI_SNAPSHOT_20260123-122003\05_Archive\archive\Exported Files ThinkGIS\Exported Files ThinkGIS.gdb
+C:\HPD ESRI\00_Backups\HPD_ESRI_SNAPSHOT_20260123-122003\05_Archive\archive\Tasks\Tasks\Tasks.gdb
+C:\HPD ESRI\00_Backups\HPD_ESRI_SNAPSHOT_20260123-122003\ArcGIS Pro\2023 Projects\2023 Projects\Default.gdb
+C:\HPD ESRI\00_Backups\HPD_ESRI_SNAPSHOT_20260123-122003\ArcGIS Pro\2023 Projects\2023-04-13-11-37-40 - Ped_Bicycle\2023-04-13-11-37-40 - Ped_Bicycle.gdb
+C:\HPD ESRI\00_Backups\HPD_ESRI_SNAPSHOT_20260123-122003\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb
+C:\HPD ESRI\00_Backups\HPD_ESRI_SNAPSHOT_20260123-122003\post_grids\GRIDS\GRIDS.gdb
+C:\HPD ESRI\05_Archive\archive\Grid rtcc.gdb
+C:\HPD ESRI\05_Archive\archive\2025_01_15_LawEnforcementDataManagement_New\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb
+C:\HPD ESRI\05_Archive\archive\Exported Files ThinkGIS\Exported Files ThinkGIS.gdb
+C:\HPD ESRI\05_Archive\archive\Tasks\Tasks\Tasks.gdb
+C:\HPD ESRI\ArcGIS Pro\2023 Projects\2023 Projects\Default.gdb
+C:\HPD ESRI\ArcGIS Pro\2023 Projects\2023-04-13-11-37-40 - Ped_Bicycle\2023-04-13-11-37-40 - Ped_Bicycle.gdb
+C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb
+C:\HPD ESRI\post_grids\GRIDS\GRIDS.gdb
+
+---
+
+**Cursor**
+
+Perfect! I found it. The correct geodatabase path is:
+
+```
+C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb
+```
+
+**Now let's update the config.json file on the server:**
+
+**On the RDP server:**
+
+1. **Open the config file:**
+   ```powershell
+   notepad "C:\HPD ESRI\04_Scripts\config.json"
+   ```
+
+2. **Find this section** (look for `"geodatabase"`):
+   ```json
+   "geodatabase": "C:\\HPD ESRI\\03_Data\\CAD\\CAD_Data.gdb",
+   ```
+
+3. **Change it to:**
+   ```json
+   "geodatabase": "C:\\HPD ESRI\\LawEnforcementDataManagement_New\\LawEnforcementDataManagement.gdb",
+   ```
+
+4. **Save and close** (Ctrl+S, then close Notepad)
+
+5. **Run the pre-flight checks again:**
+   ```powershell
+   .\Test-PublishReadiness.ps1 `
+       -ConfigPath "C:\HPD ESRI\04_Scripts\config.json" `
+       -BackfillFile "C:\HPD ESRI\03_Data\CAD\Backfill\CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx"
+   ```
+
+This should now pass all 6 checks! Let me know what you see. ---
+
+**User**
+
+======================================================================
+PRE-FLIGHT READINESS CHECKS
+======================================================================
+
+[1] Loading configuration...
+    [OK] Config loaded from: C:\HPD ESRI\04_Scripts\config.json
+
+[2] Checking lock file status...
+    [OK] No lock file present
+
+[3] Checking scheduled task status...
+    [WARN] Could not check task: LawSoftESRICADExport
+    [WARN] Could not check task: LawSoftESRINIBRSExport
+    [OK] No scheduled tasks running
+
+[4] Checking for active geoprocessing...
+    [OK] No ArcGIS processes running
+
+[5] Checking geodatabase lock...
+    [OK] Geodatabase is accessible (not locked)
+
+[6] Validating backfill file...
+    [OK] File exists: C:\HPD ESRI\03_Data\CAD\Backfill\CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx
+    File size: 71 MB
+    Checking Excel sheet name...
+    [WARN] WARNING: Could not validate sheet name: Retrieving the COM class factory for component with CLSID {00000000-0000-0000-0000-000000000000} failed due to the following error: 80040154 Class not registered (Exception from HRESULT: 0x80040154 (REGDB_E_CLASSNOTREG)). Assuming sheet name is correct...
+
+[7] Checking disk space...
+    Drive: C:
+    Free space: 3968.49 GB
+    [OK] Sufficient disk space
+
+======================================================================
+PRE-FLIGHT SUMMARY
+======================================================================
+Checks passed: 6 / 6
+
+[OK] ALL CHECKS PASSED - Ready for backfill publish
+======================================================================
+
+---
+
+**Cursor**
+
+🎉 **EXCELLENT! All 6 checks passed! **
+
+**You're now ready for Phase 4: Dry Run**
+
+This will test the entire workflow without actually publishing to the geodatabase. It's a safe test to make sure everything works. **On the RDP server, run:**
+
+```powershell
+.\Invoke-CADBackfillPublish.ps1 `
+    -ConfigPath "C:\HPD ESRI\04_Scripts\config.json" `
+    -BackfillFile "C:\HPD ESRI\03_Data\CAD\Backfill\CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx" `
+    -DryRun
+```
+
+**What to expect:**
+- It will copy the backfill file to the staging area
+- It will simulate running the ArcGIS tool (but won't actually publish)
+- It will restore the default file back to staging
+- Should take about 30-60 seconds
+
+**If the dry run succeeds**, you'll see:
+```
+[OK] Dry run completed successfully
+```
+
+**Then you can proceed to Phase 5: Actual Backfill** (remove the `-DryRun` flag). Run the dry run now and share the output! 🚀
+
+---
+
+**User**
+
+======================================================================
+CAD BACKFILL PUBLISH ORCHESTRATOR
+======================================================================
+Start time: 2026-02-08 22:48:13
+Backfill file: C:\HPD ESRI\03_Data\CAD\Backfill\CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx
+Config: C:\HPD ESRI\04_Scripts\config.json
+Mode: DRY RUN (testing)
+======================================================================
+
+[1] Loading configuration...
+    [OK] Config loaded
+[2] Verifying files...
+    [OK] All required files exist
+
+[3] Running pre-flight checks...
+    [DRY RUN] Would run: Test-PublishReadiness.ps1
+
+[4] Creating lock file...
+    [DRY RUN] Would create lock file: C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\_LOCK.txt
+
+[5] Swapping backfill data into staging...
+    [DRY RUN] Would compute source file hash...
+    [DRY RUN] Would copy: C:\HPD ESRI\03_Data\CAD\Backfill\CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx -> C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\ESRI_CADExport.xlsx.tmp
+    [DRY RUN] Would verify integrity (size + hash)
+    [DRY RUN] Would rename: C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\ESRI_CADExport.xlsx.tmp -> C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\ESRI_CADExport.xlsx
+
+[6] Running Publish Call Data tool... This may take several minutes...
+    [DRY RUN] Would run: C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\propy.bat C:\HPD ESRI\04_Scripts\run_publish_call_data.py C:\HPD ESRI\04_Scripts\config.json
+
+[7] Restoring default export to staging...
+    [DRY RUN] Would copy: C:\Program Files\FileMaker\FileMaker Server\Data\Documents\ESRI\ESRI_CADExport.xlsx -> C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\ESRI_CADExport.xlsx.tmp
+    [DRY RUN] Would verify size match
+    [DRY RUN] Would rename: C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\ESRI_CADExport.xlsx.tmp -> C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\ESRI_CADExport.xlsx
+
+======================================================================
+[SUCCESS] WORKFLOW COMPLETED SUCCESSFULLY
+======================================================================
+End time: 2026-02-08 22:48:13
+Duration: 00:00
+
+This was a DRY RUN - no changes were made
+
+Next steps:
+1. Verify dashboard shows expected date range: 2019-01-01 through 2026-02-01
+2. Check record counts match expected values
+3. Run Test-DashboardData.ps1 for detailed verification
+======================================================================
+
+[8] Cleaning up...
+    [DRY RUN] Would remove lock file: C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\_LOCK.txt
+
+---
+
+**Cursor**
+
+🎉 **PERFECT! Dry run succeeded! **
+
+All systems are GO. The workflow is ready to execute. ---
+
+## **Phase 5: ACTUAL BACKFILL**
+
+You're now ready to run the real backfill. This will publish 724,794 historical records to the dashboard. **On the RDP server, run the same command WITHOUT `-DryRun`:**
+
+```powershell
+.\Invoke-CADBackfillPublish.ps1 `
+    -ConfigPath "C:\HPD ESRI\04_Scripts\config.json" `
+    -BackfillFile "C:\HPD ESRI\03_Data\CAD\Backfill\CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx"
+```
+
+**What to expect:**
+- **Duration:** 30-45 minutes (much faster than the old 8+ hour process)
+- **Step 6 will take the longest** - "Running Publish Call Data tool..."
+- You'll see live ArcGIS geoprocessing messages scroll by
+- The script will handle everything automatically
+
+**Watch for:**
+- ✅ Each step showing `[OK]` 
+- ✅ Final message: `[SUCCESS] WORKFLOW COMPLETED SUCCESSFULLY`
+- ❌ If anything fails, the script auto-restores the staging file
+
+**After completion:**
+- Move to **Phase 6: Verify Dashboard** from your checklist
+- Check date range shows 2019-01-01 through 2026-01-30
+- Verify record counts
+
+**Ready to run the actual backfill? ** Hit enter on that command! 🚀
+
+---
+
+**User**
+
+PS C:\HPD ESRI\04_Scripts> .\Invoke-CADBackfillPublish.ps1 `
+>>     -ConfigPath "C:\HPD ESRI\04_Scripts\config.json" `
+>>     -BackfillFile "C:\HPD ESRI\03_Data\CAD\Backfill\CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx"
+
+======================================================================
+CAD BACKFILL PUBLISH ORCHESTRATOR
+======================================================================
+Start time: 2026-02-08 22:48:53
+Backfill file: C:\HPD ESRI\03_Data\CAD\Backfill\CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx
+Config: C:\HPD ESRI\04_Scripts\config.json
+Mode: LIVE
+======================================================================
+
+[1] Loading configuration...
+    [OK] Config loaded
+[2] Verifying files...
+    [OK] All required files exist
+
+[3] Running pre-flight checks...
+
+======================================================================
+PRE-FLIGHT READINESS CHECKS
+======================================================================
+
+[1] Loading configuration...
+    [OK] Config loaded from: C:\HPD ESRI\04_Scripts\config.json
+
+[2] Checking lock file status...
+    [OK] No lock file present
+
+[3] Checking scheduled task status...
+    [WARN] Could not check task: LawSoftESRICADExport
+    [WARN] Could not check task: LawSoftESRINIBRSExport
+    [OK] No scheduled tasks running
+
+[4] Checking for active geoprocessing...
+    [OK] No ArcGIS processes running
+
+[5] Checking geodatabase lock...
+    [OK] Geodatabase is accessible (not locked)
+
+[6] Validating backfill file...
+    [OK] File exists: C:\HPD ESRI\03_Data\CAD\Backfill\CAD_ESRI_Polished_Baseline_20190101_20260130.xlsx
+    File size: 71 MB
+    Checking Excel sheet name...
+    [WARN] WARNING: Could not validate sheet name: Retrieving the COM class factory for component with CLSID {00000000-0000-0000-0000-000000000000} failed due to the following error: 80040154 Class not registered (Exception from HRESULT: 0x80040154 (REGDB_E_CLASSNOTREG)). Assuming sheet name is correct...
+
+[7] Checking disk space...
+    Drive: C:
+    Free space: 3968.49 GB
+    [OK] Sufficient disk space
+
+======================================================================
+PRE-FLIGHT SUMMARY
+======================================================================
+Checks passed: 6 / 6
+
+[OK] ALL CHECKS PASSED - Ready for backfill publish
+======================================================================
+    [OK] Pre-flight checks passed
+
+[4] Creating lock file...
+    [OK] Lock file created
+
+[5] Swapping backfill data into staging...
+    Computing source file hash... Source hash: 83CF98C86266AE0FC1ADF09E5955C1CC378C8C2C32DA7748975F13DBAD56976A
+    Copying backfill to staging temp... Verifying file integrity...
+    [OK] Integrity verified (size + hash match)
+    Performing atomic swap...
+    [OK] Backfill data staged successfully
+
+[6] Running Publish Call Data tool... This may take several minutes...
+    Command: C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\propy.bat C:\HPD ESRI\04_Scripts\run_publish_call_data.py C:\HPD ESRI\04_Scripts\config.json
+
+======================================================================
+ARCGIS PRO PUBLISH TOOL RUNNER
+======================================================================
+Run time: 2026-02-08T22:49:00.859302
+ArcGIS Pro version: 3.6.1
+
+[1] Loading configuration from: C:\HPD ESRI\04_Scripts\config.json
+    ✓ Config loaded successfully
+
+[2] Configuration:
+    Toolbox:       C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.atbx
+    Alias:         tbx1
+    Tool:          TransformCallData_tbx1
+    Callable:      arcpy.TransformCallData_tbx1()
+    Staging file:  C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\ESRI_CADExport.xlsx
+    Heartbeat:     C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\heartbeat.txt
+    Staging size:  71.38 MB
+
+[3] Batch Mode Detected:
+    Mode:          OVERWRITE
+    Batch:         Batch 01 (Initial)
+    Marker exists: False
+
+[4] Importing toolbox with alias 'tbx1'...
+    ✓ Toolbox imported successfully
+
+[5] Initializing heartbeat monitoring...
+    ✓ Heartbeat initialized: C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\heartbeat.txt
+
+[6] Running tool: TransformCallData_tbx1 (OVERWRITE mode)
+    This may take several minutes...
+    Watchdog monitoring active (5-minute timeout)
+
+Adding Field: calldow
+Adding Field: calldownum
+Adding Field: callhour
+Adding Field: callmonth
+Adding Field: callyear
+Calculating Field: calldow
+Calculating Field: calldownum
+Calculating Field: callhour
+Calculating Field: callmonth
+Calculating Field: callyear
+WARNING 002960: 'C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable_GeocodeAddresses' input feature class is empty. WARNING 000401: No features were found for processing
+    ✓ Heartbeat updated after tool completion
+
+======================================================================
+GEOPROCESSING MESSAGES
+======================================================================
+Start Time: Sunday, February 8, 2026 10:49:04 PM
+Executing (Truncate Table): TruncateTable "C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\finalcalltable"
+Start Time: Sunday, February 8, 2026 10:50:18 PM
+Succeeded at Sunday, February 8, 2026 10:50:18 PM (Elapsed Time: 0.23 seconds)
+Executing (Truncate Table (3)): TruncateTable "C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\CFStable"
+Start Time: Sunday, February 8, 2026 10:50:18 PM
+Succeeded at Sunday, February 8, 2026 10:50:18 PM (Elapsed Time: 0.27 seconds)
+Executing (Table Select): TableSelect ..\03_Data\CAD\Backfill\_STAGING\ESRI_CADExport.xlsx\Sheet1$ "C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\tempcalls_selection" "Time_Of_Call IS NOT NULL AND Incident NOT IN ('Assist Own Agency (Backup)', 'assist Own Agency (Backup)') And Disposition NOT IN ('Assisted', 'assisted', 'c', 'canceled', 'Canceled', 'Cancelled')"
+Start Time: Sunday, February 8, 2026 10:50:18 PM
+WARNING 000117: Warning empty output generated. Succeeded at Sunday, February 8, 2026 10:50:19 PM (Elapsed Time: 0.91 seconds)
+Executing (Convert Call Date Field): ConvertTimeField "yyyy-MM-DD HH:mm:ss" Time_of_Call calldate "C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\tempcalls_selection"
+Start Time: Sunday, February 8, 2026 10:50:19 PM
+Executing (Convert Time Field): ConvertTimeField "C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\tempcalls_selection" Time_of_Call "yyyy-MM-DD HH:mm:ss" calldate DATE # #
+Start Time: Sunday, February 8, 2026 10:50:19 PM
+Adding calldate to tempcalls_selection... Succeeded at Sunday, February 8, 2026 10:50:19 PM (Elapsed Time: 0.08 seconds)
+Succeeded at Sunday, February 8, 2026 10:50:19 PM (Elapsed Time: 0.14 seconds)
+Executing (Calculate Field): CalculateField "C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\tempcalls_selection" FullAddress2 iif(left(trim($feature.FullAddress2),1)=='&'||left(trim($feature.FullAddress2),1)==',',trim(Mid($feature.FullAddress2,2)),trim($feature.FullAddress2)) ARCADE # TEXT NO_ENFORCE_DOMAINS
+Start Time: Sunday, February 8, 2026 10:50:19 PM
+WARNING 000405: No records within table, or selection set has 0 records. Succeeded at Sunday, February 8, 2026 10:50:19 PM (Elapsed Time: 0.03 seconds)
+Executing (Calculate Field (2)): CalculateField "C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\tempcalls_selection" How_Reported "   $feature.How_Reported" ARCADE # TEXT NO_ENFORCE_DOMAINS
+Start Time: Sunday, February 8, 2026 10:50:19 PM
+WARNING 000405: No records within table, or selection set has 0 records. Succeeded at Sunday, February 8, 2026 10:50:19 PM (Elapsed Time: 0.03 seconds)
+Executing (Convert Dispatch Date Field): ConvertTimeField "yyyy-MM-DD HH:mm:ss" Time_Dispatched dispatchdate "C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\tempcalls_selection"
+Start Time: Sunday, February 8, 2026 10:50:19 PM
+Executing (Convert Time Field): ConvertTimeField "C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\tempcalls_selection" Time_Dispatched "yyyy-MM-DD HH:mm:ss" dispatchdate DATE # #
+Start Time: Sunday, February 8, 2026 10:50:19 PM
+Adding dispatchdate to tempcalls_selection... Succeeded at Sunday, February 8, 2026 10:50:20 PM (Elapsed Time: 0.08 seconds)
+Succeeded at Sunday, February 8, 2026 10:50:20 PM (Elapsed Time: 0.11 seconds)
+Executing (Convert Enroute Date Field): ConvertTimeField "yyyy-MM-DD HH:mm:ss" Time_Out enroutedate "C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\tempcalls_selection"
+Start Time: Sunday, February 8, 2026 10:50:20 PM
+Executing (Convert Time Field): ConvertTimeField "C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\tempcalls_selection" Time_Out "yyyy-MM-DD HH:mm:ss" enroutedate DATE # #
+Start Time: Sunday, February 8, 2026 10:50:20 PM
+Adding enroutedate to tempcalls_selection... Succeeded at Sunday, February 8, 2026 10:50:20 PM (Elapsed Time: 0.08 seconds)
+Succeeded at Sunday, February 8, 2026 10:50:20 PM (Elapsed Time: 0.12 seconds)
+Executing (Convert Cleared Date Field): ConvertTimeField "yyyy-MM-DD HH:mm:ss" Time_In cleardate "C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\tempcalls_selection"
+Start Time: Sunday, February 8, 2026 10:50:20 PM
+Executing (Convert Time Field): ConvertTimeField "C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\tempcalls_selection" Time_In "yyyy-MM-DD HH:mm:ss" cleardate DATE # #
+Start Time: Sunday, February 8, 2026 10:50:20 PM
+Adding cleardate to tempcalls_selection... Succeeded at Sunday, February 8, 2026 10:50:20 PM (Elapsed Time: 0.08 seconds)
+Succeeded at Sunday, February 8, 2026 10:50:20 PM (Elapsed Time: 0.11 seconds)
+Executing (Calculate Time to Dispatch): CalculateField "C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\tempcalls_selection" dispatchtime (DateDiff($feature.dispatchdate,$feature.calldate,'seconds') / 60)
+ ARCADE # DOUBLE NO_ENFORCE_DOMAINS
+Start Time: Sunday, February 8, 2026 10:50:20 PM
+Adding dispatchtime to tempcalls_selection... WARNING 000405: No records within table, or selection set has 0 records. Succeeded at Sunday, February 8, 2026 10:50:20 PM (Elapsed Time: 0.08 seconds)
+Executing (Calculate Time in Queue): CalculateField "C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\tempcalls_selection" queuetime (DateDiff($feature.enroutedate,$feature.dispatchdate,'seconds')/60) ARCADE # DOUBLE NO_ENFORCE_DOMAINS
+Start Time: Sunday, February 8, 2026 10:50:20 PM
+Adding queuetime to tempcalls_selection... WARNING 000405: No records within table, or selection set has 0 records. Succeeded at Sunday, February 8, 2026 10:50:20 PM (Elapsed Time: 0.06 seconds)
+Executing (Calculate Time on Call): CalculateField "C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\tempcalls_selection" cleartime (DateDiff($feature.cleardate,$feature.enroutedate,'seconds')/60) ARCADE # DOUBLE NO_ENFORCE_DOMAINS
+Start Time: Sunday, February 8, 2026 10:50:20 PM
+Adding cleartime to tempcalls_selection... WARNING 000405: No records within table, or selection set has 0 records. Succeeded at Sunday, February 8, 2026 10:50:20 PM (Elapsed Time: 0.08 seconds)
+Executing (Calculate Total Response Time): CalculateField "C:\HPD ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement.gdb\tempcalls_selection" responsetime $feature.dispatchtime+$feature.queuetime ARCADE # DOUBLE NO_ENFORCE_DOMAINS
+Start Time: Sunday, February 8, 2026 10:50:20 PM
+Adding responsetime to tempcalls_selection... WARNING 000405: No records within table, or selection set has 0 records.

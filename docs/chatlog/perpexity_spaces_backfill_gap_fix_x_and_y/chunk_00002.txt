@@ -1,0 +1,96 @@
+Out-of-range dispatchtime handling leaves stale values (MEDIUM PRIORITY)
+   - If computed dispatchtime is negative or >1440 min, script skips update
+   - Risk: Correct calldate but WRONG dispatchtime/responsetime (built from old bad calldate)
+   - Better: Set dispatchtime=None and responsetime=None if out-of-range (force nulls vs stale data)
+
+4. Duplicate Call IDs not handled (LOW PRIORITY but worth logging)
+   - WHERE callid IN (...) updates all matches by OBJECTID
+   - Risk: If duplicate callids exist online, updates all of them
+   - Mitigation: Log duplicates, warn user, optionally skip
+
+5. Schema drift = hard fail (GOOD but could be friendlier)
+   - QUERY_FIELDS includes all derived fields; missing field = abort
+   - Risk: Blocks entire run even if we only need to fix calldate
+   - Better: Add preflight check comparing QUERY_FIELDS to fl.properties.fields, provide clear error
+
+6. Local baseline script checks NULL but gap records have WRONG dates (PERPLEXITY ISSUE)
+   - Gap records have "2026-02-06 10:00:00" (wrong estimate), not NULL
+   - Risk: Local baseline fix script won't catch them if WHERE clause is "calldate IS NULL"
+   - Fix: Perplexity's script should use WHERE clause that catches both NULL and the bad estimate date
+
+CODE COPILOT ASKS:
+
+a) Do you want a patched version of fix_gap_calldate_online.py with:
+   - Min/max range enforcement in build_lookup()
+   - Schema preflight check
+   - Safe nulling for out-of-range dispatchtime/responsetime
+
+b) Do you want a "one-record probe" script to query 26-011297 online and print:
+   - calldate/dispatchdate as epoch + human-readable
+   - Confirms timezone behavior before going live
+
+MY ASSESSMENT:
+All 6 issues are legit. #1 (min/max enforcement) and #3 (stale response times) are highest priority for police operational data. #2 (timezone) is worth a quick verification. REQUEST:
+Please provide:
+1. Patched fix_gap_calldate_online.py addressing issues #1, #3, and #5
+2. One-record probe script for timezone verification (issue #2)
+3. Updated local baseline fix script that catches WRONG dates (2026-02-06 10:00:00) not just NULLs (issue #6)
+
+I'm on RDP ready to test. Why Code Copilot Is Right
+Issue #1: Safety Bounds (CRITICAL)
+Current code:
+
+python
+if cid and cid.startswith("26-"):  # Too broad! Should be:
+
+python
+if cid and GAP_CALLID_MIN <= cid <= GAP_CALLID_MAX:  # Strict range
+Impact: Could accidentally update non-gap 2026 records. Issue #3: Stale Response Times (CRITICAL FOR ANALYTICS)
+Current behavior:
+
+Updates calldate from 2/6 to 2/3
+
+But if dispatchtime is out of range, leaves it untouched
+
+Result: dispatchtime still calculated from old wrong calldate
+
+Your metrics dashboard would show wrong response times! Fix: Null out derived metrics if they can't be recalculated correctly. Issue #6: Local Baseline Script (MY MISTAKE)
+I gave you:
+
+python
+where_clause = "calldate IS NULL"
+Should be:
+
+python
+where_clause = "calldate IS NULL OR calldate = timestamp '2026-02-06 10:00:00'"
+Impact: Local baseline fix might miss records with bad estimate dates. My Recommendation
+Tell Opus to provide all 3 items:
+
+Patched online update script
+
+Timezone probe script
+
+Fixed local baseline script
+
+Then execute in this order:
+
+Run timezone probe (30 seconds)
+
+Run fixed local baseline script (2 minutes)
+
+Dry run patched online script (2 minutes)
+
+Review output, go live if good
+
+Bottom Line
+Code Copilot just saved you from:
+
+✅ Accidentally updating wrong records
+
+✅ Having correct dates but wrong response time metrics
+
+✅ Silent timezone offset issues
+
+This is why you use multiple AI agents for production police data. 🎯
+
+Copy the prompt above and send to Opus now. Prepared using Claude Sonnet 4.5

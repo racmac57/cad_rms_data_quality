@@ -1,0 +1,36 @@
+v1.6.1 Official Baseline Backup Created
+
+Created gold standard baseline backup of CallsForService layer after
+successful gap date fix completion.
+
+Baseline Details:
+- Records: 571,282 (verified 100% match with online layer)
+- Date Range: 2019-01-01 to 2026-02-15 (7+ years complete)
+- Geometry: 100% present (X/Y coordinates from CAD exports)
+- Dates: 100% correct (real CAD timestamps, gap records fixed)
+- Export Duration: 110 seconds (1.8 minutes)
+- Created: 2026-02-16 22:54:04
+
+Location (RDP):
+C:\HPD ESRI\03_Data\CAD\Backfill\Baseline_v1_6_1.gdb\CallsForService_Baseline_20190101_20260215
+
+Script Created:
+- backup_baseline_v1_6_1.py - Simple FGDB export script
+
+Use Cases:
+- Emergency rollback if online layer corrupted
+- Starting point for future incremental backfills (Feb 16+ data)
+- Audit trail for complete 7-year dataset
+- Data quality reference and validation benchmark
+
+Documentation Updated:
+- CHANGELOG.md - Added baseline creation details
+- SUMMARY.md - Added Official Baseline section with specs
+- README.md - Added baseline reference
+- CLAUDE.md - Added baseline location
+
+Status: v1.6.1 COMPLETE
+- Gap date fix: 444 records updated successfully
+- Baseline backup: 571,282 records exported and verified
+- Dashboard: Fully operational with correct dates
+- Future workflow: Incremental updates instead of full reloads

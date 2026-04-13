@@ -1,10 +1,10 @@
 # CAD/RMS Data Quality System
 
-**Version:** 1.5.0 (Staged Backfill System Released)
+**Version:** 1.7.1 (ESRI Pipeline Restored + Standards Audit Phases 1-3 Complete)
 **Created:** 2026-01-29
-**Updated:** 2026-02-06
+**Updated:** 2026-04-10
 **Author:** R. A. Carucci
-**Status:** ✅ v1.5.0 Released | 🚀 Ready for production deployment Monday Feb 9
+**Status:** ✅ v1.7.1 | Nightly Call Data pipeline fixed (2026-04-09) | Standards audit all 9 gaps closed | Crime Data automation pending | Claude Code skills added
 
 ---
 
@@ -17,11 +17,225 @@ Unified data quality system for CAD (Computer-Aided Dispatch) and RMS (Records M
 1. **Historical Consolidation** (Component 1): Merge 2019-2026 CAD data (754,409 records through Feb 3, 2026) into single validated dataset for ArcGIS Pro dashboards
 2. **Monthly Validation** (Component 2): Provide reusable validation scripts for ongoing CAD and RMS exports
 3. **Single Source of Truth**: Replace fragmented legacy projects with unified, maintainable system
-4. **Staged Backfill System** (NEW - Component 3): Resolve 564,916 record hang with heartbeat/watchdog monitoring
+4. **Historical Backfill** (Component 3): ✅ COMPLETE - 571,282 records loaded to ArcGIS Online dashboard with corrected dates
 
 ---
 
-## Current Initiative: Staged Backfill System (v1.5.0)
+## Latest Release: Nightly ESRI Pipeline Restored (v1.7.1) — 2026-04-10
+
+### What Changed
+The `Publish Call Data_2026_NEW` Task Scheduler task on HPD2022LAWSOFT had been failing nightly since early February 2026. The task ran as `SYSTEM` (no ArcGIS license, no write access to `administrator.HPD\AppData`). Fixed by changing to `HPD\administrator / RunLevel: Highest`.
+
+**Nightly pipeline status (as of 2026-04-10):**
+| Task | Time | Status |
+|------|------|--------|
+| `LawSoftESRICADExport` | 12:30 AM | ✅ Working |
+| `LawSoftESRINIBRSExport` | 1:00 AM | ✅ Working |
+| `Publish Call Data_2026_NEW` | 1:00 AM | ✅ Fixed |
+| Crime Data publish | — | ⏳ Pending automation |
+
+**Next session:** See `docs/ai_handoff/HANDOFF_20260410_Crime_Data_Automation.md`
+
+---
+
+## Previous Release: Gap Backfill Date Fix (v1.6.1)
+
+### The Challenge
+
+**Problem: Wrong Date Values in Gap Records**
+- 2,680 gap records (Feb 3-15, 2026) had incorrect `calldate` values
+- All showed "2/6/26 10:00:00" (estimation fallback) instead of real dates
+- Derived fields (day-of-week, hour, year) were wrong
+- Response metrics calculated from incorrect calldate
+
+### The Solution ✅
+
+**Surgical API Update Strategy:**
+
+1. **Probe First** - Verify timezone and field values (read-only)
+2. **Fix Local Baseline** - Update CFStable_GeocodeAddresses with real dates from gap_for_append_v2
+3. **Fix Online Layer** - Surgical ArcGIS API for Python update (only 2,680 records)
+
+### Results
+
+**✅ COMPLETE SUCCESS (Feb 16, 2026):**
+- ✅ 571,282 total records with valid geometry and correct dates
+- ✅ Gap closure complete: Feb 3-15, 2026
+- ✅ Dashboard chronological sort working (most recent calls display first)
+- ✅ All derived fields accurate (day-of-week, hour, response times)
+- ✅ Execution time: ~10-15 minutes (probe → local → online → verify)
+- ✅ No downtime (dashboard remained operational during update)
+
+**Sample verification:**
+```
+Before:  26-011297: 2026-02-06 10:00:00 (WRONG - estimate)
+After:   26-011297: 2026-02-03 10:14:14 (CORRECT - real CAD timestamp)
+         dow=Tuesday, hr=10, dispatchtime=12.5 min
+```
+
+### Gap Fix Scripts (v1.6.1)
+
+| Script | Purpose | Status |
+|--------|---------|--------|
+| `probe_gap_record.py` | Timezone & field verification (read-only) | ✅ PRODUCTION |
+| `fix_gap_calldate_local.py` | Local baseline date correction | ✅ PRODUCTION |
+| `fix_gap_calldate_online.py` | Online layer surgical update | ✅ PRODUCTION |
+
+**Usage (on RDP):**
+```powershell
+cd "C:\HPD ESRI\04_Scripts"
+
+# Step 1: Verify timezone (read-only, 30 seconds)
+& "C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\propy.bat" probe_gap_record.py
+
+# Step 2: Fix local baseline (dry-run first)
+& "C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\propy.bat" fix_gap_calldate_local.py
+& "C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\propy.bat" fix_gap_calldate_local.py --live
+
+# Step 3: Fix online layer (dry-run first)
+& "C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\propy.bat" fix_gap_calldate_online.py
+& "C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\propy.bat" fix_gap_calldate_online.py --live --expected-updates 2680
+
+# Optional: Rollback if needed
+& "C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\propy.bat" fix_gap_calldate_online.py --rollback
+```
+
+**Key Features:**
+- **Forced America/New_York timezone** - Prevents DST/offset bugs
+- **Numeric range enforcement** - Only touches Call IDs 26-011288 to 26-014999
+- **Dry-run default** - No changes unless `--live` specified
+- **Rollback capability** - Snapshot saved before updates, can restore
+- **Audit assertions** - `--expected-updates 2680` validates count
+- **Batch processing** - 200 records per API call (14 batches)
+- **Comprehensive logging** - JSON artifacts (snapshot, changes, summary) + CSV exports
+
+**Documentation:**
+- `docs/GAP_BACKFILL_UNIFIED_IMPLEMENTATION_PLAN.md` - Complete execution guide
+- `docs/perplexity_spaces_handoff.md` - Gap backfill context
+- `docs/HANDOFF_20260216_BACKFILL_SESSION.md` - Full session details
+
+### Official Baseline (v1.6.1) - Created Feb 16, 2026
+
+**The Gold Standard Backup**
+
+After completing the gap date fix and verifying all 571,282 records, we created an official baseline backup:
+
+**Location (RDP):**
+```
+C:\HPD ESRI\03_Data\CAD\Backfill\Baseline_v1_6_1.gdb\CallsForService_Baseline_20190101_20260215
+```
+
+**Specifications:**
+- **Records:** 571,282 (verified 100% match with online layer)
+- **Date Range:** 2019-01-01 to 2026-02-15 (7+ years)
+- **Geometry:** 100% present (X/Y coordinates from CAD exports)
+- **Dates:** 100% correct (real CAD timestamps, gap records fixed Feb 16, 2026)
+- **Derived Fields:** Accurate (calldow, callhour, callmonth, callyear, response times)
+- **Export Duration:** 110 seconds (1.8 minutes for 571K records)
+- **Created:** 2026-02-16 22:54:04
+- **Script:** `scripts/backup_baseline_v1_6_1.py`
+
+**Use Cases:**
+1. **Emergency Rollback** - If online layer becomes corrupted, restore from this baseline
+2. **Future Backfills** - Starting point for incremental updates (Feb 16+ data)
+3. **Audit Trail** - Verified snapshot of complete 7-year dataset
+4. **Data Quality Reference** - Benchmark for validation and comparison
+
+**How to Use for Future Backfills:**
+```python
+# Instead of processing all 571K records again:
+# 1. Export new month (e.g., Feb 16 - Mar 31, 2026)
+# 2. Append to baseline (not full reload)
+# 3. Publish delta to online layer
+# 4. Update baseline with new month
+
+# Example workflow:
+baseline_fc = r"C:\HPD ESRI\03_Data\CAD\Backfill\Baseline_v1_6_1.gdb\CallsForService_Baseline_20190101_20260215"
+new_month_data = r"C:\path\to\2026_03_CAD.xlsx"
+
+# Process only new month, append to baseline
+# Much faster than reprocessing 571K records!
+```
+
+---
+
+## Previous Release: Historical Backfill Success (v1.6.0)
+
+### The Challenge
+
+**Problem 1: Live Geocoding Timeouts**
+- ModelBuilder's "Geocode Addresses" tool hung indefinitely at feature 564,897
+- Network session timeout during bulk geocoding (>100K records)
+
+**Problem 2: Field Schema Mismatch**
+- Source Excel fields (ReportNumberNew, Incident) didn't match online service fields (callid, calltype)
+- ArcPy FieldMappings API failed silently
+- Result: 565,870 records with geometry but all attributes NULL
+
+### The Solution ✅
+
+**Two-Part Strategy:**
+
+1. **Bypass Live Geocoding** - Use existing latitude/longitude fields with XYTableToPoint
+2. **Field Copying Instead of Mapping** - Create duplicate fields with target names, copy values directly
+
+### Results
+
+**✅ COMPLETE SUCCESS (Feb 9, 2026 22:16 PM):**
+- ✅ 565,470 records loaded with full attribute data
+- ✅ Dashboard table populated (Call ID, Call Type, Call Source, Full Address all visible)
+- ✅ Total duration: 13.8 minutes (vs hours of hanging)
+- ✅ Success rate: 99.93%
+- ✅ No more NULL values
+
+**Sample verification:**
+```
+CFStable: callid=19-000001, calltype=Blocked Driveway, callsource=Phone
+Online: callid=19-001073, calltype=Patrol Check, callsource=Fax
+```
+
+### Scripts Created (Feb 9, 2026)
+
+**Backup & Restore (Working):**
+1. `scripts/backup_current_layer.py` - Export online layer to local FGDB
+2. `scripts/truncate_online_layer.py` - Delete all records (triple confirmation)
+3. `scripts/restore_from_backup.py` - Emergency rollback operation
+
+**Backfill Workflow Evolution:**
+4. `scripts/publish_with_xy_coordinates.py` ❌ - Basic XY (NULL attributes)
+5. `scripts/complete_backfill_with_xy.py` ❌ - Added transformations (partial success)
+6. `scripts/complete_backfill_fixed.py` ❌ - FieldMappings attempt (failed)
+7. `scripts/complete_backfill_simplified.py` ✅ - **Field copying approach (SUCCESS)**
+
+**Diagnostics (Working):**
+8. `scripts/diagnose_missing_data.py` - Check for NULL attributes
+9. `scripts/check_cfstable_schema.py` - Display CFStable field schema
+10. `scripts/check_temp_fc_fields.py` - Verify temp FC fields
+11. `scripts/verify_data_exists.py` - Sample record values
+
+### Key Insights
+
+**What Worked:**
+- ✅ XYTableToPoint is reliable for bulk geometry creation
+- ✅ Field copying beats field mapping for schema translation
+- ✅ Two-stage append (temp → local → online) provides stability
+- ✅ Diagnostic scripts were essential for root cause analysis
+
+**What Didn't Work:**
+- ❌ Live geocoding doesn't scale (timeouts on 100K+ records)
+- ❌ FieldMappings API is unreliable (silent failures)
+- ❌ Direct append with mismatched schemas (results in NULL fields)
+
+### Documentation
+
+- `docs/SUCCESS_REPORT_20260209.md` - Complete victory summary
+- `docs/HANDOFF_20260209.md` (620 lines) - Full technical details
+- `docs/SESSION_SUMMARY_20260209_BACKFILL_FIELD_MAPPING.md` - Session recap
+- `CHANGELOG.md` - Updated with v1.6.0 entry
+
+---
+
+## Previous Initiative: Staged Backfill System (v1.5.0)
 
 ### The Challenge
 
@@ -109,86 +323,94 @@ This release resolves the critical 564,916 record hang issue that prevented succ
 
 ```
 cad_rms_data_quality/
+├── CLAUDE.md                    # AI agent context, rules, and skill docs
 ├── README.md                    # This file
 ├── CHANGELOG.md                 # Version history
-├── INCREMENTAL_RUN_GUIDE.md    # Incremental CAD run + copy to 13_PROCESSED_DATA ✅
-├── PLAN.md                      # Detailed implementation plan
-├── NEXT_STEPS.md               # Roadmap for next session
-├── requirements.txt            # Python dependencies ✅
-├── pyproject.toml              # Project configuration ✅
-├── Makefile                    # Automation commands (TO DO - in chunk_00010.txt)
-├── .gitignore                  # Git ignore rules ✅
-├── consolidate_cad_2019_2026.py # Production consolidation (baseline + incremental) ✅
-├── scripts/                    # Post-consolidation utilities ✅
-│   └── copy_polished_to_processed_and_update_manifest.py  # Copy to 13_PROCESSED_DATA, update manifest
+├── SUMMARY.md                   # Project summary and key metrics
+├── PLAN.md                      # Implementation plan (historical)
+├── pyproject.toml               # Project config, ruff, mypy, pytest
+├── requirements.txt             # Python dependencies
+├── .gitignore                   # Git ignore rules
+├── consolidate_cad_2019_2026.py # Main consolidation entry point (--full mode)
+├── scheduled_publish_call_data.py # Scheduled ArcGIS Online publishing
 │
-├── config/                     # Configuration files ✅
-│   ├── schemas.yaml            # Paths to 09_Reference/Standards schemas ✅
-│   ├── validation_rules.yaml  # Validation configuration ✅
-│   └── consolidation_sources.yaml  # 2019-2025 CAD file paths (actual: 714K records) ✅
+├── .claude/skills/              # Claude Code custom slash commands ✅
+│   ├── handoff/SKILL.md         #   /handoff — Generate AI session handoff docs
+│   ├── pipeline-status/SKILL.md #   /pipeline-status — Nightly task health check
+│   ├── validate-monthly/SKILL.md#   /validate-monthly — Monthly export validation
+│   ├── check-paths/SKILL.md     #   /check-paths — Lint configs for path violations
+│   ├── consolidation-run/SKILL.md#  /consolidation-run — Full consolidation + verify
+│   └── deploy-script/SKILL.md   #   /deploy-script — Deploy to RDP server
 │
-├── consolidation/              # Component 1: Historical data consolidation
-│   ├── scripts/
-│   │   ├── consolidate_cad.py         # Merge 2019-2025 CAD files (714K records) (TO DO)
-│   │   └── prepare_arcgis.py          # Create ArcGIS-ready output (TO DO)
-│   ├── output/                        # Consolidated datasets (empty)
-│   ├── reports/                       # Validation reports (empty)
-│   └── logs/                          # Processing logs (empty)
+├── config/                      # YAML configuration ✅
+│   ├── schemas.yaml             #   Paths to Standards JSON schemas (${standards_root})
+│   ├── validation_rules.yaml    #   Field rules, quality scoring, anomaly thresholds
+│   ├── consolidation_sources.yaml # CAD source paths, baseline, performance tuning
+│   └── rms_sources.yaml         #   RMS source paths
 │
-├── monthly_validation/         # Component 2: Ongoing validation ✅
-│   ├── scripts/
-│   │   ├── validate_cad.py            # Monthly CAD validator ✅
-│   │   └── validate_rms.py            # Monthly RMS validator ✅
-│   ├── templates/
-│   │   └── validation_report_template.html  # Report template (TO DO)
-│   ├── processed/                     # Processed monthly outputs ✅
-│   ├── reports/                       # Monthly reports (YYYY_MM_cad/, YYYY_MM_rms/) ✅
-│   └── logs/                          # Validation logs
+├── shared/                      # Shared library code ✅
+│   ├── utils/
+│   │   ├── schemas_loader.py    #   Load schemas.yaml with variable expansion
+│   │   ├── version_check.py     #   Standards version validation
+│   │   ├── report_builder.py    #   HTML/Excel report generation
+│   │   └── call_type_normalizer.py # Normalize call types to ESRI categories
+│   ├── validators/              #   Base validator classes
+│   └── processors/              #   Data processing utilities
 │
-├── shared/                     # Shared utilities (refactored from legacy projects)
-│   ├── validators/
-│   │   ├── validation_engine.py       # Core validation framework (TO DO)
-│   │   ├── pre_run_checks.py          # Pre-run environment checks (TO DO)
-│   │   ├── post_run_checks.py         # Post-run quality checks (TO DO)
-│   │   ├── address_validator.py       # Address validation (TO DO)
-│   │   ├── case_number_validator.py   # Case number validation (TO DO)
-│   │   └── quality_scorer.py          # 0-100 quality scoring (TO DO)
-│   ├── processors/
-│   │   ├── field_normalizer.py        # Advanced Normalization v3.2 (TO DO)
-│   │   ├── datetime_processor.py      # Time artifact fixes (TO DO)
-│   │   └── address_standardizer.py    # USPS standardization (TO DO)
-│   ├── reporting/
-│   │   ├── html_generator.py          # HTML report generation (TO DO)
-│   │   ├── excel_generator.py         # Excel report generation (TO DO)
-│   │   └── json_generator.py          # JSON metrics export (TO DO)
-│   └── utils/
-│       ├── schema_loader.py           # Load schemas from Standards (TO DO)
-│       ├── hash_utils.py              # File integrity checks (TO DO)
-│       └── audit_trail.py             # Change tracking (TO DO)
+├── validation/                  # Comprehensive validation framework ✅
+│   ├── run_all_validations.py   #   Master orchestrator (9 validators + 2 drift detectors)
+│   ├── validators/              #   Individual field validators (9 total)
+│   │   ├── how_reported_validator.py
+│   │   ├── disposition_validator.py
+│   │   ├── case_number_validator.py
+│   │   ├── datetime_validator.py
+│   │   ├── geography_validator.py
+│   │   └── ...
+│   └── sync/                    #   Drift detection (call type, personnel)
 │
-├── tests/                      # Test suite
-│   ├── test_validators.py             # Validator tests (TO DO)
-│   ├── test_processors.py             # Processor tests (TO DO)
-│   ├── test_consolidation.py          # Consolidation tests (TO DO)
-│   └── fixtures/                      # Test data (empty)
+├── monthly_validation/          # Monthly export validation ✅
+│   └── scripts/
+│       ├── validate_cad.py      #   Monthly CAD validation CLI
+│       └── validate_rms.py      #   Monthly RMS validation CLI
 │
-└── docs/                       # Documentation
-    ├── arcgis/                        # ArcGIS import and automation ✅
-    │   ├── README.md                  # Workflow guide for geodatabase import ✅
-    │   ├── README_Backfill_Process.md # User guide for backfill automation ✅
-    │   ├── config.json                # Central configuration for backfill workflow ✅
-    │   ├── discover_tool_info.py      # Tool discovery script ✅
-    │   ├── run_publish_call_data.py   # Python runner for ArcGIS Pro tool ✅
-    │   ├── Test-PublishReadiness.ps1  # Pre-flight checks ✅
-    │   ├── Invoke-CADBackfillPublish.ps1  # Main orchestrator ✅
-    │   ├── Copy-PolishedToServer.ps1  # Robust file copy script ✅
-    │   └── import_cad_polished_to_geodatabase.py  # Legacy arcpy import script
-    ├── ARCHITECTURE.md                # System design (TO DO)
-    ├── MIGRATION_NOTES.md             # What came from legacy projects (TO DO)
-    ├── CONSOLIDATION_GUIDE.md         # How to run consolidation (TO DO)
-    ├── MONTHLY_VALIDATION_GUIDE.md    # How to run monthly validation (TO DO)
-    └── STANDARDS_REFERENCE.md         # How to use 09_Reference/Standards (TO DO)
+├── consolidation/               # Consolidation outputs and reports
+│   ├── output/                  #   Generated CSV files
+│   └── reports/                 #   Run reports and metrics JSON
+│
+├── scripts/                     # Operational scripts (run on RDP server) ✅
+│   ├── complete_backfill_simplified.py  # v1.6.0 production backfill (winner)
+│   ├── backup_current_layer.py  #   Export online layer to local FGDB
+│   ├── truncate_online_layer.py #   Delete all records (triple confirmation)
+│   ├── restore_from_backup.py   #   Emergency rollback
+│   ├── cad_fulladdress2_qc.py   #   Address quality analysis
+│   ├── monitor_dashboard_health.py # Post-publish health monitoring
+│   └── ...                      #   50+ utility and diagnostic scripts
+│
+├── docs/                        # Documentation
+│   ├── ai_handoff/              #   Session handoff docs (Cursor/Claude Code prompts)
+│   ├── arcgis/                  #   ArcGIS import and automation
+│   ├── chatlog/                 #   Historical session logs
+│   └── project_knowledge/       #   Reference materials
+│
+└── backups/                     # Backup copies of modified scripts
 ```
+
+---
+
+## Claude Code Skills (Slash Commands)
+
+Project-level custom skills in `.claude/skills/`. Invoke with `/<name>` in Claude Code.
+
+| Skill | Usage | Purpose |
+|-------|-------|---------|
+| `/handoff` | `/handoff Crime-Data-Scheduler` | Generate a structured AI handoff document for the next session |
+| `/pipeline-status` | `/pipeline-status all` | Generate PowerShell to check nightly Task Scheduler results on RDP |
+| `/validate-monthly` | `/validate-monthly cad 2026-03` | Run monthly CAD or RMS validation with quality scoring |
+| `/check-paths` | `/check-paths` | Lint configs for path convention violations (carucci_r, junctions) |
+| `/consolidation-run` | `/consolidation-run --dry-run` | Execute full consolidation and verify record counts |
+| `/deploy-script` | `/deploy-script scripts/monitor.py --schedule 02:00` | Deploy a script to the RDP server with optional scheduling |
+
+See `CLAUDE.md` for full project context and AI agent rules.
 
 ---
 
@@ -379,7 +601,7 @@ See [CHANGELOG.md](CHANGELOG.md#110---2026-01-31) for complete details.
 
 ### ✅ Phase 1: Consolidation Operational (2026-01-31)
 - [x] Project directory structure created
-- [x] README.md, CHANGELOG.md, PLAN.md, NEXT_STEPS.md, Claude.md, SUMMARY.md
+- [x] README.md, CHANGELOG.md, PLAN.md, NEXT_STEPS.md, CLAUDE.md, SUMMARY.md
 - [x] **config/schemas.yaml** - Paths to 09_Reference/Standards
 - [x] **config/validation_rules.yaml** - Validation patterns and quality scoring
 - [x] **config/consolidation_sources.yaml** - 2019-2025 CAD source files (actual: 714K records)
@@ -458,6 +680,7 @@ See `outputs/consolidation/CAD_CONSOLIDATION_EXECUTION_GUIDE.txt` and `INCREMENT
 4. **Production-Ready**: Pre-run/post-run checks, audit trails, comprehensive logging
 5. **Performance-Optimized**: Vectorized operations, parallel processing, quality scoring
 6. **Baseline + Incremental**: Load baseline once, append new monthly data only (skip re-reading 7 years)
+7. **AI-Assisted Workflow**: Claude Code skills automate recurring tasks (handoffs, validation, deployment)
 
 ---
 

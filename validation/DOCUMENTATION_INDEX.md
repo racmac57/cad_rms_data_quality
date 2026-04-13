@@ -118,7 +118,7 @@ Location: `validation/reports/drift/`
 |----------|----------|---------|
 | README.md | cad_rms_data_quality/ | Main project README |
 | CHANGELOG.md | cad_rms_data_quality/ | Version history |
-| Claude.md | cad_rms_data_quality/ | AI agent guidelines |
+| CLAUDE.md | cad_rms_data_quality/ | AI agent context, rules, and skill reference |
 
 ---
 

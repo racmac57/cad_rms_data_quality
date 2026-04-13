@@ -1,0 +1,40 @@
+{
+  "tags": [
+    "ai",
+    "code",
+    "data",
+    "docs",
+    "excel",
+    "it-ops",
+    "json",
+    "markdown",
+    "police",
+    "powershell",
+    "python",
+    "sql"
+  ],
+  "metadata_enrichment": {
+    "metadata": {
+      "project_name": "02_data",
+      "source_type": "documentation",
+      "language": "en",
+      "department": "admin",
+      "key_terms": [
+        "arcgis",
+        "scripts",
+        "docs",
+        "ps1",
+        "lines",
+        "batch"
+      ],
+      "enrichment_version": "1.0.0"
+    },
+    "summaries": {
+      "file_summary": "Microsoft Windows [Version 10.0.26200.7705]\n(c) Microsoft Corporation. All rights reserved.",
+      "first_line": "Microsoft Windows [Version 10.0.26200.7705]"
+    },
+    "enrichment_version": "1.0.0"
+  },
+  "last_processed_at": "2026-02-06T17:00:31.582796",
+  "department": "admin"
+}

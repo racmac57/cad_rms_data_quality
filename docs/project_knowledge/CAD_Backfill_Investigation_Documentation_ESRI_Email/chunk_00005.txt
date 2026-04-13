@@ -1,0 +1,44 @@
+The one running the backfill should still be there with output scrolling or waiting. ### Option 2: Check Python Process Details
+
+```powershell
+Get-Process python | Select-Object Id, CPU, StartTime, @{Name='Runtime';Expression={(Get-Date) - $_.StartTime}}
+```
+
+This shows how long Python has been running. ### Option 3: Wait and Monitor
+
+Check every 5 minutes if process is done:
+
+```powershell
+# Every 5 minutes, check these:
+Test-Path "C:\HPD ESRI\03_Data\CAD\Backfill\_STAGING\_LOCK.txt"  # Should become False when done
+Get-Process python* -ErrorAction SilentlyContinue  # Should return nothing when done
+```
+
+---
+
+## DO NOT:
+
+❌ **Don't kill the Python process** - It's making progress  
+❌ **Don't start another run** - Lock file prevents it anyway  
+❌ **Don't close RDP** - Will terminate the process  
+❌ **Don't restart the orchestrator** - Already running
+
+---
+
+## When It Finishes
+
+You'll know it's done when:
+- Lock file disappears (`Test-Path` returns False)
+- Python process exits (`Get-Process python*` returns nothing)
+- Staging file restored to default export (smaller file, recent timestamp)
+
+Then check the **original orchestrator window** for final status message. ---
+
+**Estimated time remaining:** 5-15 minutes (you're at 75 min, typical total is 80-90 min)
+
+**Can you find the original PowerShell window that's running the backfill? ** Check your RDP taskbar for minimized windows. ---
+
+**User**
+
+I found the running window but it seems to be missing the top end of the process, look for yourself:
+WARNING 000635: Skipping feature 224838 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 225177 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 225243 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 225253 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 225263 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 225269 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 225276 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 225277 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 225352 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 225372 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 225396 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 225465 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 225516 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 225576 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 225595 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 225606 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 225609 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 225691 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 225700 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 225714 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 225721 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 225732 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 225780 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 225830 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 225844 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 225932 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 225945 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 225951 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 225963 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 225966 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 225970 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 226109 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 226147 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 226149 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 226153 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 226154 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 226177 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 226225 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 226265 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 226273 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 226277 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 226356 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 226392 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 226412 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 226424 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 226528 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 226560 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 226586 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 226610 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 226658 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 226659 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 226661 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 226689 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 226729 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 226738 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 226745 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 226750 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 226801 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 226839 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 226896 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 226989 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 227127 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 227135 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 227147 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 227159 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 227169 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 227257 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 227282 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 227337 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 227370 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 227424 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 227442 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 227469 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 227493 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 227528 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 227559 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 227562 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 227572 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 227583 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 227585 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 227652 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 227686 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 227760 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 227802 because of NULL or EMPTY geometry. WARNING 000635: Skipping feature 227845 because of NULL or EMPTY geometry.

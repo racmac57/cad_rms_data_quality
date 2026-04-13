@@ -1,0 +1,40 @@
+{
+  "tags": [
+    "ai",
+    "code",
+    "data",
+    "docs",
+    "excel",
+    "it-ops",
+    "json",
+    "markdown",
+    "police",
+    "powershell",
+    "python",
+    "sql"
+  ],
+  "metadata_enrichment": {
+    "metadata": {
+      "project_name": "02_data",
+      "source_type": "documentation",
+      "language": "en",
+      "department": "admin",
+      "key_terms": [
+        "because",
+        "geometry",
+        "null",
+        "empty",
+        "warning",
+        "000635"
+      ],
+      "enrichment_version": "1.0.0"
+    },
+    "summaries": {
+      "file_summary": "# Script location in docs directory\n_Exported on 2/4/2026 at 16:29:29 EST from Cursor (2.4.27)_\n\n---\n\n**User**\n\nread C:\\Users\\carucci_r\\OneDrive - City of Hackensack\\02_ETL_Scripts\\cad_rms_data_quality\\docs\\Fix_CAD_Consolidation_Include_...",
+      "first_line": "# Script location in docs directory"
+    },
+    "enrichment_version": "1.0.0"
+  },
+  "last_processed_at": "2026-02-04T16:29:50.460236",
+  "department": "admin"
+}

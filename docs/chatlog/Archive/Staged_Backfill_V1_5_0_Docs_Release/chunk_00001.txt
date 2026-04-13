@@ -1,0 +1,734 @@
+Add cleanup logic for marker files
+
+**Key Additions:**
+
+```powershell
+param(
+    [Parameter(Mandatory = $false)]
+    [string]$BackfillFile,
+    
+    [string]$ConfigPath = "C:\HPD ESRI\04_Scripts\config.json",
+    
+    [switch]$DryRun,
+    [switch]$SkipPreFlightChecks,
+    [switch]$NoRestore,
+    
+    # NEW PARAMETERS FOR STAGED MODE
+    [switch]$Staged,
+    [string]$BatchFolder = "C:\HPD ESRI\03_Data\CAD\Backfill\Batches",
+    [int]$CoolingSeconds = 60,
+    [switch]$ResumeFromCheckpoint
+)
+
+# ... existing code ...
+
+if ($Staged) {
+    Write-Host ""
+    Write-Host ("=" * 70) -ForegroundColor Cyan
+    Write-Host "STAGED BACKFILL MODE ACTIVATED" -ForegroundColor Cyan
+    Write-Host ("=" * 70) -ForegroundColor Cyan
+    Write-Host "Batch folder: $BatchFolder" -ForegroundColor Cyan
+    Write-Host "Cooling period: $CoolingSeconds seconds" -ForegroundColor Cyan
+    Write-Host ""
+    
+    # Find all batch files (excluding already completed)
+    $batchFiles = Get-ChildItem -Path $BatchFolder -Filter "BATCH_*.xlsx" | Sort-Object Name
+    $completedDir = Join-Path $BatchFolder "Completed"
+    
+    if (-not (Test-Path $completedDir)) {
+        New-Item -ItemType Directory -Path $completedDir | Out-Null
+    }
+    
+    # Load checkpoint if resuming
+    $checkpointFile = Join-Path $BatchFolder "checkpoint.json"
+    $checkpoint = @{}
+    if ($ResumeFromCheckpoint -and (Test-Path $checkpointFile)) {
+        $checkpoint = Get-Content $checkpointFile | ConvertFrom-Json -AsHashtable
+        Write-Host "Resuming from checkpoint: Last completed batch $($checkpoint.last_completed_batch)" -ForegroundColor Yellow
+    }
+    
+    $totalBatches = $batchFiles.Count
+    $currentBatch = 0
+    
+    foreach ($batchFile in $batchFiles) {
+        $currentBatch++
+        $batchNum = [regex]::Match($batchFile.Name, "BATCH_(\d+)").Groups[1].Value
+        
+        # Skip if already completed (checkpoint)
+        if ($checkpoint.completed_batches -contains $batchNum) {
+            Write-Host "[SKIP] Batch $batchNum already completed (checkpoint)" -ForegroundColor Gray
+            continue
+        }
+        
+        Write-Host ""
+        Write-Host ("=" * 70) -ForegroundColor Yellow
+        Write-Host "Processing Batch $batchNum of $totalBatches" -ForegroundColor Yellow
+        Write-Host "File: $($batchFile.Name)" -ForegroundColor Yellow
+        Write-Host "Size: $([math]::Round($batchFile.Length / 1MB, 2)) MB" -ForegroundColor Yellow
+        Write-Host ("=" * 70) -ForegroundColor Yellow
+        
+        $batchTimer = [Diagnostics.Stopwatch]::StartNew()
+        
+        # Create batch number marker for Python runner
+        $batchMarker = Join-Path $stagingDir "_current_batch.txt"
+        $batchNum | Out-File $batchMarker -Force
+        
+        # Atomic swap to staging
+        $tempFile = Join-Path $stagingDir "ESRI_CADExport.xlsx.tmp"
+        Copy-Item $batchFile.FullName $tempFile -Force
+        Move-Item $tempFile $stagingFile -Force
+        
+        Write-Host "[1] Batch file staged successfully" -ForegroundColor Green
+        
+        # Run publish tool
+        Write-Host "[2] Executing ArcGIS Pro publish tool..." -ForegroundColor Yellow
+        & $propyPath $runnerScript $ConfigPath
+        
+        if ($LASTEXITCODE -eq 0) {
+            $batchTimer.Stop()
+            $elapsed = $batchTimer.Elapsed.ToString("mm\:ss")
+            
+            Write-Host "[OK] Batch $batchNum completed in $elapsed" -ForegroundColor Green
+            
+            # Move to completed folder
+            $completedPath = Join-Path $completedDir $batchFile.Name
+            Move-Item $batchFile.FullName $completedPath -Force
+            Write-Host "[3] Moved to Completed folder" -ForegroundColor Green
+            
+            # Update checkpoint
+            if (-not $checkpoint.completed_batches) {
+                $checkpoint.completed_batches = @()
+            }
+            $checkpoint.completed_batches += $batchNum
+            $checkpoint.last_completed_batch = $batchNum
+            $checkpoint.last_updated = (Get-Date).ToString('o')
+            $checkpoint | ConvertTo-Json | Out-File $checkpointFile -Force
+            
+            # Cooling period (skip for last batch)
+            if ($currentBatch -lt $totalBatches) {
+                Write-Host "[4] Cooling down for $CoolingSeconds seconds..." -ForegroundColor Cyan
+                Start-Sleep -Seconds $CoolingSeconds
+            }
+        }
+        else {
+            Write-Host "[ERROR] Batch $batchNum failed with exit code $LASTEXITCODE" -ForegroundColor Red
+            Write-Host "Batch file preserved for inspection: $($batchFile.FullName)" -ForegroundColor Yellow
+            throw "Batch processing failed at batch $batchNum"
+        }
+    }
+    
+    # All batches complete - cleanup
+    Write-Host ""
+    Write-Host ("=" * 70) -ForegroundColor Green
+    Write-Host "ALL BATCHES COMPLETED SUCCESSFULLY" -ForegroundColor Green
+    Write-Host ("=" * 70) -ForegroundColor Green
+    Write-Host ""
+    
+    # Remove marker files
+    $markerFile = Join-Path $stagingDir "is_first_batch.txt"
+    $batchMarkerFile = Join-Path $stagingDir "_current_batch.txt"
+    
+    if (Test-Path $markerFile) {
+        Remove-Item $markerFile -Force
+        Write-Host "[CLEANUP] Removed first batch marker" -ForegroundColor Green
+    }
+    
+    if (Test-Path $batchMarkerFile) {
+        Remove-Item $batchMarkerFile -Force
+        Write-Host "[CLEANUP] Removed batch number marker" -ForegroundColor Green
+    }
+    
+    # Archive checkpoint
+    $archiveCheckpoint = Join-Path $BatchFolder "checkpoint_archive_$(Get-Date -Format 'yyyyMMdd_HHmmss').json"
+    Move-Item $checkpointFile $archiveCheckpoint -Force
+    Write-Host "[CLEANUP] Archived checkpoint: $archiveCheckpoint" -ForegroundColor Green
+    
+    Write-Host ""
+    Write-Host "System ready for nightly automation" -ForegroundColor Green
+    
+    exit 0
+}
+
+# ... existing single-file backfill code continues below ...
+```
+
+---
+
+### Testing Strategy
+
+1. **Dry Run Test (15 minutes)**
+   ```powershell
+   # Local machine: Create batches
+   python scripts\split_baseline_into_batches.py
+   
+   # Copy to server (via Copy-PolishedToServer.ps1 modified for batch folder)
+   
+   # Server: Dry run
+   .\Invoke-CADBackfillPublish.ps1 -Staged -DryRun -BatchFolder "C:\HPD ESRI\03_Data\CAD\Backfill\Batches"
+   ```
+
+2. **Small Test (2 batches, 30 minutes)**
+   ```powershell
+   # Test with only first 2 batches (~100K records)
+   # Move BATCH_03 through BATCH_16 to temp folder
+   .\Invoke-CADBackfillPublish.ps1 -Staged -BatchFolder "C:\HPD ESRI\03_Data\CAD\Backfill\Batches"
+   ```
+
+3. **Full Run (16 batches, 90-120 minutes)**
+   ```powershell
+   # Restore all batches, run full sequence
+   .\Invoke-CADBackfillPublish.ps1 -Staged -BatchFolder "C:\HPD ESRI\03_Data\CAD\Backfill\Batches"
+   ```
+
+4. **Resume Test**
+   ```powershell
+   # Simulate failure at batch 8, then resume
+   .\Invoke-CADBackfillPublish.ps1 -Staged -ResumeFromCheckpoint
+   ```
+
+---
+
+### Edge Cases & Error Handling
+
+| Scenario | Detection | Recovery |
+|----------|-----------|----------|
+| Network timeout during batch 11 | Exit code -1 from propy.bat | Batch preserved in folder, checkpoint saved at batch 10, resume with `-ResumeFromCheckpoint` |
+| Memory leak accumulation | Cooling period between batches | 60-second pause allows process cleanup |
+| Specific problematic record (e.g., 564916) | Batch contains the record fails consistently | Isolate batch, manually inspect staging file, skip or fix record |
+| Disk space exhaustion | Pre-flight check for >5GB free | Halt before starting batches |
+| Concurrent nightly task starts | Lock file + scheduled task check | Orchestrator detects conflict, waits or aborts |
+| Batch file corruption during copy | SHA256 hash verification | Atomic swap fails, batch retry |
+
+---
+
+### File Structure After Implementation
+
+```
+13_PROCESSED_DATA/
+└── ESRI_Polished/
+    ├── base/
+    │   └── CAD_ESRI_Polished_Baseline_20190101_20260203.xlsx (754,409 records)
+    └── staged_batches/
+        ├── BATCH_01_records_0_50000.xlsx (3.9 MB)
+        ├── BATCH_02_records_50000_100000.xlsx (3.9 MB)
+        ├── ...
+        ├── BATCH_16_records_750000_754409.xlsx (0.4 MB)
+        └── batch_manifest.json (tracking file)
+
+C:\HPD ESRI\03_Data\CAD\Backfill\
+├── Batches/
+│   ├── Completed/ (batches moved here after success)
+│   ├── checkpoint.json (resume tracking)
+│   └── checkpoint_archive_*.json (completed run history)
+└── _STAGING/
+    ├── ESRI_CADExport.xlsx (current batch being processed)
+    ├── is_first_batch.txt (marker for append mode)
+    └── _current_batch.txt (batch number for logging)
+```
+
+---
+
+### Success Criteria
+
+1. **Completion:** All 16 batches publish successfully without hang
+2. **Data Integrity:** Final dashboard contains exactly 754,409 records (verify with query)
+3. **Date Range:** Dashboard shows 2019-01-01 through 2026-02-03
+4. **Performance:** Each batch completes in 5-7 minutes (total 80-112 minutes)
+5. **Resilience:** If interrupted, can resume from last completed batch
+6. **Clean State:** After completion, staging directory and markers are cleared
+
+---
+
+### Critical Questions Before Implementation
+
+1. **Does TransformCallData_tbx1 support append mode? **
+   - Need to inspect Model Builder workflow
+   - If NO → May need to use `arcpy.management.Append()` after each batch
+   
+2. **What is the actual bottleneck at feature 564916? **
+   - Geocoding timeout? - Network upload to ArcGIS Online? - Specific problematic record? 3. **Can we parallelize batches? **
+   - Probably NO - single geodatabase target would cause lock conflicts
+   - Sequential is safer
+
+4. **Should we pre-geocode addresses? **
+   - Performance optimization plan mentions this
+   - Could cache coordinates for known addresses
+   - Reduces geocoding load per batch
+
+---
+
+This plan provides a complete staged backfill system with checkpoint recovery, detailed logging, and automatic cleanup. The modular design allows testing with 2 batches before committing to the full 16-batch run. **Estimated implementation time:** 4-6 hours (coding + testing)
+**Estimated first full run:** 90-120 minutes (vs current 75-minute hang)
+
+Would you like me to proceed with creating these files in Act Mode, or do you have questions about the approach? Thank you for providing those clear decisions! Based on your finalized strategy, I'll now create a comprehensive implementation plan incorporating all the elements: batch splitting, staged orchestration, resume capability, pre-flight checks, and post-execution validation. ## Staged Backfill Implementation Plan
+
+### Overview
+
+Implement a robust batch processing system to resolve the 564,916 record hang by splitting the 754,409-record baseline into 15 batches of ~50K records each, with automatic checkpointing, resume capability, and comprehensive validation. **Key Decisions:**
+- ✅ Fixed 50K batch size (~15 batches)
+- ✅ Marker file approach (`is_first_batch.txt`)
+- ✅ Move-to-Completed checkpointing
+- ✅ 60-second cooling period
+
+---
+
+### Implementation Sequence
+
+```mermaid
+flowchart TD
+    subgraph phase1 [Phase 1: New Files Creation]
+        A[Create split_baseline_into_batches.py] --> B[Create Resume-CADBackfill.ps1]
+        B --> C[Create Validate-CADBackfillCount.py]
+        C --> D[Create PRE_FLIGHT_CHECKLIST.md]
+    end
+    
+    subgraph phase2 [Phase 2: Modify Existing Files]
+        D --> E[Modify run_publish_call_data.py<br/>Add marker detection & batch logging]
+        E --> F[Modify Invoke-CADBackfillPublish.ps1<br/>Add -Staged mode & batch loop]
+        F --> G[Update config.json<br/>Add batch paths & settings]
+    end
+    
+    subgraph phase3 [Phase 3: Testing]
+        G --> H[Local: Create test batches]
+        H --> I[Server: Dry run validation]
+        I --> J[Server: 2-batch test run]
+        J --> K{Success?} K -->|Yes| L[Full 15-batch run]
+        K -->|No| M[Debug & fix]
+        M --> I
+    end
+    
+    subgraph phase4 [Phase 4: Validation]
+        L --> N[Run Validate-CADBackfillCount.py]
+        N --> O[Verify 754,409 records]
+        O --> P[Document results]
+    end
+```
+
+---
+
+### File-by-File Implementation Plan
+
+#### **File 1: Create Batch Splitter Script**
+
+**Path:** `scripts/split_baseline_into_batches.py` (NEW)
+
+**Purpose:** Split 76MB baseline into 15 manageable chunks
+
+**Key Features:**
+- Fixed 50,000 record batches
+- Preserves exact ESRI schema
+- Creates `batch_manifest.json` for tracking
+- Logs date ranges per batch for debugging
+
+**Dependencies:** None (can create immediately)
+
+**Code:** *(As provided in previous plan - 150 lines)*
+
+---
+
+#### **File 2: Modify ArcGIS Python Runner**
+
+**Path:** `docs/arcgis/run_publish_call_data.py` (MODIFY)
+
+**Changes Required:**
+
+1. **Add marker file detection** (after line 15):
+```python
+def detect_batch_number(staging_file):
+    """Extract batch number from staging file metadata if available.""" marker_dir = Path(staging_file).parent
+    batch_marker = marker_dir / "_current_batch.txt"
+    
+    if batch_marker.exists():
+        try:
+            return int(batch_marker.read_text().strip())
+        except:
+            pass
+    return None
+```
+
+2. **Add batch mode logic** (replace lines 68-105):
+```python
+# Detect batch mode
+marker_file = staging_dir / "is_first_batch.txt"
+batch_num = detect_batch_number(staging_file)
+
+if marker_file.exists():
+    mode = "APPEND"
+    batch_info = f"Batch {batch_num or '2+'}"
+else:
+    mode = "OVERWRITE"
+    batch_info = "Batch 01 (Initial)"
+
+print(f"\n[3] Batch Mode Detected:")
+print(f"    Mode:          {mode}")
+print(f"    Batch:         {batch_info}")
+print(f"    Marker exists: {marker_file.exists()}")
+```
+
+3. **Create marker after first successful run** (after line 105):
+```python
+if severity <= 1:  # Success or warnings
+    if not marker_file.exists():
+        marker_file.write_text(f"First batch completed at {datetime.now().isoformat()}")
+        print(f"    ✓ Marker file created: {marker_file}")
+```
+
+---
+
+#### **File 3: Add Staged Mode to Orchestrator**
+
+**Path:** `docs/arcgis/Invoke-CADBackfillPublish.ps1` (MODIFY)
+
+**Changes Required:**
+
+1. **Add new parameters** (after line 23):
+```powershell
+# NEW PARAMETERS FOR STAGED MODE
+[switch]$Staged,
+[string]$BatchFolder = "C:\HPD ESRI\03_Data\CAD\Backfill\Batches",
+[int]$CoolingSeconds = 60,
+[switch]$ResumeFromCheckpoint
+```
+
+2. **Add staged mode branch** (after line 160, before existing atomic swap):
+```powershell
+if ($Staged) {
+    Write-Host ""
+    Write-Host ("=" * 70) -ForegroundColor Cyan
+    Write-Host "STAGED BACKFILL MODE ACTIVATED" -ForegroundColor Cyan
+    Write-Host ("=" * 70) -ForegroundColor Cyan
+    Write-Host "Batch folder: $BatchFolder" -ForegroundColor Cyan
+    Write-Host "Cooling period: $CoolingSeconds seconds" -ForegroundColor Cyan
+    Write-Host ""
+    
+    # Find all batch files
+    $batchFiles = Get-ChildItem -Path $BatchFolder -Filter "BATCH_*.xlsx" | Sort-Object Name
+    $completedDir = Join-Path $BatchFolder "Completed"
+    
+    if (-not (Test-Path $completedDir)) {
+        New-Item -ItemType Directory -Path $completedDir | Out-Null
+    }
+    
+    $totalBatches = $batchFiles.Count
+    $currentBatch = 0
+    
+    foreach ($batchFile in $batchFiles) {
+        $currentBatch++
+        $batchNum = [regex]::Match($batchFile.Name, "BATCH_(\d+)").Groups[1].Value
+        
+        Write-Host ""
+        Write-Host ("=" * 70) -ForegroundColor Yellow
+        Write-Host "Processing Batch $batchNum of $totalBatches" -ForegroundColor Yellow
+        Write-Host "File: $($batchFile.Name)" -ForegroundColor Yellow
+        Write-Host "Size: $([math]::Round($batchFile.Length / 1MB, 2)) MB" -ForegroundColor Yellow
+        Write-Host ("=" * 70) -ForegroundColor Yellow
+        
+        $batchTimer = [Diagnostics.Stopwatch]::StartNew()
+        
+        # Create batch number marker for Python runner
+        $batchMarker = Join-Path $stagingDir "_current_batch.txt"
+        $batchNum | Out-File $batchMarker -Force
+        
+        # Atomic swap to staging
+        $tempFile = Join-Path $stagingDir "ESRI_CADExport.xlsx.tmp"
+        Copy-Item $batchFile.FullName $tempFile -Force
+        Move-Item $tempFile $stagingFile -Force
+        
+        Write-Host "[1] Batch file staged successfully" -ForegroundColor Green
+        
+        # Run publish tool
+        Write-Host "[2] Executing ArcGIS Pro publish tool..." -ForegroundColor Yellow
+        & $propyPath $runnerScript $ConfigPath
+        
+        if ($LASTEXITCODE -eq 0) {
+            $batchTimer.Stop()
+            $elapsed = $batchTimer.Elapsed.ToString("mm\:ss")
+            
+            Write-Host "[OK] Batch $batchNum completed in $elapsed" -ForegroundColor Green
+            
+            # Move to completed folder
+            $completedPath = Join-Path $completedDir $batchFile.Name
+            Move-Item $batchFile.FullName $completedPath -Force
+            Write-Host "[3] Moved to Completed folder" -ForegroundColor Green
+            
+            # Cooling period (skip for last batch)
+            if ($currentBatch -lt $totalBatches) {
+                Write-Host "[4] Cooling down for $CoolingSeconds seconds..." -ForegroundColor Cyan
+                Start-Sleep -Seconds $CoolingSeconds
+            }
+        }
+        else {
+            Write-Host "[ERROR] Batch $batchNum failed with exit code $LASTEXITCODE" -ForegroundColor Red
+            Write-Host "Batch file preserved for inspection: $($batchFile.FullName)" -ForegroundColor Yellow
+            throw "Batch processing failed at batch $batchNum"
+        }
+    }
+    
+    # Cleanup after all batches complete
+    Write-Host ""
+    Write-Host ("=" * 70) -ForegroundColor Green
+    Write-Host "ALL BATCHES COMPLETED SUCCESSFULLY" -ForegroundColor Green
+    Write-Host ("=" * 70) -ForegroundColor Green
+    
+    # Remove marker files
+    $markerFile = Join-Path $stagingDir "is_first_batch.txt"
+    $batchMarkerFile = Join-Path $stagingDir "_current_batch.txt"
+    
+    if (Test-Path $markerFile) {
+        Remove-Item $markerFile -Force
+        Write-Host "[CLEANUP] Removed first batch marker" -ForegroundColor Green
+    }
+    
+    if (Test-Path $batchMarkerFile) {
+        Remove-Item $batchMarkerFile -Force
+        Write-Host "[CLEANUP] Removed batch number marker" -ForegroundColor Green
+    }
+    
+    Write-Host ""
+    Write-Host "System ready for nightly automation" -ForegroundColor Green
+    
+    exit 0
+}
+
+# ... existing single-file backfill code continues below ...
+```
+
+---
+
+#### **File 4: Create Resume Script**
+
+**Path:** `docs/arcgis/Resume-CADBackfill.ps1` (NEW)
+
+**Purpose:** Resume failed backfill from last completed batch
+
+**Code:** *(As provided in your query - 60 lines)*
+
+---
+
+#### **File 5: Create Validation Script**
+
+**Path:** `docs/arcgis/Validate-CADBackfillCount.py` (NEW)
+
+**Purpose:** Verify final record count matches 754,409
+
+**Modifications to your provided code:**
+
+```python
+# Add this to config.json first, or hardcode the feature layer URL
+target_layer = "https://services.arcgis.com/.../FeatureServer/0"  # Update with actual URL
+```
+
+---
+
+#### **File 6: Update Configuration**
+
+**Path:** `docs/arcgis/config.json` (MODIFY)
+
+**Add new section** (after line 80):
+```json
+"staged_backfill": {
+  "batch_folder": "C:\\HPD ESRI\\03_Data\\CAD\\Backfill\\Batches",
+  "batch_size": 50000,
+  "cooling_seconds": 60,
+  "expected_total_records": 754409,
+  "expected_batches": 16,
+  "checkpoint_folder": "C:\\HPD ESRI\\03_Data\\CAD\\Backfill\\Batches\\Completed",
+  "marker_file": "C:\\HPD ESRI\\03_Data\\CAD\\Backfill\\_STAGING\\is_first_batch.txt",
+  "target_service_url": "VERIFY_FROM_ARCGIS_ONLINE",
+  "_note": "Update target_service_url with actual ArcGIS Online feature layer URL"
+}
+```
+
+---
+
+#### **File 7: Create Pre-Flight Checklist**
+
+**Path:** `docs/arcgis/PRE_FLIGHT_CHECKLIST.md` (NEW)
+
+**Content:** *(As provided in your query - formatted as markdown)*
+
+---
+
+### Testing Plan
+
+#### **Test 1: Dry Run (Local, 5 minutes)**
+
+```powershell
+# Create test batches locally
+cd "C:\Users\carucci_r\OneDrive - City of Hackensack\02_ETL_Scripts\cad_rms_data_quality"
+python scripts\split_baseline_into_batches.py
+
+# Verify output
+ls "C:\Users\carucci_r\OneDrive - City of Hackensack\13_PROCESSED_DATA\ESRI_Polished\staged_batches\"
+# Expected: BATCH_01 through BATCH_16 + batch_manifest.json
+```
+
+#### **Test 2: Server Dry Run (Server RDP, 2 minutes)**
+
+```powershell
+# After copying batches to server
+cd "C:\HPD ESRI\04_Scripts"
+.\Invoke-CADBackfillPublish.ps1 -Staged -DryRun -BatchFolder "C:\HPD ESRI\03_Data\CAD\Backfill\Batches"
+
+# Expected output: Shows what would happen without executing
+```
+
+#### **Test 3: Two-Batch Live Test (Server RDP, 15 minutes)**
+
+```powershell
+# Move BATCH_03 through BATCH_16 to temp folder temporarily
+# Run with only first 2 batches
+.\Invoke-CADBackfillPublish.ps1 -Staged -BatchFolder "C:\HPD ESRI\03_Data\CAD\Backfill\Batches"
+
+# Expected: 2 batches complete, moved to Completed/, marker file created
+```
+
+#### **Test 4: Resume Test (Server RDP, 5 minutes)**
+
+```powershell
+# Simulate failure by killing process after batch 1
+# Then run resume script
+.\Resume-CADBackfill.ps1
+
+# Expected: Picks up at batch 2, completes successfully
+```
+
+#### **Test 5: Full Run (Server RDP, 90-120 minutes)**
+
+```powershell
+# Restore all batches, clear Completed/ folder, remove markers
+.\Invoke-CADBackfillPublish.ps1 -Staged -BatchFolder "C:\HPD ESRI\03_Data\CAD\Backfill\Batches"
+
+# Monitor progress, verify each batch completes
+```
+
+#### **Test 6: Validation (Server RDP, 2 minutes)**
+
+```powershell
+# After full run completes
+propy.bat "C:\HPD ESRI\04_Scripts\Validate-CADBackfillCount.py"
+
+# Expected output: "SUCCESS: Record count matches baseline exactly (754,409)"
+```
+
+---
+
+### Success Criteria
+
+| Criterion | Validation Method | Expected Result |
+|-----------|-------------------|-----------------|
+| Batch Creation | File count in staged_batches/ | 16 .xlsx files + manifest.json |
+| Batch Sizing | Each file size | 3-4 MB per batch (except last) |
+| First Batch Mode | Python runner output | "Mode: OVERWRITE" |
+| Subsequent Batch Mode | Python runner output | "Mode: APPEND" |
+| Checkpoint System | Completed/ folder | 16 files after full run |
+| Marker Cleanup | _STAGING/ directory | No is_first_batch.txt after completion |
+| Final Record Count | Validation script | Exactly 754,409 records |
+| Date Range | Dashboard query | 2019-01-01 to 2026-02-03 |
+| No Duplicates | ReportNumberNew query | Zero duplicate case numbers |
+| Completion Time | Orchestrator log | 75-120 minutes total |
+
+---
+
+### Error Recovery Scenarios
+
+| Error | Detection | Recovery Action |
+|-------|-----------|----------------|
+| Batch 11 hangs at 564916 | Timeout after 15 min | Kill process, batch stays in folder, run Resume-CADBackfill.ps1 |
+| Network timeout | Exit code -1 | Batch preserved, manual inspection, retry |
+| Disk full | Pre-flight check fails | Free up space before starting |
+| Concurrent task conflict | Lock file exists | Wait or reschedule |
+| Marker file missing mid-run | Resume script detects | Recreate marker, force append mode |
+| Duplicate records found | Validation query | Identify problematic batch, manual cleanup |
+
+---
+
+### Documentation Updates Needed
+
+After implementation, update:
+
+1. **[docs/arcgis/README_Backfill_Process.md](docs/arcgis/README_Backfill_Process.md)**
+   - Add "Staged Backfill Mode" section
+   - Document `-Staged` parameter usage
+   - Add resume instructions
+
+2. **[CHANGELOG.md](CHANGELOG.md)**
+   - Add v1.3.5 entry for staged backfill feature
+
+3. **[Claude.md](Claude.md)**
+   - Update "ArcGIS Pro Backfill Automation" section
+   - Add staged mode workflow diagram
+
+---
+
+### Risk Assessment
+
+| Risk | Impact | Likelihood | Mitigation |
+|------|--------|-----------|------------|
+| Batch append fails (overwrites instead) | HIGH | LOW | Marker file validation + test with 2 batches first |
+| Record count mismatch | HIGH | MEDIUM | Validation script catches immediately |
+| Specific batch hangs consistently | MEDIUM | MEDIUM | Isolate batch, manually inspect problematic records |
+| Cooling period too short | MEDIUM | LOW | Configurable via parameter, can increase to 120s |
+| Checkpoint corruption | LOW | LOW | File-based checkpoint (move operation is atomic) |
+
+---
+
+### Implementation Timeline
+
+| Phase | Duration | Tasks |
+|-------|----------|-------|
+| **Phase 1: File Creation** | 1 hour | Create 4 new files (splitter, resume, validation, checklist) |
+| **Phase 2: Modifications** | 2 hours | Modify 3 existing files (runner, orchestrator, config) |
+| **Phase 3: Local Testing** | 30 min | Create test batches, verify manifest |
+| **Phase 4: Server Setup** | 30 min | Copy batches, verify directories |
+| **Phase 5: Two-Batch Test** | 30 min | Live test with 2 batches |
+| **Phase 6: Resume Test** | 15 min | Simulate failure, test resume |
+| **Phase 7: Full Run** | 120 min | Complete 16-batch backfill |
+| **Phase 8: Validation** | 15 min | Verify count, document results |
+| **Total** | **~5.5 hours** | *Including contingency time* |
+
+---
+
+### Next Steps
+
+Once you approve this plan, I will:
+
+1. **Create 4 new files:**
+   - `scripts/split_baseline_into_batches.py`
+   - `docs/arcgis/Resume-CADBackfill.ps1`
+   - `docs/arcgis/Validate-CADBackfillCount.py`
+   - `docs/arcgis/PRE_FLIGHT_CHECKLIST.md`
+
+2. **Modify 3 existing files:**
+   - `docs/arcgis/run_publish_call_data.py` (add batch detection)
+   - `docs/arcgis/Invoke-CADBackfillPublish.ps1` (add staged mode)
+   - `docs/arcgis/config.json` (add staged_backfill section)
+
+3. **Provide step-by-step testing instructions** for each validation phase
+
+**Would you like me to proceed with implementation, or do you have questions/changes to the plan? **
+
+---
+
+**User**
+
+Addressing these critical questions is essential for a successful 754K record backfill. Based on your documentation and technical investigations, here are the targeted answers to guide your implementation. ---
+
+### **1. Does `TransformCallData_tbx1` support append mode? **
+
+The short answer is **yes**, but it depends on the internal configuration of your specific Model Builder tool. * **Inspection Needed:** Open the model in **ArcGIS Pro** and look for the **Append (Data Management)** tool. * **Standard Behavior:** By default, if the "Append" tool is used, it adds records to an existing target dataset. However, if your model includes a **Delete Features** or **Truncate** step before the upload, it will overwrite the data every time it runs. * **The "Append" Requirement:** If your model is hardcoded to overwrite, you must modify it to use the **Append** tool with `schema_type="NO_TEST"` to handle the batch sequence. * **Fallback:** If modifying the model is too complex, the refined `run_publish_call_data.py` can call `arcpy.management.Append()` directly after Batch 01 completes its initial overwrite. ### **2. What is the actual bottleneck at feature 564,916? **
+
+Your logs confirm this is a **"silent hang"** rather than a hard crash. * **Geocoding Timeout:** This is the most likely culprit. The **Esri World Geocoder** often has a session threshold; after a high volume of requests (like 500K+), the network session may time out or be throttled, causing CPU activity to drop to nearly zero while the process waits for a response that never arrives. * **Network Upload:** While network timeouts during massive uploads are common, the consistency of the failure at record 564,916 suggests a session-based limit or a specific **problematic record** at that index (e.g., malformed address or invalid geometry). * **The Batching Cure:** Breaking the run into 50K chunks solves this by **resetting the network session** and clearing memory overhead every 5 minutes. ---
+
+### **3. Can we parallelize batches? **
+
+**No, sequential is strongly recommended. **
+
+* **Locking Conflicts:** ArcGIS Pro and File Geodatabases use a **`_LOCK.txt`** system. Attempting to run multiple batches in parallel against the same target feature layer would trigger **schema lock errors** and cause the entire run to fail. * **Single-Threaded Constraints:** Your current orchestrator relies on a single staging file (`ESRI_CADExport.xlsx`). Parallelizing would require a separate staging directory and a unique toolbox session for every batch, which significantly increases complexity and server resource load. ### **4. Should we pre-geocode addresses? **
+
+**Yes, this is a high-value performance optimization. **
+
+* **Address Caching:** By pre-geocoding known addresses and storing coordinates (X/Y) in your baseline, you bypass the "Geocoding" step of the toolbox for those records. * **Benefits:**
+* **Speed:** Reduces the time per batch from ~10 minutes to ~2 minutes. * **Reliability:** Eliminates the network dependency on the Geocoding service, which is the primary cause of your current 564K hang. * **Cost:** Avoids repeated consumption of geocoding credits for the same addresses in future backfills. A **Geocoding Cache** is a strategic performance optimization that prevents redundant API calls and network timeouts by ensuring each unique address is geocoded only once. By pre-calculating coordinates (X/Y) for your 754,409 records, you shift the "silent hang" risk from the production publish window to an offline preparation step. ### **The "Pre-Geocode & Cache" Logic**
+
+This script extracts unique addresses from your 76MB baseline, geocodes them, and then maps the results back to the full dataset. This ensures that even if you have 10,000 incidents at "123 Main St," you only pay for and perform the geocoding operation **once**.

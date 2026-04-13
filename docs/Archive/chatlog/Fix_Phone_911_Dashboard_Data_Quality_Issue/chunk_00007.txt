@@ -1,0 +1,634 @@
+---
+
+**Cursor**
+
+Perfect! Now **manually check** in ArcGIS Pro:
+
+1. **Right-click** "Calls For Service" layer
+2. Click **Properties**
+3. Go to **Fields** tab
+4. Scroll to find **callsource** field
+5. Look for these columns:
+   - **"Calculated"** column - is there a checkmark? - **"Expression"** column - is there code/formula? While you're checking that, let me also query the **feature service REST API** to see the field definition:
+
+```python
+import arcpy
+import json
+import urllib.request
+
+# Feature service URL
+fs_url = "https://services1.arcgis.com/JYl0Hy0wQdiiV0qh/arcgis/rest/services/CallsForService_2153d1ef33a0414291a8eb54b938507b/FeatureServer/0"
+
+print("="*80)
+print("Checking Feature Service Field Definitions")
+print("="*80)
+
+# Query the feature service definition
+try:
+    # Get service definition
+    def_url = fs_url + "?f=json"
+    
+    print(f"\nQuerying: {def_url}")
+    
+    with urllib.request.urlopen(def_url) as response:
+        service_def = json.loads(response.read().decode())
+    
+    # Find callsource field
+    fields = service_def.get('fields', [])
+    
+    print(f"\n✅ Found {len(fields)} fields in service")
+    print("\nLooking for 'callsource' field...")
+    
+    for field in fields:
+        if field['name'].lower() == 'callsource':
+            print(f"\n{'='*80}")
+            print(f"CALLSOURCE FIELD DEFINITION")
+            print(f"{'='*80}")
+            print(json.dumps(field, indent=2))
+            
+            # Check for domain
+            if 'domain' in field and field['domain']:
+                print(f"\n⚠️ DOMAIN FOUND!") print(json.dumps(field['domain'], indent=2))
+                
+                if 'codedValues' in field['domain']:
+                    print(f"\nCoded Values:")
+                    for cv in field['domain']['codedValues']:
+                        marker = "⚠️ " if '/' in str(cv.get('name', '')) else "   "
+                        print(f"{marker}  Code: {cv.get('code')} → Name: {cv.get('name')}")
+            break
+    
+    # Check for relationships or subtypes that might affect the field
+    if 'types' in service_def and service_def['types']:
+        print(f"\n⚠️ Feature service has SUBTYPES")
+        print(f"   These might have different domains per subtype")
+    
+except Exception as e:
+    print(f"\n❌ Error querying service: {e}")
+    print(f"\nTry accessing this URL in a browser:")
+    print(f"{def_url}")
+
+print("\n" + "="*80)
+print("COMPLETE - Check output above")
+print("="*80)
+```
+
+**What to look for:**
+
+### Option A: Calculated Field (in ArcGIS Pro)
+If `callsource` shows:
+- ✅ "Calculated" = Yes
+- ✅ Expression = Some Arcade code
+
+→ **The Phone/911 is created by a calculation! **
+
+### Option B: Domain with Coded Values  
+If the REST API shows:
+```json
+{
+  "domain": {
+    "type": "codedValue",
+    "codedValues": [
+      {"code": "PHONE_911", "name": "Phone/911"},
+      ...
+    ]
+  }
+}
+```
+
+→ **The Phone/911 is a domain value! **
+
+### Option C: Neither
+If no calculated field and no domain:
+→ **The Phone/911 is in the actual source data**
+
+Run that Python script in ArcGIS Pro **AND** tell me what you see in the Properties → Fields tab! ---
+
+**User**
+
+is this the item i right click? ---
+
+**Cursor**
+
+**Almost! ** But not quite. You're in the **Catalog pane** (showing the data source), but I need you to check the **layer** in the **Contents pane**. Let me clarify:
+
+## Two Places to Check:
+
+### ✅ First: Check the LAYER (Contents Pane - Left Side)
+
+1. Look at the **left side** of your screen - the **Contents pane** (shows your map layers)
+2. Find the layer called **"Calls For Service"** (the one showing on your map)
+3. **Right-click** that layer → **Properties**
+4. Go to **Fields** tab
+5. Look for `callsource` field - check if it's calculated
+
+**This is the most important one! **
+
+---
+
+### ✅ Second: Check the SOURCE DATA (What you're showing)
+
+You're already in the right place for this! The **CFS** feature class you're showing is likely the source data. Let's check it:
+
+**For the "CFS" item you're showing:**
+1. **Right-click** "CFS" (the one you're hovering over)
+2. Click **Properties**
+3. Go to **Fields** tab
+4. Look for the field that corresponds to "How Reported" or "callsource"
+5. Check if there's a **Domain** assigned to it
+
+---
+
+## Quick Test - Which View Are You In? **Contents Pane (what I need you to check first):**
+- Shows: Map layers with checkboxes
+- Example names: "Calls For Service", "World Topographic Map"
+- Usually on the LEFT side of the screen
+
+**Catalog Pane (what you're showing now):**
+- Shows: Files and databases
+- Example names: CFS, CFSTable, CrimeUpload
+- Usually on the RIGHT side or bottom
+
+---
+
+**Can you:**
+1. **First**: Check the **Contents pane** → Right-click "Calls For Service" layer → Properties → Fields
+2. **Then**: Tell me what you see for the `callsource` field
+
+Take a screenshot of both if you can! This will help us find where Phone/911 is being created. ---
+
+**User**
+
+i searched and found this but I can't right click or normal click it
+
+---
+
+**Cursor**
+
+Perfect! You found it in search, but you need to access it from the **Contents pane** directly. Here's how:
+
+## Step-by-Step:
+
+### 1. Close this search/properties window
+Click the **X** or click outside it to close
+
+### 2. Look at the LEFT side of your ArcGIS Pro window
+You should see a pane called **"Contents"** with a list like:
+```
+☑ Calls For Service
+☑ Crimes
+☑ Beat
+☑ District
+☑ World Topographic Map
+```
+
+### 3. In that Contents pane:
+- **Right-click** directly on "Calls For Service" 
+- Select **Properties** from the menu
+- A new window will open
+
+### 4. In the Properties window:
+- Click the **Fields** tab at the top
+- Scroll down to find **callsource**
+- Look in these columns:
+  - **Calculated** (checkbox) - Is it checked? - **Expression** - Is there any code? - **Domain** - Is there a domain name? ---
+
+## If You Can't Find the Contents Pane:
+
+Try this:
+1. Click **View** menu at the top
+2. Click **Contents** 
+3. The Contents pane should appear on the left
+
+OR just paste this in the Python window:
+
+```python
+import arcpy
+aprx = arcpy.mp.ArcGISProject("CURRENT")
+map_obj = aprx.listMaps("Map")[0]
+cad_layer = map_obj.listLayers("Calls For Service")[0]
+
+print("Opening layer properties dialog...")
+print("Look for the Fields tab in the Properties window that opens")
+
+# This will programmatically show you if it's calculated
+for field in cad_layer.listFields():
+    if field.name.lower() == 'callsource':
+        print(f"\nField: {field.name}")
+        print(f"Type: {field.type}")
+        print(f"Domain: {field.domain if field.domain else 'None'}")
+        print(f"Editable: {field.editable}")
+        print(f"Required: {field.required}")
+        break
+```
+
+This will tell us immediately if there's a domain on the `callsource` field! Try running that Python code. Great! I can see you're in the **Catalog pane**. But I also notice something VERY important:
+
+## 🎯 I see "Publish Call Data" tool! Under **Toolboxes → LawEnforcementDataManagement.atbx → Publish Call Data**
+
+**This tool might be where `Phone/911` is being created! **
+
+But first, let's get to the Contents pane:
+
+---
+
+## To Open Contents Pane:
+
+**Option 1 - Menu Bar:**
+1. At the very top, click **View** menu
+2. Click **Contents**
+3. The Contents pane will appear (usually left side)
+
+**Option 2 - Keyboard Shortcut:**
+- Press **Ctrl + F2**
+
+**Option 3 - Click on the Map:**
+1. At the top where you see "Maps", click on **"Map"** (the one that has your Calls For Service layer)
+2. The map will open
+3. The Contents pane should automatically appear on the left showing your layers
+
+---
+
+## Once You See Contents Pane:
+
+You'll see something like:
+```
+Drawing Order ▼
+  ☑ Calls For Service
+  ☑ Crimes  
+  ☑ Beat
+  ☑ District
+```
+
+Then:
+1. **Right-click "Calls For Service"**
+2. Select **Properties**
+
+---
+
+## ALSO - Let's Check That Tool! That "Publish Call Data" tool might be doing the transformation. **Right-click** on:
+- **Publish Call Data** (in the Toolboxes section you're showing)
+- Select **Edit** or **Open**
+
+This will show us the tool's script/model - it might reveal where `Phone/911` is being created! **Try both:**
+1. Get to Contents pane → check layer properties
+2. Right-click "Publish Call Data" tool → Edit/Open
+
+Screenshot what you find! ---
+
+**User**
+
+I am in Calls For Service properties  where to now
+
+---
+
+**Cursor**
+
+Perfect! You're in the Layer Properties dialog. Now:
+
+## Step-by-Step:
+
+### 1. Click the **"Fields"** tab
+Look at the tabs at the top of the Properties window:
+- General
+- Source
+- Selection
+- Display
+- **Fields** ← Click this one
+- Labels
+- Symbology
+- etc. ### 2. Once in the Fields tab:
+You'll see a list of all fields. Look for these columns:
+- **Field Name**
+- **Alias**
+- **Visible**
+- **Read-Only**
+- etc. ### 3. Find "callsource" field
+Scroll down the list until you find **callsource**
+
+### 4. Check these things about callsource:
+Look at the row for `callsource` and note:
+- Is there a **Domain** dropdown? (If yes, what's selected?) - Is there a **Calculated** checkbox? (If yes, is it checked?) - Is there an **Expression** button or text? ### 5. Take a screenshot
+Once you find the `callsource` field row, take a screenshot showing:
+- The entire row for `callsource`
+- All the columns/properties visible
+
+---
+
+## What We're Looking For:
+
+**If it shows a Domain:** That's where Phone/911 is being created! **If it shows Calculated = Yes:** Click on it to see the expression
+**If neither:** The Phone/911 is in the actual data
+
+Send me a screenshot of what you see! ---
+
+**User**
+
+ no fields tab
+isn't the fields tab in the attribute table
+I provided the calls for service map fields and the data fields
+
+---
+
+**Cursor**
+
+**PERFECT! ** You're absolutely right - you showed me both! Let me look at what you sent:
+
+## 🎯 KEY FINDING from Your Screenshots:
+
+Looking at your **second screenshot** (Calls For Service Map):
+- Field: **callsource**
+- Alias: **Call Source**
+- Data Type: **Text**
+- **Domain column: BLANK** ✅
+- No "Calculated" indicator
+
+## This Means:
+
+✅ **NO domain** is creating Phone/911  
+✅ **NO calculated field** is creating Phone/911  
+❌ **The Phone/911 values ARE in the actual data source! **
+
+---
+
+## So Where Are They Coming From? The `Phone/911` must be in the **source feature class** (CFS) in the geodatabase. Let's check:
+
+### Check the Source Data (CFS feature class):
+
+In your **first screenshot**, you showed the **Data Source** tab. Now let's check the actual data:
+
+**Paste this in Python window:**
+
+```python
+import arcpy
+
+# The CFS feature class path
+cfs_path = r"C:\HPD.ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement_New.gdb\CFS"
+
+print("="*80)
+print("Checking CFS Feature Class")
+print("="*80)
+
+# Check if it exists
+if arcpy.Exists(cfs_path):
+    print(f"✅ Found: {cfs_path}")
+    
+    # Get field info
+    fields = arcpy.ListFields(cfs_path)
+    for field in fields:
+        if 'source' in field.name.lower() or 'how' in field.name.lower() or 'report' in field.name.lower():
+            print(f"\nField: {field.name}")
+            print(f"  Alias: {field.aliasName}")
+            print(f"  Type: {field.type}")
+            print(f"  Domain: {field.domain if field.domain else 'None'}")
+    
+    # Sample actual values
+    print("\n" + "="*80)
+    print("Sampling actual values from CFS...")
+    print("="*80)
+    
+    # Find the field name (might be different)
+    field_to_check = None
+    for field in fields:
+        if 'callsource' in field.name.lower():
+            field_to_check = field.name
+            break
+    
+    if field_to_check:
+        print(f"\nChecking field: {field_to_check}")
+        
+        from collections import Counter
+        values = Counter()
+        
+        with arcpy.da.SearchCursor(cfs_path, [field_to_check]) as cursor:
+            for i, row in enumerate(cursor):
+                values[str(row[0]) if row[0] else "NULL"] += 1
+                if i >= 100000:  # Sample first 100k
+                    break
+        
+        print(f"\nTop 20 values:")
+        for val, count in values.most_common(20):
+            marker = "⚠️ " if '/' in val else "   "
+            print(f"{marker}{val:40s}: {count:,}")
+        
+        # Check for Phone/911
+        if any('/' in v for v in values.keys()):
+            print(f"\n⚠️ FOUND Phone/911 in CFS feature class!") print(f"   This is the source of the problem!") else:
+        print("\n❌ Could not find callsource field")
+        print("Available fields:")
+        for f in fields:
+            print(f"  - {f.name}")
+else:
+    print(f"❌ Path not found: {cfs_path}")
+```
+
+This will tell us if `Phone/911` is already in the CFS geodatabase feature class! ---
+
+**User**
+
+the CFStable path is attached. can we export this table? the script returned
+================================================================================
+Checking CFS Feature Class
+================================================================================
+❌ Path not found: C:\HPD.ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement_New.gdb\CFS
+
+---
+
+**Cursor**
+
+Perfect! I can see the correct path now. Let's check **CFSTable** instead:
+
+```python
+import arcpy
+from collections import Counter
+
+# Correct path from your screenshot
+cfs_table_path = r"C:\HPD.ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement_New.gdb\CFSTable"
+
+print("="*80)
+print("Checking CFSTable")
+print("="*80)
+
+if arcpy.Exists(cfs_table_path):
+    print(f"✅ Found: CFSTable")
+    
+    # Get field info
+    fields = arcpy.ListFields(cfs_table_path)
+    print(f"\nTotal fields: {len(fields)}")
+    
+    # Find callsource or similar fields
+    callsource_field = None
+    print("\nLooking for 'callsource' or 'How Reported' fields:")
+    for field in fields:
+        if 'source' in field.name.lower() or 'how' in field.name.lower() or 'report' in field.name.lower():
+            print(f"  ✓ {field.name} (alias: {field.aliasName}) - Type: {field.type}")
+            if 'callsource' in field.name.lower():
+                callsource_field = field.name
+    
+    if not callsource_field:
+        print("\n⚠️ 'callsource' not found, checking all fields:")
+        for field in fields[:20]:
+            print(f"  - {field.name}")
+        callsource_field = input("\nEnter the field name to check: ")
+    
+    # Sample values
+    print(f"\n{'='*80}")
+    print(f"Sampling values from field: {callsource_field}")
+    print(f"{'='*80}")
+    
+    values = Counter()
+    total = 0
+    
+    with arcpy.da.SearchCursor(cfs_table_path, [callsource_field]) as cursor:
+        for row in cursor:
+            val = str(row[0]) if row[0] is not None else "NULL"
+            values[val] += 1
+            total += 1
+            if total % 100000 == 0:
+                print(f"  Processed {total:,} records...")
+    
+    print(f"\n✅ Analyzed {total:,} records")
+    print(f"   Found {len(values)} unique values")
+    
+    print(f"\nTop 25 values:")
+    for i, (val, count) in enumerate(values.most_common(25), 1):
+        pct = (count / total) * 100
+        marker = "⚠️ " if '/' in val else "   "
+        print(f"{marker}{i:2d}. {val:40s}: {count:>8,} ({pct:>6.2f}%)")
+    
+    # Check for Phone/911
+    slash_values = [v for v in values.keys() if '/' in v]
+    if slash_values:
+        print(f"\n{'='*80}")
+        print(f"⚠️ FOUND {len(slash_values)} values with '/':")
+        print(f"{'='*80}")
+        for v in slash_values:
+            count = values[v]
+            pct = (count / total) * 100
+            print(f"  '{v}': {count:,} records ({pct:.2f}%)")
+        
+        print(f"\n💡 Phone/911 IS in the CFSTable!") print(f"   This is loaded from the baseline Excel file")
+    else:
+        print(f"\n✅ NO Phone/911 in CFSTable")
+    
+else:
+    print(f"❌ CFSTable not found at: {cfs_table_path}")
+```
+
+**This will:**
+1. ✅ Check the correct **CFSTable** path
+2. ✅ Find the callsource field
+3. ✅ Show you if `Phone/911` exists in the table
+4. ✅ Show sample values
+
+**Run this script, then:**
+
+### If Phone/911 IS in CFSTable:
+→ It's coming from the baseline Excel file you're loading
+→ We need to re-run the ESRI polishing with proper normalization
+
+### If Phone/911 is NOT in CFSTable:
+→ The "Publish Call Data" tool is creating it
+→ We need to check that tool's script
+
+Run the script and tell me what it finds! ---
+
+**User**
+
+================================================================================
+Checking CFSTable
+================================================================================
+❌ CFSTable not found at: C:\HPD.ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement_New.gdb\CFSTable
+
+shouild I check the model? how do I move aronf in the model canvas do I hold down "" or "v" or do i have to use the slid bas on the bottom and side? ---
+
+**Cursor**
+
+**YES! Check the model! ** That "Publish Call Data" tool is likely where `Phone/911` is being created. ## How to Navigate in Model Builder:
+
+### To Move Around:
+- **Hold SPACEBAR** and **drag with mouse** ← Best method! - OR use scroll bars on bottom/right
+- OR middle mouse button (scroll wheel) click and drag
+
+### To Zoom:
+- **Ctrl + Mouse wheel** scroll
+- OR use zoom slider (usually top right)
+- OR **Ctrl + +** to zoom in, **Ctrl + -** to zoom out
+
+---
+
+## What to Look For in the Model:
+
+### 1. Open the Model:
+- Right-click **"Publish Call Data"** tool
+- Click **"Edit"** (opens Model Builder)
+
+### 2. Look for These Tools:
+- **Calculate Field** tool (this is most likely!) - Look for calculations on "callsource" or "How Reported"
+  - Check if it has expressions like `IIf(Phone OR 911, "Phone/911", ...)`
+- **Select** or **Select Layer By Attribute**
+  - Might be selecting Phone and 911 records
+- **Append** or **Merge**
+  - Might be combining Phone and 911 records
+
+### 3. Take Screenshots:
+- Take a screenshot of the entire model workflow
+- Double-click any **Calculate Field** tool that touches callsource
+- Screenshot the expression
+
+---
+
+## Quick Path Check First:
+
+Let's find where CFSTable actually is:
+
+```python
+import arcpy
+import os
+
+# The geodatabase path
+gdb_path = r"C:\HPD.ESRI\LawEnforcementDataManagement_New\LawEnforcementDataManagement_New.gdb"
+
+print("="*80)
+print("Finding ALL tables and feature classes in geodatabase")
+print("="*80)
+
+if arcpy.Exists(gdb_path):
+    print(f"✅ Found geodatabase: {gdb_path}\n")
+    
+    # List all feature classes
+    arcpy.env.workspace = gdb_path
+    
+    print("Feature Classes:")
+    for fc in arcpy.ListFeatureClasses():
+        print(f"  - {fc}")
+    
+    print("\nTables:")
+    for table in arcpy.ListTables():
+        print(f"  - {table}")
+    
+    print(f"\n👉 Look for CFS-related items above")
+else:
+    print(f"❌ Geodatabase not found: {gdb_path}")
+```
+
+Run this first to find the correct table name, **THEN** open the model and navigate around with **Spacebar + drag**! ---
+
+**User**
+
+here is the model in sections
+
+---
+
+**Cursor**
+
+**EXCELLENT! ** I can see the model. Now I can spot the problem areas:
+
+## 🎯 Key Findings from Your Model:
+
+I see **MANY "Calculate Field" tools** (yellow diamonds) throughout the workflow. One of these is likely creating `Phone/911`. ## What to Do Next:
+
+### 1. Find the Calculate Field that Touches "callsource"
+
+Look for Calculate Field tools in the **first section** (near "Input Spreadsheet"):
+- Double-click each **"Calculate Field"** tool (yellow diamonds)
+- Look at the **Field Name** - is it `callsource` or `How Reported`?

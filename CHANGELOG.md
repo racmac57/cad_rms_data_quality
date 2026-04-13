@@ -9,6 +9,555 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - CLAUDE.md Rewrite and Claude Code Custom Skills
+
+**CLAUDE.md rewrite:**
+- Renamed `Claude.md` → `CLAUDE.md` (correct casing for Claude Code on Linux)
+- Restructured from 542-line historical narrative to 237-line actionable reference
+- Agent rules moved to top of file (were buried at bottom)
+- Added quick commands, directory map, data model tables, architecture decision log
+- Removed duplicate code blocks and verbose v1.6.0 narrative (already in docs/)
+
+**6 Claude Code custom skills** added in `.claude/skills/`:
+
+| Skill | Purpose |
+|-------|---------|
+| `/handoff` | Generate structured AI handoff documents with Cursor/Claude Code opening prompts |
+| `/pipeline-status` | Generate PowerShell to verify nightly Task Scheduler jobs on HPD2022LAWSOFT |
+| `/validate-monthly` | Run monthly CAD/RMS validation and summarize quality score |
+| `/check-paths` | Lint configs and scripts for path convention violations |
+| `/consolidation-run` | Execute full consolidation with pre/post-flight checks |
+| `/deploy-script` | Generate deployment commands for the RDP server |
+
+**Supporting changes:**
+- `.gitignore` updated: `.claude/` → `.claude/*` + `!.claude/skills/` (skills are version-controlled)
+- `README.md` updated: new project structure tree, skills section, architecture principle #7
+- `SUMMARY.md` updated: version bump, skills documentation, refreshed project structure
+- `validation/DOCUMENTATION_INDEX.md` updated: `Claude.md` → `CLAUDE.md`
+
+---
+
+## [1.7.1] - 2026-04-10
+
+### Fixed - Nightly ESRI Call Data Pipeline Restored
+
+**Problem:** `Publish Call Data_2026_NEW` Task Scheduler task had been failing nightly since ~early February 2026 (exit code 1). Root cause: task ran as `SYSTEM (Local System, S-1-5-18)` which cannot write to `C:\Users\administrator.HPD\AppData\...` and has no ArcGIS Named User license. The `PermissionError` in `task.py`'s `finally` block (XML log write) caused Python to exit with code 1.
+
+**Solution:** Changed task account from SYSTEM to `HPD\administrator` with RunLevel Highest. Also changed `pythonw.exe` → `python.exe` for stdout/stderr capture.
+
+```powershell
+schtasks /change /tn "Publish Call Data_2026_NEW" /ru "HPD\administrator" /rp <password> /rl HIGHEST
+```
+
+**Manual test run (2026-04-09, exit code 0):**
+- 21,833 features geocoded and appended to TempCallLayer
+- 11 features updated with geometry → AGOL `CallsForService` feature service  
+- 11,574 features updated with attribute changes
+- Task awaiting 1 AM confirmation run
+
+### Discovered - Two-Pipeline Architecture Clarified
+
+During diagnosis, confirmed the production ESRI pipeline is split across two directories and GDBs:
+
+| Pipeline | Tool | GDB |
+|----------|------|-----|
+| Call Data (nightly) | `TransformCallData` | `C:\ESRIExport\LawEnforcementDataManagement_New\` |
+| Crime Data (manual only) | `Model1` | `C:\HPD ESRI\LawEnforcementDataManagement_New\` |
+
+**Crime Data has no scheduled task** — runs manually via ArcGIS Pro only. Automation is planned next session (see `docs/ai_handoff/HANDOFF_20260410_Crime_Data_Automation.md`).
+
+### Added - Session Handoff Documents
+- `docs/ai_handoff/HANDOFF_20260410_ESRI_Pipeline_Fixed.md` — morning verification guide with Cursor/Claude Code prompts
+- `docs/ai_handoff/HANDOFF_20260410_Crime_Data_Automation.md` — Crime Data automation implementation guide
+
+---
+
+## [1.6.1] - 2026-02-16
+
+### Fixed - Gap Record Calldate Values (Surgical API Update)
+
+**Problem:** 2,680 gap records (Feb 3-15, 2026) showed wrong `calldate` values (all "2/6/26 10:00:00" estimate instead of real dates from source CAD export).
+
+**Solution:** Surgical ArcGIS API for Python update using three production scripts:
+- Real dates from `gap_for_append_v2` table applied to local baseline and online layer
+- Recalculated derived fields: `calldow`, `callhour`, `callmonth`, `callyear`
+- Recalculated response metrics: `dispatchtime`, `responsetime`
+- Dashboard chronological sort now displays most recent calls first
+
+**Scripts Created:**
+- `scripts/probe_gap_record.py` (277 lines) - Timezone & field verification probe (read-only)
+- `scripts/fix_gap_calldate_local.py` (720 lines) - Local baseline (CFStable_GeocodeAddresses) update
+- `scripts/fix_gap_calldate_online.py` (991 lines) - Online layer surgical update (2,680 records)
+
+**Key Features:**
+- CLI with `--live`, `--rollback`, `--dry-run` (default)
+- Forced America/New_York timezone (prevents DST/offset bugs)
+- Numeric range enforcement (26-011288 to 26-014999)
+- Schema preflight checks (aborts if fields missing)
+- Out-of-range dispatch metrics → NULL (no stale values)
+- Batch processing (200 records per API call, 14 batches)
+- Audit assertions with `--expected-updates 2680`
+- JSON artifacts (snapshot, changes, summary) + CSV exports
+- Rollback capability from snapshot.json
+
+**Safety Features:**
+- No truncate/reload (avoids geometry regression risk)
+- Zero downtime (dashboard remains operational during update)
+- Reversible (exact rollback to pre-fix state)
+- Duplicate Call ID detection and logging
+
+**Performance:**
+- Local baseline fix: ~1 minute (2,680 UpdateCursor operations)
+- Online update: ~3-5 minutes (14 API batches)
+- Total execution: ~5-7 minutes vs 13+ minutes for full truncate/reload
+
+**Documentation:**
+- `docs/GAP_BACKFILL_UNIFIED_IMPLEMENTATION_PLAN.md` - Complete execution guide
+- `docs/perplexity_spaces_handoff.md` - Updated with completion status
+- `docs/HANDOFF_20260216_BACKFILL_SESSION.md` - Added §9.4 gap fix summary
+
+**AI Collaboration:**
+- Perplexity: Gap backfill architecture, date issue identification
+- Claude Opus: Production script creation (v4 with all safety features)
+- Code Copilot (ChatGPT): Safety review (6 risks identified, all addressed)
+- Cursor AI: Documentation, unified implementation plan, git integration
+
+**Outcome:**
+- ✅ 571,282 total records with valid geometry and correct dates
+- ✅ Gap closure complete: Feb 3-15, 2026
+- ✅ Dashboard operational: Full coverage 2019-01-01 to 2026-02-15
+- ✅ Chronological sort: Most recent calls display first
+
+**Official Baseline Created:**
+- `scripts/backup_baseline_v1_6_1.py` - Backup script created
+- Location: `C:\HPD ESRI\03_Data\CAD\Backfill\Baseline_v1_6_1.gdb\CallsForService_Baseline_20190101_20260215`
+- Records: 571,282 (100% verified match with online layer)
+- Date Range: 2019-01-01 to 2026-02-15
+- Duration: 110 seconds (1.8 minutes)
+- Created: 2026-02-16 22:54:04
+- Purpose: Gold standard baseline for future backfills, emergency rollback, audit trail
+
+---
+
+### Fixed - Backfill script Step 9 verification and Step 6 reporting (2026-02-16)
+
+- **Step 9 (CFStable verification):** On RDP, CFStable has a different schema (no `calltype`) and append yields 0 records. The script now skips the sample cursor when count is 0 or when `calltype`/`callid` are missing, logs a warning, and continues to Step 10 (append TEMP_FC_3857 → online). Prevents "Cannot find field 'calltype'" from stopping the run.
+- **Step 6 (geometry reporting):** "Records dropped due to NULL coords" now uses `record_count - point_count` (actual dropped) instead of a formula that could go negative. WARN "X records have NULL/malformed coordinates" is only logged when `null_count > 0` and `null_count < record_count` to avoid a misleading "all null" message when all rows got points.
+- **Handoff:** `docs/HANDOFF_20260216_BACKFILL_SESSION.md` updated with RDP run log, Step 6 investigation notes, and §9 summarizing prior AI chats (Gemini Prompt A + Dec hotfix, Deploy cached-cred script, ChatGPT geometry plan and survey answers).
+
+### Added - Post-Publish Dashboard Health Monitoring (Prompt B)
+
+#### Problem Solved
+After successful v1.6.0 backfill, dashboard geometry unexpectedly regressed to NULL (no points displayed). Without automated validation, bad publishes could be "approved" as successful, requiring manual dashboard inspection to detect issues.
+
+**Solution**: Add post-publish validation gate that fails the job if geometry or spatial reference issues are detected, preventing bad data from being treated as success.
+
+#### Monitor Script Created
+
+**`scripts/monitor_dashboard_health.py`** - Post-publish validation gate using ArcGIS API for Python
+- **Connects via GIS('pro')**: Uses same ArcGIS Pro environment as publish operations
+- **Three validation checks**:
+  1. **Record Count**: Confirms total feature count in CallsForService layer
+  2. **WKID Validation**: Ensures Web Mercator (3857 or 102100) spatial reference
+  3. **Geometry Health**: Samples 1000 features, fails if >1% have NULL geometry
+- **Exit codes**: 0=OK, 2=Geometry fail, 3=WKID mismatch, 4=Query/connection fail
+- **JSON reporting**: Writes detailed report to `C:\HPD ESRI\04_Scripts\_out\monitor_YYYYMMDD_HHMMSS.json`
+- **Configurable thresholds**: Can override via `config.json` (sample size, max null %, expected WKIDs)
+
+#### PowerShell Orchestrator Patched
+
+**`docs/arcgis/Invoke-CADBackfillPublish.ps1`** - Added post-publish validation gate
+- **Single-file mode**: Inserted Step 6.5 after publish (line 520), before restore step
+- **Staged batch mode**: Inserted validation after each batch success (line 366)
+- **Failure behavior**: Throws exception to abort workflow if validation fails
+- **Error messages**: Clear diagnostics for each exit code (geometry, WKID, connection)
+
+#### Safety Features
+
+**Fail-Loud Strategy:**
+- Job exits with error if geometry < 99% present
+- Job exits with error if WKID not Web Mercator (3857/102100)
+- Prevents "successful publish with bad data" scenario
+
+**Detailed Reporting:**
+- JSON output includes: timestamp, layer URL, total count, WKID, sample size, null geometry count/percentage
+- Console output shows all validation steps and results
+- Report preserved for audit trail
+
+**Acceptance of WKID Variants:**
+- Accepts both 3857 and 102100 as valid Web Mercator
+- AGOL services sometimes report 102100 instead of 3857 (equivalent projections)
+
+#### Files Modified
+
+**Created:**
+- `scripts/monitor_dashboard_health.py` (195 lines) - Dashboard health validation script
+
+**Patched:**
+- `docs/arcgis/Invoke-CADBackfillPublish.ps1` - Added Step 6.5 post-publish gate (single-file mode)
+- `docs/arcgis/Invoke-CADBackfillPublish.ps1` - Added validation after batch success (staged mode)
+
+#### Usage
+
+**Manual test (on RDP):**
+```powershell
+C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\propy.bat "C:\HPD ESRI\04_Scripts\monitor_dashboard_health.py"
+echo $LASTEXITCODE
+```
+
+**Expected output:**
+- Exit code 0 if healthy
+- JSON report in `C:\HPD ESRI\04_Scripts\_out\monitor_*.json`
+
+**Integrated in workflow:**
+- Automatically runs after every publish operation
+- Fails the job if validation doesn't pass
+- No manual intervention required
+
+#### Impact
+
+**Before (v1.6.0 regression):**
+- Bad geometry silently accepted as "successful publish"
+- Required manual dashboard inspection to detect issues
+- No automated way to prevent approving bad data
+
+**After (Prompt B implementation):**
+- Automated validation runs after every publish
+- Job fails loudly if geometry < 99% or WKID wrong
+- Prevents bad data from being treated as success
+- Enables safe testing of Prompt A patches
+
+#### Next Steps
+1. ✅ **COMPLETE**: Post-publish monitoring gate (Prompt B)
+2. 🚧 **NEXT**: Deploy to RDP and test monitor
+3. 🚧 **NEXT**: Implement Prompt A (geometry restoration patches)
+
+---
+
+### Added - Simplified RDP Deployment Script
+
+#### Problem Solved
+After v1.6.0 successful backfill (565,870 records), the ArcGIS Online dashboard showed NULL geometry (no points displayed). Investigation revealed the dashboard layer had lost X/Y coordinates, requiring restoration. Additionally, deployment to the RDP server was unreliable via PowerShell network authentication (Get-Credential always failed with "network password not correct"), forcing manual copy-paste workflows.
+
+**Root cause of deployment issue**: Windows cached credentials from File Explorer allowed UNC path access (\\HPD2022LAWSOFT\C$) manually, but PowerShell Get-Credential with explicit authentication always failed. The working authentication was transparent to the user but not accessible to scripted deployment tools.
+
+**Solution**: Create simplified deployment script that leverages Windows' cached credentials instead of prompting for authentication.
+
+#### Deployment Script Created
+
+**`Deploy-ToRDP-Simple.ps1`** - Simplified deployment leveraging cached Windows credentials
+- **No credential prompting**: Uses Windows cached authentication from File Explorer
+- **Pre-flight checks**: Validates RDP paths accessible before attempting deployment
+- **Automatic backup**: Creates timestamped backup folder (`00_Backups/ScriptsDeploy_YYYYMMDD_HHMMSS/`) before deployment
+- **Dual deployment**: Copies both scripts (33 files from `scripts/`) and documentation (SUMMARY.md, README.md, CHANGELOG.md) to RDP
+- **Dry-run mode**: Test deployment without file operations (`-DryRun` switch)
+- **Skip backup option**: Disable backup for faster testing (`-NoBackup` switch)
+- **Detailed logging**: All operations logged to `deploy_logs/Deploy_YYYYMMDD_HHMMSS.log`
+
+#### Features Implemented
+
+**Cached Credential Workflow:**
+- User authenticates once via File Explorer: `\\HPD2022LAWSOFT\C$`
+- Windows caches credentials for session
+- PowerShell script leverages cached session (no Get-Credential needed)
+- Eliminates "network password not correct" errors
+
+**Safety Features:**
+- Backup existing server files before overwrite
+- Pre-flight path validation (exit with clear error if paths inaccessible)
+- Dry-run mode for safe testing
+- Detailed logging with timestamps
+- Error handling with actionable messages
+
+**Deployment Targets:**
+- Scripts: `\\HPD2022LAWSOFT\C$\HPD ESRI\04_Scripts\` (33 Python/PowerShell files)
+- Documentation: `\\HPD2022LAWSOFT\C$\HPD ESRI\` (SUMMARY.md, README.md, CHANGELOG.md)
+- Backups: `\\HPD2022LAWSOFT\C$\HPD ESRI\00_Backups\`
+
+**Diagnostic Tools Created:**
+- `Quick-Test-RDPConnection.ps1` - Network connectivity diagnostic script
+  - Tests SMB port 445 accessibility
+  - Tests UNC path access
+  - Tests authentication (credential prompt method)
+  - Tests write permissions
+  - Identifies authentication mechanism (cached vs explicit)
+
+#### Test Results
+
+**Dry-Run Test (2026-02-15):**
+- ✅ RDP scripts directory accessible
+- ✅ RDP docs directory accessible
+- ✅ Would deploy 33 scripts to server
+- ✅ Would deploy 3 documentation files to server
+- ✅ Would create backup at `\\HPD2022LAWSOFT\C$\HPD ESRI\00_Backups\`
+- ✅ All syntax checks passed
+
+**Deployment Readiness:**
+- Script tested in dry-run mode
+- Paths validated
+- File counts verified
+- Ready for production deployment
+
+#### Files Created
+
+**Deployment:**
+- `Deploy-ToRDP-Simple.ps1` (149 lines) - Simplified deployment script
+- `deploy_logs/` - Deployment log directory
+
+**Diagnostics:**
+- `Quick-Test-RDPConnection.ps1` (128 lines) - RDP connection diagnostic tool
+
+#### Usage
+
+```powershell
+# Test deployment (no changes)
+.\Deploy-ToRDP-Simple.ps1 -DryRun
+
+# Deploy with backup (default)
+.\Deploy-ToRDP-Simple.ps1
+
+# Deploy without backup (faster)
+.\Deploy-ToRDP-Simple.ps1 -NoBackup
+```
+
+#### Next Steps
+1. Run `.\Deploy-ToRDP-Simple.ps1` to deploy scripts and documentation
+2. Implement Prompt A: Generate patches for `publish_with_xy_coordinates.py` and `complete_backfill_simplified.py`
+3. Implement Prompt B: Create `monitor_dashboard_health.py` and patch PowerShell orchestrator
+4. Test geometry restoration workflow on RDP server
+
+---
+
+## [1.6.0] - 2026-02-09
+
+### Added - Historical CAD Backfill Scripts (XY Coordinate Strategy)
+
+#### Problem Resolved
+**Live geocoding timeouts**: ModelBuilder's "Geocode Addresses" tool hung indefinitely when processing 565K+ addresses through Esri World Geocoding Service. Process stuck at "WARNING 000635: Skipping feature 564897" for >5 minutes with no progress.
+
+**Root cause**: Network session timeouts during bulk geocoding operations (>100K records). Live geocoding services are not designed for batch operations of this scale.
+
+**Solution**: Bypass live geocoding entirely by using existing `latitude`/`longitude` fields in source data with `XYTableToPoint` tool.
+
+#### Scripts Created (Backfill Workflow)
+
+**Backup & Restore Operations:**
+1. `scripts/backup_current_layer.py` (170 lines) - Export online layer to local FGDB
+   - Triple confirmation required
+   - SHA256 hash verification
+   - UTF-8 encoding for emoji logging
+   - Successfully backed up 561,740 records
+   
+2. `scripts/truncate_online_layer.py` (150 lines) - Delete all records from online feature layer
+   - Triple confirmation: "TRUNCATE" + username + "DELETE ALL RECORDS"
+   - Pre-flight checks (service accessibility, backup exists)
+   - Used successfully 3 times during testing
+   
+3. `scripts/restore_from_backup.py` (180 lines) - Emergency rollback operation
+   - Truncate current online data
+   - Restore from local backup
+   - Single confirmation: "ROLLBACK"
+   - Successfully restored 561,740 records once
+
+**Backfill Workflow Scripts:**
+4. `scripts/publish_with_xy_coordinates.py` (170 lines) - Initial attempt (failed)
+   - Table Select → XYTableToPoint → Append
+   - Result: 565,870 records with geometry but NULL attributes
+   - Issue: No field transformations, no field mapping
+   
+5. `scripts/complete_backfill_with_xy.py` (350 lines) - Second attempt (failed)
+   - Added all ModelBuilder transformations (datetime conversion, response time calculations, date attributes)
+   - Result: DateTime fields populated, other attributes still NULL
+   - Issue: Field name mismatch (ReportNumberNew vs callid, etc.)
+   
+6. `scripts/complete_backfill_fixed.py` (420 lines) - Third attempt (failed)
+   - Attempted FieldMappings API to translate source → target field names
+   - Result: Field mapping code failed to transfer data
+   - Issue: FieldMappings API errors
+   
+7. `scripts/complete_backfill_simplified.py` (450 lines) - Final solution (ready to test)
+   - Creates duplicate fields with target names, copies values directly
+   - Avoids FieldMappings API entirely
+   - Status: 🟡 Untested (needs final validation)
+
+**Diagnostic Scripts:**
+8. `scripts/diagnose_missing_data.py` - Check for NULL attributes in temp FC and online service
+9. `scripts/check_cfstable_schema.py` - Display CFStable field schema (41 fields)
+10. `scripts/check_temp_fc_fields.py` - Verify fields in temp feature class after XYTableToPoint
+11. `scripts/verify_data_exists.py` - Sample record values to identify NULL fields
+12. `scripts/verify_temp_fc_fields.py` - Check field presence and sample data
+
+#### Field Schema Mapping
+
+| Source Field (Excel) | Target Field (CFStable/Online) | Transformation |
+|----------------------|--------------------------------|----------------|
+| ReportNumberNew      | callid                         | Direct copy    |
+| Incident             | calltype                       | Direct copy    |
+| How_Reported         | callsource                     | Direct copy    |
+| FullAddress2         | fulladdr                       | Clean (remove leading & or ,) |
+| Time_Of_Call         | calldate                       | Text → DATE conversion |
+| Time_Dispatched      | dispatchdate                   | Text → DATE conversion |
+| Time_Out             | enroutedate                    | Text → DATE conversion |
+| Time_In              | cleardate                      | Text → DATE conversion |
+| (calculated)         | dispatchtime                   | (dispatchdate - calldate) / 60 |
+| (calculated)         | queuetime                      | (enroutedate - dispatchdate) / 60 |
+| (calculated)         | cleartime                      | (cleardate - enroutedate) / 60 |
+| (calculated)         | responsetime                   | dispatchtime + queuetime |
+| (extracted)          | calldow                        | Day of week name from calldate |
+| (extracted)          | calldownum                     | Day of week number from calldate |
+| (extracted)          | callhour                       | Hour from calldate |
+| (extracted)          | callmonth                      | Month from calldate |
+| (extracted)          | callyear                       | Year from calldate |
+| longitude            | x                              | Convert to numeric (float) |
+| latitude             | y                              | Convert to numeric (float) |
+
+#### Key Features Implemented
+
+**Bypass Live Geocoding:**
+- Uses existing latitude/longitude fields from source data
+- Converts text coordinates to numeric DOUBLE fields
+- Creates geometry via XYTableToPoint (WGS 1984 / EPSG:4326)
+- Eliminates network dependency during publish
+
+**Complete Field Transformations:**
+- 4 datetime conversions (Time_Of_Call → calldate, etc.)
+- 4 response time calculations (dispatchtime, queuetime, cleartime, responsetime)
+- 5 date attribute extractions (calldow, calldownum, callhour, callmonth, callyear)
+- Address cleaning (remove leading & or ,)
+- Field name translation (ReportNumberNew → callid, etc.)
+
+**Field Copying Strategy (Final Solution):**
+```python
+def copy_field_values(in_table, source_field, target_field, field_type="TEXT", field_length=255):
+    # Add target field
+    arcpy.management.AddField(in_table, target_field, field_type, field_length=field_length)
+    # Copy values directly
+    arcpy.management.CalculateField(
+        in_table=in_table,
+        field=target_field,
+        expression=f"!{source_field}!",
+        expression_type="PYTHON3"
+    )
+```
+
+**Two-Stage Append:**
+1. Append temp feature class → local CFStable (with proper field names)
+2. Push CFStable → online service (schema already matches)
+
+**Safety Features:**
+- Triple confirmation for destructive operations
+- Automatic backup before truncate
+- Emergency restore script
+- UTF-8 logging (handles emoji status indicators)
+- Record count verification at each step
+
+#### Test Results (Diagnostic Validation)
+
+**Source Data Verified:**
+```
+ReportNumberNew: 19-000001
+Incident: Blocked Driveway
+How_Reported: Phone
+FullAddress2: 198 Central Avenue, Hackensack, NJ, 07601
+latitude: 40.8856
+longitude: -74.0435
+Time_Of_Call: 2019-01-01 00:04:21
+```
+
+**CFStable Schema Confirmed:**
+```
+Total Fields: 41
+Key Fields: callid, calltype, callsource, fulladdr, calldate, dispatchdate,
+            enroutedate, cleardate, dispatchtime, queuetime, cleartime,
+            responsetime, calldow, calldownum, callhour, callmonth, callyear,
+            x, y (all required fields present)
+```
+
+**Issue Identified:**
+```
+CFStable Sample Record:
+  callid: None         ← Should be "19-000001"
+  calltype: None       ← Should be "Blocked Driveway"
+  callsource: None     ← Should be "Phone"
+  fulladdr: None       ← Should be address
+  calldate: 2019-01-01 00:04:21  ← ✅ DateTime conversion worked
+```
+
+**Root Cause:** FieldMappings API failed to transfer attribute values despite correct field names.
+
+#### Performance Metrics
+
+**Live Geocoding (Original ModelBuilder):**
+- Hang time: 75+ minutes → infinite timeout at feature 564,897
+- CPU activity: Drops to 0%
+- Success rate: 0%
+
+**XY Coordinate Strategy (Simplified Script):**
+- Expected execution time: 12-15 minutes for 565,870 records
+- Success rate: 100% (geometry creation confirmed)
+- Attribute transfer: 🟡 Pending final test of simplified field copy approach
+
+#### Execution Example (Final Script)
+
+```powershell
+cd "C:\HPD ESRI\04_Scripts"
+
+# Truncate online service (clear bad data)
+C:\PROGRA~1\ArcGIS\Pro\bin\Python\Scripts\propy.bat truncate_online_layer.py
+
+# Run simplified backfill with field copying
+C:\PROGRA~1\ArcGIS\Pro\bin\Python\Scripts\propy.bat complete_backfill_simplified.py
+```
+
+#### Documentation Created
+
+1. `docs/HANDOFF_20260209.md` (620 lines) - Complete handoff document
+   - Timeline of events and script evolution
+   - Root cause analysis (live geocoding timeout + field schema mismatch)
+   - All scripts documented with code samples
+   - Key paths and locations (RDP server, local dev, online resources)
+   - ModelBuilder workflow analysis
+   - Data validation results
+   - Accomplishments and outstanding issues
+   - Next steps and troubleshooting guide
+
+### Changed
+
+- Backfill strategy: Shifted from ModelBuilder live geocoding to XY coordinate-based approach
+- Field mapping approach: Evolved from FieldMappings API to direct field copying
+- Workflow architecture: Added intermediate CFStable staging for schema compatibility
+
+### Fixed
+
+- Live geocoding timeout eliminated by using existing coordinates
+- UnicodeEncodeError in logging functions (added `encoding="utf-8"`)
+- DateTime conversion working correctly (Time_Of_Call → calldate, etc.)
+- Response time calculations functional (dispatchtime, queuetime, cleartime, responsetime)
+- Date attribute extraction working (calldow, calldownum, callhour, callmonth, callyear)
+
+### Outstanding Issues
+
+❌ **Field name translation not working** - FieldMappings API failed to transfer attributes  
+🟡 **Simplified field copy approach untested** - Need to validate `complete_backfill_simplified.py`  
+❓ **Date range discrepancy** - Source claims 2019-2026, but online shows 2023-2026 (possible NULL coordinate filtering?)  
+
+### Status
+
+**Scripts Ready:** ✅ All 12 scripts created and tested (except final simplified version)  
+**Backup System:** ✅ Working (561,740 records backed up and restored successfully)  
+**Truncate Operation:** ✅ Working (triple confirmation, used 3 times)  
+**Geometry Creation:** ✅ Working (565,870 points created via XYTableToPoint)  
+**DateTime Transformations:** ✅ Working (calldate populated correctly)  
+**Field Mapping:** ❌ Failed (FieldMappings API did not transfer attributes)  
+**Final Solution:** 🟡 Ready to test (`complete_backfill_simplified.py` with field copying)
+
+### Next Actions
+
+1. **Test simplified script:** Run `complete_backfill_simplified.py` on RDP server
+2. **Validate results:** Check dashboard for populated attribute data
+3. **Investigate date range:** Determine why 2019-2022 data may be missing from online service
+4. **Clean up failed scripts:** Archive unsuccessful versions after validation complete
+
 ---
 
 ## [1.5.0] - 2026-02-06
