@@ -99,6 +99,16 @@ Project-level skills in `.claude/skills/`. Invoke with `/<name>` in Claude Code.
 
 ---
 
+## Skill Documentation
+
+How-to guides for all skills in this project live in:
+`C:\Users\carucci_r\OneDrive - City of Hackensack\00_dev\ai_enhancement\docs\skills\`
+
+- `cad_rms_data_quality_skills.md` — project skills (10 skills)
+- `SKILLS_INDEX.md` — full index of all global and project skills
+
+---
+
 ## Directory Structure
 
 ```
