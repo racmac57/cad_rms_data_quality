@@ -20,6 +20,10 @@ mappings:
   field_rules: "${standards_root}/mappings/field_mappings/mapping_rules.md"
   call_types_csv: "${standards_root}/mappings/call_types_*.csv"
   multi_column_strategy: "${standards_root}/CAD_RMS/DataDictionary/current/schema/multi_column_matching_strategy.md"
+  # Domain normalization maps. UPPERCASE raw input keys -> canonical target values.
+  # Loaded via shared/utils/normalization.py.
+  disposition_normalization: "${standards_root}/CAD_RMS/mappings/disposition_normalization_map.json"
+  how_reported_normalization: "${standards_root}/CAD_RMS/mappings/how_reported_normalization_map.json"
 
 # Runtime configuration files
 config:

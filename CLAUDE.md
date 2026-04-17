@@ -79,6 +79,8 @@ python -m monthly_validation.scripts.validate_cad
 python -m monthly_validation.scripts.validate_rms
 ```
 
+**CAD / Sandbox migration (selective):** See `docs/MIGRATION_CAD_CLEANING_ENGINE.md` for the phased backlog (Standards JSON mappings, consolidation path decoupling, golden tests). Do not big-bang port `_Sandbox\CAD_Data_Cleaning_Engine`.
+
 Note: No test suite exists yet. The `pyproject.toml` configures pytest (`testpaths = ["tests"]`)
 but the `tests/` directory has not been created.
 
